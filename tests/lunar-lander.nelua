@@ -1,0 +1,41 @@
+require 'raylib'
+require 'rotor'
+require 'rotor-quick'
+
+
+
+--[[
+asteroid = {
+  position = {},
+  velocity = {},
+  asteroid_info = {},
+  {
+    shape = {},
+    intersectable = {},
+    shape2intersectable = {}
+  },
+  {
+    shape = {},
+    mesh = {},
+    shape2mesh = {}.
+  },
+}
+
+spaceship = {
+  spaceship_controller = {},
+  position = {},
+  velocity = {},
+  spaceship_info = {},
+  {
+    shape = {},
+    intersectable = {},
+    shape2intersectable = {}
+    intersections = {},
+  },
+  {
+    shape = {},
+    mesh = {},
+    shape2mesh = {}.
+  },
+}
+]]

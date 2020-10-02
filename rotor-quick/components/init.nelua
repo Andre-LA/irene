@@ -1,0 +1,8 @@
+require 'rotor-quick.components.position' -- TODO: create Transform and deprecate Position
+require 'rotor-quick.components.velocity'
+require 'rotor-quick.components.shape'
+require 'rotor-quick.components.painter'
+require 'rotor-quick.components.is_static'
+require 'rotor-quick.components.gravity' -- NOTE: I may remove this in the future
+
+--require 'rotor-quick.components.intersectable'

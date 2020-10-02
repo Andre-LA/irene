@@ -1,0 +1,12 @@
+require 'rotor-quick.makers'
+
+global RotorQuick.Components.Velocity = @record{
+  direction: Vector2,
+  speed: number,
+  active: boolean,
+}
+
+global RotorQuick.Components.Velocity.mask = RotorQuick.AddMask'velocity'
+
+local Velocity = RotorQuick.Components.Velocity
+## is_component(Velocity)

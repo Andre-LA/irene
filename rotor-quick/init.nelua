@@ -1,0 +1,34 @@
+require 'vector'
+
+global RotorQuick = @record{}
+
+global RotorQuick.masks: vector(BitsetArray);
+
+local RMaskMap = @record{}
+global RotorQuick.mask_map: RMaskMap = {}
+
+function RotorQuick.AddMask(comptype: stringview <comptime>): BitsetArray
+  ## local compname = string.lower(comptype.value)
+  ## print('compname', compname)
+  ## RMaskMap.value:add_field(compname, BitsetArray)
+
+  -- PAREI AQUI ========================================================================================================
+  -- contexto: o add_field acima não roda em tempo de compilação, logo, os membros não são adicinados
+  -- a tempo para o maker
+
+  RotorQuick.masks:push(bitset_array.lshift(BITSET_ARRAY_OF_ONE, #RotorQuick.masks))
+
+  local newmask = RotorQuick.masks[#RotorQuick.masks - 1]
+  RotorQuick.mask_map.#|compname|# = newmask
+
+  return newmask
+end
+
+global RotorQuick.Storages = @record{}
+
+global RotorQuick.Components = @record{}
+require 'rotor-quick.components'
+
+global RotorQuick.Systems = @record{}
+require 'rotor-quick.systems'
+

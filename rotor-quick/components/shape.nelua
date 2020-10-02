@@ -1,0 +1,20 @@
+require 'rotor-quick.makers'
+require 'vector'
+
+local ShapeCategory = @enum{
+  Rectangle = 1,
+  Circle,
+  Polygon
+}
+
+global RotorQuick.Components.Shape = @record{
+  category: ShapeCategory,
+  vertices: vector(array(number, 2)), -- TODO: rethink this type, can be optmized?
+}
+
+global RotorQuick.Components.Shape.mask = RotorQuick.AddMask'shape'
+
+global RotorQuick.Components.Shape.ShapeCategory = ShapeCategory
+
+local Shape = RotorQuick.Components.Shape
+## is_component(Shape)

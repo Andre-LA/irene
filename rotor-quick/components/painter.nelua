@@ -1,0 +1,11 @@
+require 'rotor-quick.makers'
+
+global RotorQuick.Components.Painter = @record{
+  color: Color,
+  active: boolean,
+}
+
+global RotorQuick.Components.Painter.mask = RotorQuick.AddMask'painter'
+
+local Painter = RotorQuick.Components.Painter
+## is_component(Painter)

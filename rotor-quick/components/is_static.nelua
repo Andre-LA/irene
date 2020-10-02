@@ -1,0 +1,10 @@
+require 'rotor-quick.makers'
+
+global RotorQuick.Components.IsStatic = @record{
+  placeholder: cchar,
+}
+
+global RotorQuick.Components.IsStatic.mask = RotorQuick.AddMask'is_static'
+
+local IsStatic = RotorQuick.Components.IsStatic
+## is_component(IsStatic)

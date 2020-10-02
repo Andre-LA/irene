@@ -1,0 +1,10 @@
+require 'rotor-quick.makers'
+
+global RotorQuick.Components.Position = @record{
+  position: Vector2
+}
+
+global RotorQuick.Components.Position.mask = RotorQuick.AddMask'position'
+
+local Position = RotorQuick.Components.Position
+## is_component(Position)

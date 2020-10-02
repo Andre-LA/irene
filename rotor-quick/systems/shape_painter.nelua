@@ -1,0 +1,40 @@
+require 'math'
+require 'raylib'
+require 'rotor'
+require 'rotor-quick.makers'
+require 'rotor-quick.components.position'
+require 'rotor-quick.components.shape'
+require 'rotor-quick.components.painter'
+
+local Position = RotorQuick.Components.Position
+local Painter = RotorQuick.Components.Painter
+
+local Shape = RotorQuick.Components.Shape
+local ShapeCategory = Shape.ShapeCategory
+
+local ShapePainterRunner = @record{}
+
+function ShapePainterRunner:run(position: *Position, shape: *Shape, painter: *Painter, system_data: *SystemData)
+  if not painter.active then
+    return
+  end
+
+  local size_x, size_y = 0.0, 0.0
+
+  for i = 0, < shape.vertices do
+    size_x = math.max(shape.vertices[i][0], size_x)
+    size_y = math.max(shape.vertices[i][1], size_y)
+  end
+
+  switch shape.category do
+  case ShapeCategory.Rectangle then
+    Raylib.DrawRectangleV(position.position, {size_x, size_y}, painter.color)
+  -- TODO: add other shape categories
+  end
+end
+
+global RotorQuick.Systems.ShapePainter = @MakeSystem(ShapePainterRunner, false, false, false, 3, @record{
+  position: Position,
+  shape: Shape,
+  painter: Painter,
+})
