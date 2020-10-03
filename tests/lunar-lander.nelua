@@ -1,8 +1,50 @@
 require 'raylib'
 require 'rotor'
 require 'rotor-quick'
+require 'rotor-quick.makers'
 
+local Position = RotorQuick.Components.Position
+local Shape = RotorQuick.Components.Shape
+local Painter = RotorQuick.Components.Painter
 
+local ShapePainter = RotorQuick.Systems.ShapePainter
+local shape_painter = ShapePainter.new()
+
+local MyEntity = #[make_entity{
+  {'position', Position},
+  {'shape', Shape},
+  {'painter', Painter},
+}]#
+
+local my_entity, my_entity_ent = MyEntity.new(
+  RotorQuick.storage_map.entity,
+  {
+    --[[Position]] { position = {32, 32} },
+    --[[Shape   ]] { category = RotorQuick.Components.Shape.ShapeCategory.Rectangle, vertices = { {0, 0}, {16, 0}, {0, 16}, {16, 16} } },
+    --[[Painter ]] { WHITE, true }
+  }
+)
+
+shape_painter.system.system_data:update(my_entity_ent)
+
+local screen_width: integer <comptime> = 800
+local screen_height: integer <comptime> = 450
+
+Raylib.InitWindow(screen_width, screen_height, "raylib [core] example - basic window")
+
+Raylib.SetTargetFPS(60)
+
+while not Raylib.WindowShouldClose() do
+  Raylib.BeginDrawing()
+
+    Raylib.ClearBackground(BLACK)
+
+    shape_painter:run({&RotorQuick.storage_map.position, &RotorQuick.storage_map.shape, &RotorQuick.storage_map.painter})
+
+  Raylib.EndDrawing()
+end
+
+Raylib.CloseWindow()
 
 --[[
 asteroid = {

@@ -5,7 +5,9 @@ global RotorQuick.Components.Gravity = @record{
   active: boolean
 }
 
-global RotorQuick.Components.Gravity.mask = RotorQuick.AddMask'gravity'
-
 local Gravity = RotorQuick.Components.Gravity
 ## is_component(Gravity)
+
+## RQ_AddMaskAndStorage('gravity', Gravity)
+global Gravity.mask = RotorQuick.mask_map.gravity
+global Gravity.storage = &RotorQuick.storage_map.gravity

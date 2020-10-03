@@ -4,7 +4,9 @@ global RotorQuick.Components.Position = @record{
   position: Vector2
 }
 
-global RotorQuick.Components.Position.mask = RotorQuick.AddMask'position'
-
 local Position = RotorQuick.Components.Position
 ## is_component(Position)
+
+## RQ_AddMaskAndStorage('position', Position)
+global Position.mask = RotorQuick.mask_map.position
+global Position.storage = &RotorQuick.storage_map.position

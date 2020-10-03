@@ -5,7 +5,9 @@ global RotorQuick.Components.Painter = @record{
   active: boolean,
 }
 
-global RotorQuick.Components.Painter.mask = RotorQuick.AddMask'painter'
-
 local Painter = RotorQuick.Components.Painter
 ## is_component(Painter)
+
+## RQ_AddMaskAndStorage('painter', Painter)
+global Painter.mask = RotorQuick.mask_map.painter
+global Painter.storage = &RotorQuick.storage_map.painter

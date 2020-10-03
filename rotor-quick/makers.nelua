@@ -12,7 +12,7 @@ global nprof: NProf = {}
 ]]
 -- ] mark record as component ]
 
---[=[ Entity maker [
+-- [ Entity maker [
 ## make_entity = hygienize(function(components_context)
    ##[[
       local function sa_err_msg(e_n, t_n, expected_type, got_type)
@@ -84,8 +84,8 @@ global nprof: NProf = {}
             local name_vl = name..'_vl'
          ]]
 
-         local #|name_id|#, #|name_vl|# = storages.#|name|#:new_entry(values.#|name_vl|#)
-         entity:associate(#|name_id|#, component_masks.#|name|#)
+         local #|name_id|#, #|name_vl|# = RotorQuick.storage_map.#|name|#:new_entry(values.#|name_vl|#)
+         entity:associate(#|name_id|#, RotorQuick.mask_map.#|name|#)
 
          result.#|name_id|# = #|name_id|#
       ## end
@@ -96,7 +96,7 @@ global nprof: NProf = {}
    ## return new_entity
 ## end)
 
--- ] Entity maker ]=]
+-- ] Entity maker ]
 
 -- [ system maker [
 global System = @record{

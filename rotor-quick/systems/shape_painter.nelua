@@ -12,28 +12,31 @@ local Painter = RotorQuick.Components.Painter
 local Shape = RotorQuick.Components.Shape
 local ShapeCategory = Shape.ShapeCategory
 
-local ShapePainterRunner = @record{}
+global  ShapePainterRunner = @record{}
 
 function ShapePainterRunner:run(position: *Position, shape: *Shape, painter: *Painter, system_data: *SystemData)
+  print('will draw?')
   if not painter.active then
     return
   end
+  print('will draw? -> YES')
 
   local size_x, size_y = 0.0, 0.0
 
-  for i = 0, < shape.vertices do
+  for i = 0, < #shape.vertices do
     size_x = math.max(shape.vertices[i][0], size_x)
     size_y = math.max(shape.vertices[i][1], size_y)
   end
 
   switch shape.category do
   case ShapeCategory.Rectangle then
+    print('DRAWING')
     Raylib.DrawRectangleV(position.position, {size_x, size_y}, painter.color)
   -- TODO: add other shape categories
   end
 end
 
-global RotorQuick.Systems.ShapePainter = @MakeSystem(ShapePainterRunner, false, false, false, 3, @record{
+global RotorQuick.Systems.ShapePainter = @MakeSystem(ShapePainterRunner, false, true, false, 3, @record{
   position: Position,
   shape: Shape,
   painter: Painter,

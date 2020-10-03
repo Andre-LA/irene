@@ -6,7 +6,9 @@ global RotorQuick.Components.Velocity = @record{
   active: boolean,
 }
 
-global RotorQuick.Components.Velocity.mask = RotorQuick.AddMask'velocity'
-
 local Velocity = RotorQuick.Components.Velocity
 ## is_component(Velocity)
+
+## RQ_AddMaskAndStorage('velocity', Velocity)
+global Velocity.mask = RotorQuick.mask_map.velocity
+global Velocity.storage = &RotorQuick.storage_map.velocity

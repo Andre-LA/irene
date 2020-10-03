@@ -12,9 +12,11 @@ global RotorQuick.Components.Shape = @record{
   vertices: vector(array(number, 2)), -- TODO: rethink this type, can be optmized?
 }
 
-global RotorQuick.Components.Shape.mask = RotorQuick.AddMask'shape'
-
-global RotorQuick.Components.Shape.ShapeCategory = ShapeCategory
-
 local Shape = RotorQuick.Components.Shape
 ## is_component(Shape)
+
+global Shape.ShapeCategory = ShapeCategory
+
+## RQ_AddMaskAndStorage('shape', Shape)
+global Shape.mask = RotorQuick.mask_map.shape
+global Shape.storage = &RotorQuick.storage_map.shape
