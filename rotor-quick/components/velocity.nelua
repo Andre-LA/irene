@@ -10,5 +10,5 @@ local Velocity = RotorQuick.Components.Velocity
 ## is_component(Velocity)
 
 ## RQ_AddMaskAndStorage('velocity', Velocity)
-global Velocity.mask = RotorQuick.mask_map.velocity
-global Velocity.storage = &RotorQuick.storage_map.velocity
+global Velocity.mask = RotorQuick.masks.velocity
+global Velocity.storage = &RotorQuick.storages.velocity

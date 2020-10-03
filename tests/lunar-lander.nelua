@@ -6,40 +6,54 @@ require 'rotor-quick.makers'
 local Position = RotorQuick.Components.Position
 local Shape = RotorQuick.Components.Shape
 local Painter = RotorQuick.Components.Painter
+local Velocity = RotorQuick.Components.Velocity
+local Gravity = RotorQuick.Components.Gravity
 
+local GravityApplier = RotorQuick.Systems.GravityApplier
 local ShapePainter = RotorQuick.Systems.ShapePainter
+local VelocityApplier = RotorQuick.Systems.VelocityApplier
+
+local gravity_applier = GravityApplier.new()
 local shape_painter = ShapePainter.new()
+local velocity_applier = VelocityApplier.new()
 
 local MyEntity = #[make_entity{
   {'position', Position},
   {'shape', Shape},
   {'painter', Painter},
+  {'velocity', Velocity},
+  {'gravity', Gravity},
 }]#
 
 local my_entity, my_entity_ent = MyEntity.new(
-  RotorQuick.storage_map.entity,
+  RotorQuick.storages.entity,
   {
     --[[Position]] { position = {32, 32} },
-    --[[Shape   ]] { category = RotorQuick.Components.Shape.ShapeCategory.Rectangle, vertices = { {0, 0}, {16, 0}, {0, 16}, {16, 16} } },
-    --[[Painter ]] { WHITE, true }
+    --[[Shape   ]] { category = Shape.ShapeCategory.Polygon, vertices = { {0, 0}, {16, 0}, {16, 16}, {0, 16} } },
+    --[[Painter ]] { WHITE, true },
+    --[[Velocity]] { {0, 1}, 0, true },
+    --[[Gravity ]] { 0.001, true }
   }
 )
 
+gravity_applier.system.system_data:update(my_entity_ent)
 shape_painter.system.system_data:update(my_entity_ent)
+velocity_applier.system.system_data:update(my_entity_ent)
 
 local screen_width: integer <comptime> = 800
 local screen_height: integer <comptime> = 450
 
 Raylib.InitWindow(screen_width, screen_height, "raylib [core] example - basic window")
-
 Raylib.SetTargetFPS(60)
 
 while not Raylib.WindowShouldClose() do
-  Raylib.BeginDrawing()
+  gravity_applier:run({&RotorQuick.storages.gravity, &RotorQuick.storages.velocity})
+  velocity_applier:run({&RotorQuick.storages.velocity, &RotorQuick.storages.position})
 
+  Raylib.BeginDrawing()
     Raylib.ClearBackground(BLACK)
 
-    shape_painter:run({&RotorQuick.storage_map.position, &RotorQuick.storage_map.shape, &RotorQuick.storage_map.painter})
+    shape_painter:run({&RotorQuick.storages.position, &RotorQuick.storages.shape, &RotorQuick.storages.painter})
 
   Raylib.EndDrawing()
 end

@@ -1,0 +1,26 @@
+require 'math'
+require 'raylib'
+require 'rotor'
+require 'rotor-quick.makers'
+require 'rotor-quick.components.position'
+require 'rotor-quick.components.shape'
+require 'rotor-quick.components.painter'
+
+local Gravity = RotorQuick.Components.Gravity
+local Velocity = RotorQuick.Components.Velocity
+
+global  GravityApplierRunner = @record{}
+
+function GravityApplierRunner:run(gravity: *Gravity, velocity: *Velocity, system_data: *SystemData)
+  if not gravity.active then
+    return
+  end
+
+  -- DISC: Should Δt be used? (see: https://github.com/Andre-LA/rotor-quick/issues/1)
+  velocity.speed = velocity.speed + gravity.force
+end
+
+global RotorQuick.Systems.GravityApplier = @MakeSystem(GravityApplierRunner, false, true, false, 1, @record{
+  gravity: Gravity,
+  velocity: Velocity,
+})

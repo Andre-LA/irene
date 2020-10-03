@@ -15,11 +15,9 @@ local ShapeCategory = Shape.ShapeCategory
 global  ShapePainterRunner = @record{}
 
 function ShapePainterRunner:run(position: *Position, shape: *Shape, painter: *Painter, system_data: *SystemData)
-  print('will draw?')
   if not painter.active then
     return
   end
-  print('will draw? -> YES')
 
   local size_x, size_y = 0.0, 0.0
 
@@ -30,9 +28,21 @@ function ShapePainterRunner:run(position: *Position, shape: *Shape, painter: *Pa
 
   switch shape.category do
   case ShapeCategory.Rectangle then
-    print('DRAWING')
     Raylib.DrawRectangleV(position.position, {size_x, size_y}, painter.color)
-  -- TODO: add other shape categories
+  case ShapeCategory.Circle then
+    Raylib.DrawCircleV(position.position, math.max(size_x, size_y) / 2, painter.color)
+  case ShapeCategory.Polygon then
+    local points: vector(Vector2)
+    points:reserve(#shape.vertices)
+    defer points:destroy() end
+
+    for i = 0, < #shape.vertices do
+      points:push({ position.position.x + shape.vertices[i][0], position.position.y + shape.vertices[i][1] })
+    end
+
+    points:push({ position.position.x + shape.vertices[0][0], position.position.y + shape.vertices[0][1] })
+
+    Raylib.DrawLineStrip(&points.data[0], #points, painter.color)
   end
 end
 

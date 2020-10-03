@@ -1,0 +1,26 @@
+require 'math'
+require 'raylib'
+require 'rotor'
+require 'rotor-quick.makers'
+require 'rotor-quick.components.position'
+require 'rotor-quick.components.shape'
+require 'rotor-quick.components.painter'
+
+local Velocity = RotorQuick.Components.Velocity
+local Position = RotorQuick.Components.Position
+
+global  VelocityApplierRunner = @record{}
+
+function VelocityApplierRunner:run(velocity: *Velocity, position: *Position, system_data: *SystemData)
+  if not velocity.active then
+    return
+  end
+
+  position.position.x = position.position.x + velocity.direction.x * velocity.speed
+  position.position.y = position.position.y + velocity.direction.y * velocity.speed
+end
+
+global RotorQuick.Systems.VelocityApplier = @MakeSystem(VelocityApplierRunner, false, true, false, 1, @record{
+  velocity: Velocity,
+  position: Position,
+})

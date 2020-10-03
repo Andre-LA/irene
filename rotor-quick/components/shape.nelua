@@ -18,5 +18,5 @@ local Shape = RotorQuick.Components.Shape
 global Shape.ShapeCategory = ShapeCategory
 
 ## RQ_AddMaskAndStorage('shape', Shape)
-global Shape.mask = RotorQuick.mask_map.shape
-global Shape.storage = &RotorQuick.storage_map.shape
+global Shape.mask = RotorQuick.masks.shape
+global Shape.storage = &RotorQuick.storages.shape

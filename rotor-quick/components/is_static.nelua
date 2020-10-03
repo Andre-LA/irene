@@ -8,6 +8,5 @@ local IsStatic = RotorQuick.Components.IsStatic
 ## is_component(IsStatic)
 
 ## RQ_AddMaskAndStorage('is_static', IsStatic)
-global IsStatic.mask = RotorQuick.mask_map.is_static
-global IsStatic.storage = &RotorQuick.storage_map.is_static
-
+global IsStatic.mask = RotorQuick.masks.is_static
+global IsStatic.storage = &RotorQuick.storages.is_static

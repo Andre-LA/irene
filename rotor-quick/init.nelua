@@ -2,31 +2,26 @@ require 'vector'
 require 'rotor'
 
 global RotorQuick = @record{}
-global RotorQuick.Storages = @record{}
-local Storages = RotorQuick.Storages
-global RotorQuick.storage_map: Storages <noinit>;
 
-global RotorQuick.masks: vector(BitsetArray);
+global RotorQuick.Storages= @record{}
+local Storages = RotorQuick.Storages
+global RotorQuick.storages: Storages <noinit>;
 
 local RMaskMap = @record{}
-global RotorQuick.mask_map: RMaskMap = {}
+global RotorQuick.masks: RMaskMap = {};
 
 -- TODO: unglobalize this
 ## RQ_AddMaskAndStorage = hygienize(function(compname, T)
   local _RMaskMap = RMaskMap
-
   ## _RMaskMap.value:add_field(compname, BitsetArray.value)
 
-  RotorQuick.masks:push(bitset_array.lshift(BITSETARRAY_OF_ONE, #RotorQuick.masks))
-
-  local newmask = RotorQuick.masks[#RotorQuick.masks - 1]
-  RotorQuick.mask_map.#|compname|# = newmask
+  RotorQuick.masks.#|compname|# = bitset_array.lshift(BITSETARRAY_OF_ONE, #[ #_RMaskMap.value.fields ]# )
 
   local _T = @#[T]#
   local _Storages = RotorQuick.Storages
   local _StorageT = @Storage(_T)
   ## _Storages.value:add_field(compname, _StorageT.value)
-  RotorQuick.storage_map.#|compname|# = _StorageT.new()
+  RotorQuick.storages.#|compname|# = _StorageT.new()
 ## end)
 
 ## RQ_AddMaskAndStorage('entity', Entity)
