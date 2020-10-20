@@ -1,34 +1,42 @@
 require 'vector'
 require 'rotor'
 
+## local ins = function(v) return require 'nelua.thirdparty.inspect' (v, {depth = 2}) end
+
+## local masks_count = 0
+
 global RotorQuick = @record{}
+global RotorQuick.masks: record{} = {};
+global RotorQuick.storages: record{} = {};
 
-global RotorQuick.Storages= @record{}
-local Storages = RotorQuick.Storages
-global RotorQuick.storages: Storages <noinit>;
+-- TODO: unglobalize all RQ_* functions
+## local function RQ_GetMetaField(T, metafield) return T.value.metafields[metafield] end
 
-local RMaskMap = @record{}
-global RotorQuick.masks: RMaskMap = {};
+## RQ_add_mask_and_storage = hygienize(function(compname, T)
+  -- [[ types [[
+  local masks = @#[RQ_GetMetaField(RotorQuick, 'masks').type]#
+  local storages = @#[RQ_GetMetaField(RotorQuick, 'storages').type]#
+  local T = @#[T]#
+  local storageT = @Storage(T)
+  -- ]] types ]]
 
--- TODO: unglobalize this
-## RQ_AddMaskAndStorage = hygienize(function(compname, T)
-  local _RMaskMap = RMaskMap
-  ## _RMaskMap.value:add_field(compname, BitsetArray.value)
+  -- [[ update types [[
+  ## masks.value:add_field(compname, BitsetArray.value)
+  ## storages.value:add_field(compname, storageT.value)
+  -- ]] update types ]]
 
-  RotorQuick.masks.#|compname|# = bitset_array.lshift(BITSETARRAY_OF_ONE, #[ #_RMaskMap.value.fields ]# )
+  -- [[ fill fields [[
+  RotorQuick.masks.#|compname|# = bitset_array.lshift(BITSETARRAY_OF_ONE, #[masks_count]#)
+  RotorQuick.storages.#|compname|# = storageT.new()
 
-  local _T = @#[T]#
-  local _Storages = RotorQuick.Storages
-  local _StorageT = @Storage(_T)
-  ## _Storages.value:add_field(compname, _StorageT.value)
-  RotorQuick.storages.#|compname|# = _StorageT.new()
+  global T.mask = RotorQuick.masks.#|compname|#
+  global T.storage = &RotorQuick.storages.#|compname|#
+
+  ## masks_count = masks_count + 1
+  -- ]] fill fields ]]
 ## end)
 
-## RQ_AddMaskAndStorage('entity', Entity)
+## RQ_add_mask_and_storage('entity', Entity)
 
-global RotorQuick.Components = @record{}
 require 'rotor-quick.components'
-
-global RotorQuick.Systems = @record{}
 require 'rotor-quick.systems'
-

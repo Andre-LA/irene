@@ -1,14 +1,24 @@
+require 'math'
+require 'vector'
 require 'rotor-quick.makers'
 
 global RotorQuick.Components.Velocity = @record{
-  direction: Vector2,
-  speed: number,
   active: boolean,
+  final_velocity: Vector2,
+  max_velocity: uinteger, -- lower than 9.001 means that the velocity is not limited!
 }
 
 local Velocity = RotorQuick.Components.Velocity
-## is_component(Velocity)
+## is_component('velocity', Velocity)
 
-## RQ_AddMaskAndStorage('velocity', Velocity)
-global Velocity.mask = RotorQuick.masks.velocity
-global Velocity.storage = &RotorQuick.storages.velocity
+function Velocity:add_velocity(velocity: Vector2)
+  self.final_velocity = self.final_velocity + velocity
+end
+
+function Velocity:reset_velocity()
+  self.final_velocity = { 0, 0 }
+end
+
+function Velocity.get_limited_velocity(velocity: Vector2, limit: number)
+  return velocity * (limit / #velocity)
+end

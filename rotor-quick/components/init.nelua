@@ -1,3 +1,5 @@
+global RotorQuick.Components = @record{}
+
 require 'rotor-quick.components.position' -- TODO: create Transform and deprecate Position
 require 'rotor-quick.components.velocity'
 require 'rotor-quick.components.shape'

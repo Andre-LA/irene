@@ -4,19 +4,16 @@ require 'vector'
 local ShapeCategory = @enum{
   Rectangle = 1,
   Circle,
+  Triangle,
   Polygon
 }
 
 global RotorQuick.Components.Shape = @record{
   category: ShapeCategory,
-  vertices: vector(array(number, 2)), -- TODO: rethink this type, can be optmized?
+  vertices: vector(Vector2), -- TODO: rethink this type, can be optmized?
 }
 
 local Shape = RotorQuick.Components.Shape
-## is_component(Shape)
+## is_component('shape', Shape)
 
 global Shape.ShapeCategory = ShapeCategory
-
-## RQ_AddMaskAndStorage('shape', Shape)
-global Shape.mask = RotorQuick.masks.shape
-global Shape.storage = &RotorQuick.storages.shape

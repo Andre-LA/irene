@@ -1,3 +1,7 @@
+-- [[ requires and imports [[
+
+require 'math'
+
 require 'raylib'
 require 'rotor'
 require 'rotor-quick'
@@ -13,41 +17,120 @@ local GravityApplier = RotorQuick.Systems.GravityApplier
 local ShapePainter = RotorQuick.Systems.ShapePainter
 local VelocityApplier = RotorQuick.Systems.VelocityApplier
 
+-- ]] requires and imports ]]
+
+-- Main Game Record and general variables
+local screen_width: integer <comptime> = 300
+local screen_height: integer <comptime> = 300
+
+local LunarLander = @record{}
+global LunarLander.storages: record{} = {}
+global LunarLander.masks: record {} = {}
+
+## ins = require 'nelua.thirdparty.inspect'
+
+-- [[ components [[
+
+local LanderController = @record{
+  propulsion_force: number
+}
+
+## is_component('lander_ctrl', LanderController)
+
+-- ]] components ]]
+
+-- [[ systems [[
+
+global LanderControllerRunner = @record{}
+
+function LanderControllerRunner:run(lander_ctrl: *LanderController, velocity: *Velocity, gravity: *Gravity, system_data: *SystemData)
+  local is_right_down, is_up_down, is_left_down = Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT),
+                                                  Raylib.IsKeyDown(KeyboardKey.KEY_UP),
+                                                  Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)
+
+  if is_right_down or is_up_down or is_left_down then
+    --gravity.speed = 0
+
+    local direction: Vector2 = {
+      x = (do
+        if is_right_down then
+          return 1
+        elseif is_left_down then
+          return -1
+        else
+          return 0
+        end
+      end),
+
+      y = (do
+        if is_up_down then
+          return -1
+        else
+          return 0
+        end
+      end)
+    }
+
+    velocity:add_velocity(direction * lander_ctrl.propulsion_force)
+  end
+end
+
+local LanderControllerSystem = @MakeSystem(LanderControllerRunner, false, true, false, 1, @record{
+  lander_ctrl: LanderController,
+  velocity: Velocity,
+  gravity: Gravity,
+})
+
+local lander_ctrl_system = LanderControllerSystem.new()
+
 local gravity_applier = GravityApplier.new()
 local shape_painter = ShapePainter.new()
 local velocity_applier = VelocityApplier.new()
 
-local MyEntity = #[make_entity{
+-- ]] systems ]]
+
+-- [[ entities [[
+
+local Lander = #[make_entity{
   {'position', Position},
   {'shape', Shape},
   {'painter', Painter},
   {'velocity', Velocity},
   {'gravity', Gravity},
+  {'lander_ctrl', LanderController},
 }]#
 
-local my_entity, my_entity_ent = MyEntity.new(
-  RotorQuick.storages.entity,
-  {
-    --[[Position]] { position = {32, 32} },
-    --[[Shape   ]] { category = Shape.ShapeCategory.Polygon, vertices = { {0, 0}, {16, 0}, {16, 16}, {0, 16} } },
-    --[[Painter ]] { WHITE, true },
-    --[[Velocity]] { {0, 1}, 0, true },
-    --[[Gravity ]] { 0.001, true }
-  }
-)
+local function create_lander(pos: Vector2)
+  local lander, lander_entity = Lander.new(
+    RotorQuick.storages.entity,
+    {
+      --[[Position   ]] { position = { pos.x, pos.y } },
+      --[[Shape      ]] { category = Shape.ShapeCategory.Triangle, vertices = { {8, 0}, {0, 16}, {16, 16} } },
+      --[[Painter    ]] { WHITE, true },
+      --[[Velocity   ]] { true, {0,0}, 0 },
+      --[[Gravity    ]] { 0.1, {0.0, 1.0}, true },
+      --[[Lander Ctrl]] { propulsion_force = 0.25 },
+    }
+  )
 
-gravity_applier.system.system_data:update(my_entity_ent)
-shape_painter.system.system_data:update(my_entity_ent)
-velocity_applier.system.system_data:update(my_entity_ent)
+  lander_ctrl_system.system.system_data:update(lander_entity)
 
-local screen_width: integer <comptime> = 800
-local screen_height: integer <comptime> = 450
+  gravity_applier.system.system_data:update(lander_entity)
+  shape_painter.system.system_data:update(lander_entity)
+  velocity_applier.system.system_data:update(lander_entity)
+end
 
+create_lander({32, 32})
+
+-- ]] entities ]]
+
+Raylib.SetConfigFlags(ConfigFlag.FLAG_WINDOW_RESIZABLE)
 Raylib.InitWindow(screen_width, screen_height, "raylib [core] example - basic window")
 Raylib.SetTargetFPS(60)
 
 while not Raylib.WindowShouldClose() do
   gravity_applier:run({&RotorQuick.storages.gravity, &RotorQuick.storages.velocity})
+  lander_ctrl_system:run({&RotorQuick.storages.lander_ctrl, &RotorQuick.storages.velocity, &RotorQuick.storages.gravity})
   velocity_applier:run({&RotorQuick.storages.velocity, &RotorQuick.storages.position})
 
   Raylib.BeginDrawing()

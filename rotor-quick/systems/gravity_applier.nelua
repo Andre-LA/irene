@@ -16,8 +16,7 @@ function GravityApplierRunner:run(gravity: *Gravity, velocity: *Velocity, system
     return
   end
 
-  -- DISC: Should Δt be used? (see: https://github.com/Andre-LA/rotor-quick/issues/1)
-  velocity.speed = velocity.speed + gravity.force
+  velocity:add_velocity(gravity.direction * gravity.acceleration)
 end
 
 global RotorQuick.Systems.GravityApplier = @MakeSystem(GravityApplierRunner, false, true, false, 1, @record{

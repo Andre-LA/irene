@@ -22,25 +22,32 @@ function ShapePainterRunner:run(position: *Position, shape: *Shape, painter: *Pa
   local size_x, size_y = 0.0, 0.0
 
   for i = 0, < #shape.vertices do
-    size_x = math.max(shape.vertices[i][0], size_x)
-    size_y = math.max(shape.vertices[i][1], size_y)
+    size_x = math.max(shape.vertices[i].x, size_x)
+    size_y = math.max(shape.vertices[i].y, size_y)
   end
 
   switch shape.category do
   case ShapeCategory.Rectangle then
     Raylib.DrawRectangleV(position.position, {size_x, size_y}, painter.color)
+
   case ShapeCategory.Circle then
     Raylib.DrawCircleV(position.position, math.max(size_x, size_y) / 2, painter.color)
+
+  case ShapeCategory.Triangle then
+    local pos = position.position
+    local p1, p2, p3 = shape.vertices[0], shape.vertices[1], shape.vertices[2]
+    Raylib.DrawTriangle(pos + p1, pos + p2, pos + p3, painter.color)
+
   case ShapeCategory.Polygon then
     local points: vector(Vector2)
     points:reserve(#shape.vertices)
     defer points:destroy() end
 
     for i = 0, < #shape.vertices do
-      points:push({ position.position.x + shape.vertices[i][0], position.position.y + shape.vertices[i][1] })
+      points:push({ position.position.x + shape.vertices[i].x, position.position.y + shape.vertices[i].y })
     end
 
-    points:push({ position.position.x + shape.vertices[0][0], position.position.y + shape.vertices[0][1] })
+    points:push({ position.position.x + shape.vertices[0].x, position.position.y + shape.vertices[0].y })
 
     Raylib.DrawLineStrip(&points.data[0], #points, painter.color)
   end

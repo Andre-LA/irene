@@ -1,13 +1,10 @@
 require 'rotor-quick.makers'
 
 global RotorQuick.Components.Gravity = @record{
-  force: number,
+  acceleration: number,
+  direction: Vector2,
   active: boolean
 }
 
 local Gravity = RotorQuick.Components.Gravity
-## is_component(Gravity)
-
-## RQ_AddMaskAndStorage('gravity', Gravity)
-global Gravity.mask = RotorQuick.masks.gravity
-global Gravity.storage = &RotorQuick.storages.gravity
+## is_component('gravity', Gravity)

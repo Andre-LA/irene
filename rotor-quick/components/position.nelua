@@ -5,8 +5,4 @@ global RotorQuick.Components.Position = @record{
 }
 
 local Position = RotorQuick.Components.Position
-## is_component(Position)
-
-## RQ_AddMaskAndStorage('position', Position)
-global Position.mask = RotorQuick.masks.position
-global Position.storage = &RotorQuick.storages.position
+## is_component('position', Position)

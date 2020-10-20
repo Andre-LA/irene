@@ -16,8 +16,13 @@ function VelocityApplierRunner:run(velocity: *Velocity, position: *Position, sys
     return
   end
 
-  position.position.x = position.position.x + velocity.direction.x * velocity.speed
-  position.position.y = position.position.y + velocity.direction.y * velocity.speed
+  if velocity.max_velocity > 0.0001 then
+    velocity.final_velocity = Velocity.get_limited_velocity(velocity.final_velocity, velocity.max_velocity)
+  end
+
+  -- TODO (discussion): Should Δt be used? (see: https://github.com/Andre-LA/rotor-quick/issues/1)
+  position.position.x = position.position.x + velocity.final_velocity.x
+  position.position.y = position.position.y + velocity.final_velocity.y
 end
 
 global RotorQuick.Systems.VelocityApplier = @MakeSystem(VelocityApplierRunner, false, true, false, 1, @record{
