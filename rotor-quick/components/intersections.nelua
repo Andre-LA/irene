@@ -1,0 +1,49 @@
+require 'vector'
+require 'raylib'
+require 'rotor'
+require 'rotor-quick.makers'
+
+local Intersection = @record{
+  rect: Rectangle,
+  entity_id: GenerationalIndex,
+  cycles_live: uinteger
+}
+
+global RotorQuick.Components.Intersections = @record{
+  intersections: vector(Intersection),
+}
+
+global RotorQuick.Components.Intersections.Intersection = @Intersection
+
+local Intersections = RotorQuick.Components.Intersections
+
+function Intersections:update_no_intersection(entity_id: GenerationalIndex)
+  for i = 0, < #self.intersections do
+    local intersection_i: *Intersection = self.intersections[i]
+
+    if intersection_i.entity_id == entity_id then
+      self.intersections:remove(i)
+      return
+    end
+  end
+end
+
+function Intersections:update_intersection(intersection: Rectangle, entity_id: GenerationalIndex)
+  for i = 0, < #self.intersections do
+    local intersection_i: *Intersection = self.intersections[i]
+
+    if intersection_i.entity_id == entity_id then
+      intersection_i.rect = intersection
+      intersection_i.cycles_live = intersection_i.cycles_live + 1
+      return
+    end
+  end
+
+  self.intersections:push({
+    rect = intersection,
+    entity_id = entity_id,
+    cycles_live = 0
+  })
+end
+
+## is_component('intersections', Intersections)

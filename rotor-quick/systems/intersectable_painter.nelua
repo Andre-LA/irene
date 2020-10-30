@@ -1,0 +1,23 @@
+require 'raylib'
+require 'rotor'
+require 'rotor-quick.makers'
+require 'rotor-quick.components.intersectable'
+require 'rotor-quick.components.painter'
+
+local Intersectable = RotorQuick.Components.Intersectable
+local Painter = RotorQuick.Components.Painter
+
+global IntersectablePainterRunner = @record{}
+
+function IntersectablePainterRunner:run(intersectable: *Intersectable, painter: *Painter, system_data: *SystemData)
+  if not painter.active then
+    return
+  end
+
+  Raylib.DrawRectangleLinesEx(intersectable.global_rect, 1, painter.color)
+end
+
+global RotorQuick.Systems.IntersectablePainter = @MakeSystem(IntersectablePainterRunner, false, true, false, 2, @record{
+  intersectable: Intersectable,
+  painter: Painter
+})

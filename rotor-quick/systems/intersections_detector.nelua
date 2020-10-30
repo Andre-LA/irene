@@ -1,0 +1,31 @@
+require 'raylib'
+require 'rotor'
+require 'rotor-quick.makers'
+require 'rotor-quick.components.intersectable'
+require 'rotor-quick.components.intersections'
+
+local Intersectable = RotorQuick.Components.Intersectable
+local Intersections = RotorQuick.Components.Intersections
+
+global IntersectionsDetectorRunner = @record{}
+
+function IntersectionsDetectorRunner:run(intersectable: *Intersectable, intersections: *Intersections, system_data: *SystemData)
+  for i = 0, < #RotorQuick.storages.intersectable.generations do
+    if RotorQuick.storages.intersectable.generations[i].filled then
+      local intersectable_i: *Intersectable = RotorQuick.storages.intersectable.entries[i]
+
+      if intersectable.entity_id ~= intersectable_i.entity_id then
+        if intersectable:is_intersecting(intersectable_i) then
+          intersections:update_intersection(intersectable:get_intersection(intersectable_i) , intersectable_i.entity_id)
+        else
+          intersections:update_no_intersection(intersectable_i.entity_id)
+        end
+      end
+    end
+  end
+end
+
+global RotorQuick.Systems.IntersectionsDetector = @MakeSystem(IntersectionsDetectorRunner, false, true, false, 1, @record{
+  intersectable: Intersectable,
+  intersections: Intersections
+})

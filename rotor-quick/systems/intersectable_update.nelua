@@ -1,0 +1,19 @@
+require 'raylib'
+require 'rotor'
+require 'rotor-quick.makers'
+require 'rotor-quick.components.position'
+require 'rotor-quick.components.intersectable'
+
+local Position = RotorQuick.Components.Position
+local Intersectable = RotorQuick.Components.Intersectable
+
+global IntersectableUpdateRunner = @record{}
+
+function IntersectableUpdateRunner:run(position: *Position, intersectable: *Intersectable, system_data: *SystemData)
+  intersectable:set_global_rect(position.position)
+end
+
+global RotorQuick.Systems.IntersectableUpdate = @MakeSystem(IntersectableUpdateRunner, false, true, false, 2, @record{
+  position: Position,
+  intersectable: Intersectable
+})

@@ -12,29 +12,32 @@ local Shape = RotorQuick.Components.Shape
 local Painter = RotorQuick.Components.Painter
 local Velocity = RotorQuick.Components.Velocity
 local Gravity = RotorQuick.Components.Gravity
+local Intersectable = RotorQuick.Components.Intersectable
+local Intersections = RotorQuick.Components.Intersections
 
 local GravityApplier = RotorQuick.Systems.GravityApplier
 local ShapePainter = RotorQuick.Systems.ShapePainter
 local VelocityApplier = RotorQuick.Systems.VelocityApplier
+local IntersectableUpdate = RotorQuick.Systems.IntersectableUpdate
+local IntersectablePainter = RotorQuick.Systems.IntersectablePainter
+local IntersectionsDetector = RotorQuick.Systems.IntersectionsDetector
+local IntersectionsPainter = RotorQuick.Systems.IntersectionsPainter
 
 -- ]] requires and imports ]]
 
 -- Main Game Record and general variables
-local screen_width: integer <comptime> = 300
+local screen_width: integer <comptime> = 400
 local screen_height: integer <comptime> = 300
 
 local LunarLander = @record{}
 global LunarLander.storages: record{} = {}
 global LunarLander.masks: record {} = {}
 
-## ins = require 'nelua.thirdparty.inspect'
-
 -- [[ components [[
 
 local LanderController = @record{
   propulsion_force: number
 }
-
 ## is_component('lander_ctrl', LanderController)
 
 -- ]] components ]]
@@ -86,6 +89,10 @@ local lander_ctrl_system = LanderControllerSystem.new()
 local gravity_applier = GravityApplier.new()
 local shape_painter = ShapePainter.new()
 local velocity_applier = VelocityApplier.new()
+local intersectable_update = IntersectableUpdate.new()
+local intersectable_painter = IntersectablePainter.new()
+local intersections_detector = IntersectionsDetector.new()
+local intersections_painter = IntersectionsPainter.new()
 
 -- ]] systems ]]
 
@@ -97,30 +104,50 @@ local Lander = #[make_entity{
   {'painter', Painter},
   {'velocity', Velocity},
   {'gravity', Gravity},
+  {'intersectable', Intersectable},
+  {'intersections', Intersections},
+
   {'lander_ctrl', LanderController},
 }]#
 
-local function create_lander(pos: Vector2)
+local function create_lander(pos: Vector2, gravity_acceleration: number)
+  local lander_shape: Shape = {
+    category = Shape.ShapeCategory.Triangle,
+    vertices = { {8, 0}, {0, 16}, {16, 16} }
+  }
+
   local lander, lander_entity = Lander.new(
     RotorQuick.storages.entity,
     {
-      --[[Position   ]] { position = { pos.x, pos.y } },
-      --[[Shape      ]] { category = Shape.ShapeCategory.Triangle, vertices = { {8, 0}, {0, 16}, {16, 16} } },
-      --[[Painter    ]] { WHITE, true },
-      --[[Velocity   ]] { true, {0,0}, 0 },
-      --[[Gravity    ]] { 0.1, {0.0, 1.0}, true },
-      --[[Lander Ctrl]] { propulsion_force = 0.25 },
+      --[[Position     ]] { position = { pos.x, pos.y } },
+      --[[Shape        ]] lander_shape,
+      --[[Painter      ]] { WHITE, true },
+      --[[Velocity     ]] { true, {0,0}, 0 },
+      --[[Gravity      ]] { gravity_acceleration, {0.0, 1.0}, true },
+      --[[Intersectable]] {  },
+      --[[Intersections]] { {} },
+
+      --[[Lander Ctrl  ]] { propulsion_force = gravity_acceleration * 2.5 },
     }
   )
+
+  local intersectable = lander:get_intersectable(RotorQuick.storages.intersectable)
+  intersectable:identify(lander.entity_id)
+  intersectable:set_rects(pos, lander_shape.vertices.data)
 
   lander_ctrl_system.system.system_data:update(lander_entity)
 
   gravity_applier.system.system_data:update(lander_entity)
   shape_painter.system.system_data:update(lander_entity)
   velocity_applier.system.system_data:update(lander_entity)
+  intersectable_update.system.system_data:update(lander_entity)
+  intersectable_painter.system.system_data:update(lander_entity)
+  intersections_detector.system.system_data:update(lander_entity)
+  intersections_painter.system.system_data:update(lander_entity)
 end
 
-create_lander({32, 32})
+create_lander({32, 32}, 0.1)
+create_lander({32, 32}, 0.0)
 
 -- ]] entities ]]
 
@@ -133,10 +160,15 @@ while not Raylib.WindowShouldClose() do
   lander_ctrl_system:run({&RotorQuick.storages.lander_ctrl, &RotorQuick.storages.velocity, &RotorQuick.storages.gravity})
   velocity_applier:run({&RotorQuick.storages.velocity, &RotorQuick.storages.position})
 
+  intersectable_update:run({&RotorQuick.storages.position, &RotorQuick.storages.intersectable})
+  intersections_detector:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.intersections})
+
   Raylib.BeginDrawing()
     Raylib.ClearBackground(BLACK)
 
     shape_painter:run({&RotorQuick.storages.position, &RotorQuick.storages.shape, &RotorQuick.storages.painter})
+    intersectable_painter:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.painter})
+    intersections_painter:run({&RotorQuick.storages.intersections, &RotorQuick.storages.painter})
 
   Raylib.EndDrawing()
 end
