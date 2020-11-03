@@ -16,9 +16,15 @@ function IntersectionsDetectorRunner:run(intersectable: *Intersectable, intersec
 
       if intersectable.entity_id ~= intersectable_i.entity_id then
         if intersectable:is_intersecting(intersectable_i) then
-          intersections:update_intersection(intersectable:get_intersection(intersectable_i) , intersectable_i.entity_id)
+          local already_existent = intersections:update_intersection(intersectable:get_intersection(intersectable_i) , intersectable_i.entity_id)
+          if not already_existent and intersections.on_enter_callback ~= nilptr then
+            intersections.on_enter_callback(intersectable, intersections, intersectable_i)
+          end
         else
-          intersections:update_no_intersection(intersectable_i.entity_id)
+          local was_existent = intersections:update_no_intersection(intersectable_i.entity_id)
+          if was_existent and intersections.on_exit_callback ~= nilptr then
+            intersections.on_exit_callback(intersectable, intersections, intersectable_i)
+          end
         end
       end
     end

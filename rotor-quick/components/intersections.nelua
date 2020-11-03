@@ -1,7 +1,10 @@
 require 'vector'
 require 'raylib'
 require 'rotor'
+require 'rotor-quick.components.intersectable'
 require 'rotor-quick.makers'
+
+local Intersectable = RotorQuick.Components.Intersectable
 
 local Intersection = @record{
   rect: Rectangle,
@@ -9,33 +12,36 @@ local Intersection = @record{
   cycles_live: uinteger
 }
 
-global RotorQuick.Components.Intersections = @record{
+local Intersections = @record{
   intersections: vector(Intersection),
+  on_enter_callback: function(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable),
+  on_exit_callback: function(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
 }
 
+global RotorQuick.Components.Intersections = Intersections
 global RotorQuick.Components.Intersections.Intersection = @Intersection
 
-local Intersections = RotorQuick.Components.Intersections
-
-function Intersections:update_no_intersection(entity_id: GenerationalIndex)
+function Intersections:update_no_intersection(entity_id: GenerationalIndex): boolean
   for i = 0, < #self.intersections do
     local intersection_i: *Intersection = self.intersections[i]
 
     if intersection_i.entity_id == entity_id then
       self.intersections:remove(i)
-      return
+      return true
     end
   end
+
+  return false
 end
 
-function Intersections:update_intersection(intersection: Rectangle, entity_id: GenerationalIndex)
+function Intersections:update_intersection(intersection: Rectangle, entity_id: GenerationalIndex): boolean
   for i = 0, < #self.intersections do
     local intersection_i: *Intersection = self.intersections[i]
 
     if intersection_i.entity_id == entity_id then
       intersection_i.rect = intersection
       intersection_i.cycles_live = intersection_i.cycles_live + 1
-      return
+      return true
     end
   end
 
@@ -44,6 +50,8 @@ function Intersections:update_intersection(intersection: Rectangle, entity_id: G
     entity_id = entity_id,
     cycles_live = 0
   })
+
+  return false
 end
 
 ## is_component('intersections', Intersections)

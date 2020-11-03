@@ -96,6 +96,18 @@ local intersections_painter = IntersectionsPainter.new()
 
 -- ]] systems ]]
 
+-- [[ callbacks [[
+
+local function on_new_intersection(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
+  print('NEW INTERSECTION AAAAAA')
+end
+
+local function on_exit_intersection(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
+  print('EXIT INTERSECTION AAAAAA')
+end
+
+-- ]] callbacks ]]
+
 -- [[ entities [[
 
 local Lander = #[make_entity{
@@ -125,7 +137,7 @@ local function create_lander(pos: Vector2, gravity_acceleration: number)
       --[[Velocity     ]] { true, {0,0}, 0 },
       --[[Gravity      ]] { gravity_acceleration, {0.0, 1.0}, true },
       --[[Intersectable]] {  },
-      --[[Intersections]] { {} },
+      --[[Intersections]] { {}, on_enter_callback = on_new_intersection, on_exit_callback = on_exit_intersection },
 
       --[[Lander Ctrl  ]] { propulsion_force = gravity_acceleration * 2.5 },
     }
