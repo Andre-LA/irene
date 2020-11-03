@@ -27,7 +27,7 @@ local IntersectionsPainter = RotorQuick.Systems.IntersectionsPainter
 
 -- Main Game Record and general variables
 local screen_width: integer <comptime> = 400
-local screen_height: integer <comptime> = 300
+local screen_height: integer <comptime> = 304
 
 local LunarLander = @record{}
 global LunarLander.storages: record{} = {}
@@ -35,8 +35,12 @@ global LunarLander.masks: record {} = {}
 
 -- [[ components [[
 
+local IsFloor = @record{ a: byte }
+## is_component('is_floor', IsFloor)
+
 local LanderController = @record{
-  propulsion_force: number
+  propulsion_force: number,
+  is_landed: boolean,
 }
 ## is_component('lander_ctrl', LanderController)
 
@@ -50,10 +54,11 @@ function LanderControllerRunner:run(lander_ctrl: *LanderController, velocity: *V
   local is_right_down, is_up_down, is_left_down = Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT),
                                                   Raylib.IsKeyDown(KeyboardKey.KEY_UP),
                                                   Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)
+  if lander_ctrl.is_landed then
+    velocity:reset_velocity()
+  end
 
   if is_right_down or is_up_down or is_left_down then
-    --gravity.speed = 0
-
     local direction: Vector2 = {
       x = (do
         if is_right_down then
@@ -74,7 +79,13 @@ function LanderControllerRunner:run(lander_ctrl: *LanderController, velocity: *V
       end)
     }
 
-    velocity:add_velocity(direction * lander_ctrl.propulsion_force)
+    if lander_ctrl.is_landed then
+      if is_up_down then
+        velocity:add_velocity(direction * lander_ctrl.propulsion_force)
+      end
+    else
+      velocity:add_velocity(direction * lander_ctrl.propulsion_force)
+    end
   end
 end
 
@@ -94,21 +105,53 @@ local intersectable_painter = IntersectablePainter.new()
 local intersections_detector = IntersectionsDetector.new()
 local intersections_painter = IntersectionsPainter.new()
 
+local function update_systems(entity: *Entity)
+  lander_ctrl_system.system.system_data:update(entity)
+
+  gravity_applier.system.system_data:update(entity)
+  shape_painter.system.system_data:update(entity)
+  velocity_applier.system.system_data:update(entity)
+  intersectable_update.system.system_data:update(entity)
+  intersectable_painter.system.system_data:update(entity)
+  intersections_detector.system.system_data:update(entity)
+  intersections_painter.system.system_data:update(entity)
+end
+
 -- ]] systems ]]
 
--- [[ callbacks [[
-
-local function on_new_intersection(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
-  print('NEW INTERSECTION AAAAAA')
-end
-
-local function on_exit_intersection(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
-  print('EXIT INTERSECTION AAAAAA')
-end
-
--- ]] callbacks ]]
-
 -- [[ entities [[
+
+local Floor = #[make_entity{
+  {'position', Position},
+  {'shape', Shape},
+  {'painter', Painter},
+  {'intersectable', Intersectable},
+  {'is_floor', IsFloor},
+}]#
+
+local function create_floor(pos: Vector2)
+  local floor_shape: Shape = {
+    category = Shape.ShapeCategory.Polygon,
+    vertices = { {0, 0}, {16, 0}, {16, 16}, {0,16}, {0, 0} }
+  }
+
+  local floor, floor_entity = Floor.new(
+    RotorQuick.storages.entity,
+    {
+      --[[position     ]] { position = pos },
+      --[[shape        ]] floor_shape,
+      --[[painter      ]] { color = MAGENTA, active = true },
+      --[[intersectable]] {},
+      --[[is_floor     ]] {}
+    }
+  )
+
+  local intersectable = floor:get_intersectable(RotorQuick.storages.intersectable)
+  intersectable:identify(floor.entity_id)
+  intersectable:set_rects(pos, floor_shape.vertices.data)
+
+  update_systems(floor_entity)
+end
 
 local Lander = #[make_entity{
   {'position', Position},
@@ -122,7 +165,44 @@ local Lander = #[make_entity{
   {'lander_ctrl', LanderController},
 }]#
 
-local function create_lander(pos: Vector2, gravity_acceleration: number)
+local LANDER_MAX_VELOCITY <comptime> = 10
+
+-- [[ callbacks [[
+
+local lander: Lander <noinit>
+
+local function intersected_is_floor(other_intersectable: *Intersectable)
+local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
+
+  if opt_other_entity.filled then
+    local other_entity = opt_other_entity:get()
+    local opt_other_is_floor_idx = other_entity:get_storage_index(RotorQuick.masks.is_floor)
+
+    return opt_other_is_floor_idx.filled
+  end
+
+  return false
+end
+
+local function on_lander_intersect_enter(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
+  if intersected_is_floor(other_intersectable) then
+    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
+    lander_ctrl.is_landed = true
+  end
+end
+
+local function on_lander_intersect_exit(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
+  if intersected_is_floor(other_intersectable) then
+    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
+    lander_ctrl.is_landed = false
+  end
+end
+
+-- ]] callbacks ]]
+
+local function create_lander(pos: Vector2): Lander
+  local gravity_acceleration: number = 0.1
+
   local lander_shape: Shape = {
     category = Shape.ShapeCategory.Triangle,
     vertices = { {8, 0}, {0, 16}, {16, 16} }
@@ -131,13 +211,13 @@ local function create_lander(pos: Vector2, gravity_acceleration: number)
   local lander, lander_entity = Lander.new(
     RotorQuick.storages.entity,
     {
-      --[[Position     ]] { position = { pos.x, pos.y } },
+      --[[Position     ]] { position = pos },
       --[[Shape        ]] lander_shape,
-      --[[Painter      ]] { WHITE, true },
-      --[[Velocity     ]] { true, {0,0}, 0 },
-      --[[Gravity      ]] { gravity_acceleration, {0.0, 1.0}, true },
+      --[[Painter      ]] { color = WHITE, active = true },
+      --[[Velocity     ]] { active = true, final_velocity = {0,0}, max_velocity = LANDER_MAX_VELOCITY, velocity_is_limited = true },
+      --[[Gravity      ]] { acceleration = gravity_acceleration, direction = {0.0, 1.0}, active = true },
       --[[Intersectable]] {  },
-      --[[Intersections]] { {}, on_enter_callback = on_new_intersection, on_exit_callback = on_exit_intersection },
+      --[[Intersections]] { intersections = {}, on_enter_callback = on_lander_intersect_enter, on_exit_callback = on_lander_intersect_exit },
 
       --[[Lander Ctrl  ]] { propulsion_force = gravity_acceleration * 2.5 },
     }
@@ -147,19 +227,18 @@ local function create_lander(pos: Vector2, gravity_acceleration: number)
   intersectable:identify(lander.entity_id)
   intersectable:set_rects(pos, lander_shape.vertices.data)
 
-  lander_ctrl_system.system.system_data:update(lander_entity)
+  update_systems(lander_entity)
 
-  gravity_applier.system.system_data:update(lander_entity)
-  shape_painter.system.system_data:update(lander_entity)
-  velocity_applier.system.system_data:update(lander_entity)
-  intersectable_update.system.system_data:update(lander_entity)
-  intersectable_painter.system.system_data:update(lander_entity)
-  intersections_detector.system.system_data:update(lander_entity)
-  intersections_painter.system.system_data:update(lander_entity)
+  return lander
 end
 
-create_lander({32, 32}, 0.1)
-create_lander({32, 32}, 0.0)
+lander = create_lander({32, 32})
+
+for i = 0, < 25 do
+  for j = 17, < 21 do
+    create_floor({16*i, 16*j})
+  end
+end
 
 -- ]] entities ]]
 
