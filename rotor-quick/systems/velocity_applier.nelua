@@ -16,7 +16,7 @@ function VelocityApplierRunner:run(velocity: *Velocity, position: *Position, sys
     return
   end
 
-  if velocity.max_velocity > 0.0001 then
+  if velocity.velocity_is_limited then
     velocity.final_velocity = Velocity.get_limited_velocity(velocity.final_velocity, velocity.max_velocity)
   end
 

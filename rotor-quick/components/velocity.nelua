@@ -5,7 +5,8 @@ require 'rotor-quick.makers'
 global RotorQuick.Components.Velocity = @record{
   active: boolean,
   final_velocity: Vector2,
-  max_velocity: uinteger, -- lower than 9.001 means that the velocity is not limited!
+  max_velocity: uinteger,
+  velocity_is_limited: boolean
 }
 
 local Velocity = RotorQuick.Components.Velocity
@@ -19,6 +20,12 @@ function Velocity:reset_velocity()
   self.final_velocity = { 0, 0 }
 end
 
-function Velocity.get_limited_velocity(velocity: Vector2, limit: number)
-  return velocity * (limit / #velocity)
+function Velocity.get_limited_velocity(velocity: Vector2, limit: number): Vector2
+  local velocity_len = #velocity
+
+  if velocity_len > limit then
+    return velocity * (limit / velocity_len)
+  else
+    return velocity
+  end
 end
