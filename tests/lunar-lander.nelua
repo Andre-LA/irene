@@ -29,11 +29,13 @@ local IntersectionsPainter = RotorQuick.Systems.IntersectionsPainter
 local screen_width: integer <comptime> = 400
 local screen_height: integer <comptime> = 304
 
-local LunarLander = @record{}
-global LunarLander.storages: record{} = {}
-global LunarLander.masks: record {} = {}
+local LANDER_MAX_VELOCITY <comptime> = 10
+local LANDER_START_POSITION: Vector2 = {32, 32}
 
 -- [[ components [[
+
+local IsSafeLanding = @record{a: byte}
+## is_component('is_safe_landing', IsSafeLanding)
 
 local IsFloor = @record{ a: byte }
 ## is_component('is_floor', IsFloor)
@@ -41,6 +43,7 @@ local IsFloor = @record{ a: byte }
 local LanderController = @record{
   propulsion_force: number,
   is_landed: boolean,
+  crashed: boolean
 }
 ## is_component('lander_ctrl', LanderController)
 
@@ -54,7 +57,8 @@ function LanderControllerRunner:run(lander_ctrl: *LanderController, velocity: *V
   local is_right_down, is_up_down, is_left_down = Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT),
                                                   Raylib.IsKeyDown(KeyboardKey.KEY_UP),
                                                   Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)
-  if lander_ctrl.is_landed then
+
+  if lander_ctrl.is_landed or lander_ctrl.crashed then
     velocity:reset_velocity()
   end
 
@@ -83,7 +87,7 @@ function LanderControllerRunner:run(lander_ctrl: *LanderController, velocity: *V
       if is_up_down then
         velocity:add_velocity(direction * lander_ctrl.propulsion_force)
       end
-    else
+    elseif not lander_ctrl.crashed then
       velocity:add_velocity(direction * lander_ctrl.propulsion_force)
     end
   end
@@ -95,31 +99,17 @@ local LanderControllerSystem = @MakeSystem(LanderControllerRunner, false, true, 
   gravity: Gravity,
 })
 
-local lander_ctrl_system = LanderControllerSystem.new()
-
-local gravity_applier = GravityApplier.new()
-local shape_painter = ShapePainter.new()
-local velocity_applier = VelocityApplier.new()
-local intersectable_update = IntersectableUpdate.new()
-local intersectable_painter = IntersectablePainter.new()
-local intersections_detector = IntersectionsDetector.new()
-local intersections_painter = IntersectionsPainter.new()
-
-local function update_systems(entity: *Entity)
-  lander_ctrl_system.system.system_data:update(entity)
-
-  gravity_applier.system.system_data:update(entity)
-  shape_painter.system.system_data:update(entity)
-  velocity_applier.system.system_data:update(entity)
-  intersectable_update.system.system_data:update(entity)
-  intersectable_painter.system.system_data:update(entity)
-  intersections_detector.system.system_data:update(entity)
-  intersections_painter.system.system_data:update(entity)
-end
-
 -- ]] systems ]]
 
 -- [[ entities [[
+
+local SafeLanding = #[make_entity{
+  {'position', Position},
+  {'shape', Shape},
+  {'painter', Painter},
+  {'intersectable', Intersectable},
+  {'is_safe_landing', IsSafeLanding},
+}]#
 
 local Floor = #[make_entity{
   {'position', Position},
@@ -129,7 +119,149 @@ local Floor = #[make_entity{
   {'is_floor', IsFloor},
 }]#
 
-local function create_floor(pos: Vector2)
+
+
+local Lander = #[make_entity{
+  {'position', Position},
+  {'shape', Shape},
+  {'painter', Painter},
+  {'velocity', Velocity},
+  {'gravity', Gravity},
+  {'intersectable', Intersectable},
+  {'intersections', Intersections},
+
+  {'lander_ctrl', LanderController},
+}]#
+
+-- [[ callbacks [[
+
+local function intersected_is_floor(other_intersectable: *Intersectable)
+local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
+
+  if opt_other_entity.filled then
+    local other_entity = opt_other_entity:get()
+    local opt_other_is_floor_idx = other_entity:get_storage_index(RotorQuick.masks.is_floor)
+    return opt_other_is_floor_idx.filled
+  end
+
+  return false
+end
+
+local function intersected_is_safe_landing(other_intersectable: *Intersectable)
+local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
+
+  if opt_other_entity.filled then
+    local other_entity = opt_other_entity:get()
+    local opt_other_is_safe_landing_idx = other_entity:get_storage_index(RotorQuick.masks.is_safe_landing)
+    return opt_other_is_safe_landing_idx.filled
+  end
+
+  return false
+end
+
+local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
+  if intersected_is_safe_landing(other_intersectable) then
+    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
+    lander_ctrl.is_landed = true
+  elseif intersected_is_floor(other_intersectable) then
+    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
+    lander_ctrl.crashed = true
+  end
+end
+
+local function on_lander_intersect_exit(lander: *Lander, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
+  if intersected_is_safe_landing(other_intersectable) then
+    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
+    lander_ctrl.is_landed = false
+  end
+end
+
+-- ]] callbacks ]]
+
+-- ]] entities ]]
+
+-- [[ Game State [[
+
+local GameState = @record{
+  lander: Lander,
+  systems: record{
+    lander_ctrl_system: LanderControllerSystem,
+    gravity_applier: GravityApplier,
+    shape_painter: ShapePainter,
+    velocity_applier: VelocityApplier,
+    intersectable_update: IntersectableUpdate,
+    intersectable_painter: IntersectablePainter,
+    intersections_detector: IntersectionsDetector,
+    intersections_painter: IntersectionsPainter
+  }
+}
+
+local Game_State: GameState = {
+  lander = {},
+  {
+    lander_ctrl_system = LanderControllerSystem.new(),
+    gravity_applier = GravityApplier.new(),
+    shape_painter = ShapePainter.new(),
+    velocity_applier = VelocityApplier.new(),
+    intersectable_update = IntersectableUpdate.new(),
+    intersectable_painter = IntersectablePainter.new(),
+    intersections_detector = IntersectionsDetector.new(),
+    intersections_painter = IntersectionsPainter.new()
+  }
+}
+
+function GameState:update_systems(entity: *Entity)
+  self.systems.lander_ctrl_system.system.system_data:update(entity)
+
+  self.systems.gravity_applier.system.system_data:update(entity)
+  self.systems.shape_painter.system.system_data:update(entity)
+  self.systems.velocity_applier.system.system_data:update(entity)
+  self.systems.intersectable_update.system.system_data:update(entity)
+  self.systems.intersectable_painter.system.system_data:update(entity)
+  self.systems.intersections_detector.system.system_data:update(entity)
+  self.systems.intersections_painter.system.system_data:update(entity)
+end
+
+function GameState:reset()
+  local lander_ctrl = self.lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
+  lander_ctrl.is_landed = false
+  lander_ctrl.crashed = false
+
+  local position = self.lander:get_position(RotorQuick.storages.position)
+  position.position = LANDER_START_POSITION
+
+  local velocity = self.lander:get_velocity(RotorQuick.storages.velocity)
+  velocity:reset_velocity()
+
+  local intersectable = self.lander:get_intersectable(RotorQuick.storages.intersectable)
+  intersectable:set_global_rect(position.position)
+end
+
+function GameState:create_safe_landing(pos: Vector2)
+  local safe_landing_shape: Shape = {
+    category = Shape.ShapeCategory.Polygon,
+    vertices = { {0, 0}, {16, 0}, {16, 16}, {0,16}, {0, 0} }
+  }
+
+  local safe_landing, safe_landing_entity = SafeLanding.new(
+    RotorQuick.storages.entity,
+    {
+      --[[position       ]] { position = pos },
+      --[[shape          ]] safe_landing_shape,
+      --[[painter        ]] { color = SKYBLUE, active = true },
+      --[[intersectable  ]] {},
+      --[[is_safe_landing]] {}
+    }
+  )
+
+  local intersectable = safe_landing:get_intersectable(RotorQuick.storages.intersectable)
+  intersectable:identify(safe_landing.entity_id)
+  intersectable:set_rects(pos, safe_landing_shape.vertices.data)
+
+  self:update_systems(safe_landing_entity)
+end
+
+function GameState:create_floor(pos: Vector2)
   local floor_shape: Shape = {
     category = Shape.ShapeCategory.Polygon,
     vertices = { {0, 0}, {16, 0}, {16, 16}, {0,16}, {0, 0} }
@@ -150,57 +282,18 @@ local function create_floor(pos: Vector2)
   intersectable:identify(floor.entity_id)
   intersectable:set_rects(pos, floor_shape.vertices.data)
 
-  update_systems(floor_entity)
+  self:update_systems(floor_entity)
 end
 
-local Lander = #[make_entity{
-  {'position', Position},
-  {'shape', Shape},
-  {'painter', Painter},
-  {'velocity', Velocity},
-  {'gravity', Gravity},
-  {'intersectable', Intersectable},
-  {'intersections', Intersections},
-
-  {'lander_ctrl', LanderController},
-}]#
-
-local LANDER_MAX_VELOCITY <comptime> = 10
-
--- [[ callbacks [[
-
-local lander: Lander <noinit>
-
-local function intersected_is_floor(other_intersectable: *Intersectable)
-local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
-
-  if opt_other_entity.filled then
-    local other_entity = opt_other_entity:get()
-    local opt_other_is_floor_idx = other_entity:get_storage_index(RotorQuick.masks.is_floor)
-
-    return opt_other_is_floor_idx.filled
-  end
-
-  return false
+local function _on_lander_intersect_enter(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
+  on_lander_intersect_enter(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
 end
 
-local function on_lander_intersect_enter(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
-  if intersected_is_floor(other_intersectable) then
-    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
-    lander_ctrl.is_landed = true
-  end
+local function _on_lander_intersect_exit(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
+  on_lander_intersect_exit(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
 end
 
-local function on_lander_intersect_exit(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
-  if intersected_is_floor(other_intersectable) then
-    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
-    lander_ctrl.is_landed = false
-  end
-end
-
--- ]] callbacks ]]
-
-local function create_lander(pos: Vector2): Lander
+function GameState:create_lander(pos: Vector2)
   local gravity_acceleration: number = 0.1
 
   local lander_shape: Shape = {
@@ -217,7 +310,7 @@ local function create_lander(pos: Vector2): Lander
       --[[Velocity     ]] { active = true, final_velocity = {0,0}, max_velocity = LANDER_MAX_VELOCITY, velocity_is_limited = true },
       --[[Gravity      ]] { acceleration = gravity_acceleration, direction = {0.0, 1.0}, active = true },
       --[[Intersectable]] {  },
-      --[[Intersections]] { intersections = {}, on_enter_callback = on_lander_intersect_enter, on_exit_callback = on_lander_intersect_exit },
+      --[[Intersections]] { intersections = {}, on_enter_callback = _on_lander_intersect_enter, on_exit_callback = _on_lander_intersect_exit },
 
       --[[Lander Ctrl  ]] { propulsion_force = gravity_acceleration * 2.5 },
     }
@@ -227,42 +320,58 @@ local function create_lander(pos: Vector2): Lander
   intersectable:identify(lander.entity_id)
   intersectable:set_rects(pos, lander_shape.vertices.data)
 
-  update_systems(lander_entity)
+  self:update_systems(lander_entity)
 
-  return lander
+  self.lander = lander
 end
 
-lander = create_lander({32, 32})
+-- ]] Game State ]]
+
+-- [[ Game Setup [[
+
+Game_State:create_lander(LANDER_START_POSITION)
 
 for i = 0, < 25 do
   for j = 17, < 21 do
-    create_floor({16*i, 16*j})
+    local is_safe_landing_tiles = i >= 19 and i <= 21 and j <= 18
+
+    if not is_safe_landing_tiles then
+      Game_State:create_floor({16*i, 16*j})
+    else
+      Game_State:create_safe_landing({16*i, 16*j})
+    end
   end
 end
 
--- ]] entities ]]
+-- ]] Game Setup ]]
 
+-- [[ Main Loop [[
 Raylib.SetConfigFlags(ConfigFlag.FLAG_WINDOW_RESIZABLE)
 Raylib.InitWindow(screen_width, screen_height, "raylib [core] example - basic window")
 Raylib.SetTargetFPS(60)
 
 while not Raylib.WindowShouldClose() do
-  gravity_applier:run({&RotorQuick.storages.gravity, &RotorQuick.storages.velocity})
-  lander_ctrl_system:run({&RotorQuick.storages.lander_ctrl, &RotorQuick.storages.velocity, &RotorQuick.storages.gravity})
-  velocity_applier:run({&RotorQuick.storages.velocity, &RotorQuick.storages.position})
+  if Raylib.IsKeyDown(KeyboardKey.KEY_R) then
+    Game_State:reset()
+  end
 
-  intersectable_update:run({&RotorQuick.storages.position, &RotorQuick.storages.intersectable})
-  intersections_detector:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.intersections})
+  Game_State.systems.gravity_applier:run({&RotorQuick.storages.gravity, &RotorQuick.storages.velocity})
+  Game_State.systems.lander_ctrl_system:run({&RotorQuick.storages.lander_ctrl, &RotorQuick.storages.velocity, &RotorQuick.storages.gravity})
+  Game_State.systems.velocity_applier:run({&RotorQuick.storages.velocity, &RotorQuick.storages.position})
+
+  Game_State.systems.intersectable_update:run({&RotorQuick.storages.position, &RotorQuick.storages.intersectable})
+  Game_State.systems.intersections_detector:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.intersections})
 
   Raylib.BeginDrawing()
     Raylib.ClearBackground(BLACK)
 
-    shape_painter:run({&RotorQuick.storages.position, &RotorQuick.storages.shape, &RotorQuick.storages.painter})
-    intersectable_painter:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.painter})
-    intersections_painter:run({&RotorQuick.storages.intersections, &RotorQuick.storages.painter})
+    Game_State.systems.shape_painter:run({&RotorQuick.storages.position, &RotorQuick.storages.shape, &RotorQuick.storages.painter})
+    Game_State.systems.intersectable_painter:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.painter})
+    Game_State.systems.intersections_painter:run({&RotorQuick.storages.intersections, &RotorQuick.storages.painter})
 
   Raylib.EndDrawing()
 end
+-- ]] Main Loop ]]
 
 Raylib.CloseWindow()
 
