@@ -369,6 +369,23 @@ while not Raylib.WindowShouldClose() do
     Game_State.systems.intersectable_painter:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.painter})
     Game_State.systems.intersections_painter:run({&RotorQuick.storages.intersections, &RotorQuick.storages.painter})
 
+    if not is_flying then
+      local msg = (do
+        switch lander_ctrl.state
+        case LanderState.Landed then
+          return "You're Landed"
+        case LanderState.Crashed then
+          return "You Crashed"
+        else
+          return ""
+        end
+      end)
+
+      local msg_fontsize <comptime> = 18
+      local msg_width = Raylib.MeasureText(msg, msg_fontsize)
+      Raylib.DrawText(msg, math.ifloor(screen_width / 2 - msg_width / 2), math.ifloor(screen_height / 2), msg_fontsize, WHITE)
+    end
+
   Raylib.EndDrawing()
 end
 -- ]] Main Loop ]]
