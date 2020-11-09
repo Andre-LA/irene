@@ -1,0 +1,33 @@
+require 'math'
+require 'raylib'
+require 'rotor'
+require 'rotor-quick.makers'
+require 'rotor-quick.components.intersections'
+require 'rotor-quick.components.painter'
+
+local Position = RotorQuick.Components.Position
+local Sprite = RotorQuick.Components.Sprite
+local Painter = RotorQuick.Components.Painter
+
+global SpritePainterRunner = @record{}
+
+function SpritePainterRunner:run(position: *Position, painter: *Painter, sprite: *Sprite, system_data: *SystemData)
+  if not painter.active then
+    return
+  end
+
+  print(sprite.sprite_sheet.width, sprite.frame_rect.width, sprite.sprite_sheet.width / sprite.frame_rect.width)
+  local img_unit_w: integer = math.ifloor(sprite.sprite_sheet.width / sprite.frame_rect.width)
+  local img_unit_h: integer = math.ifloor(sprite.sprite_sheet.height / sprite.frame_rect.height)
+
+  sprite.frame_rect.x = (sprite.frame_index % img_unit_w) * sprite.frame_rect.width
+  sprite.frame_rect.y = math.ifloor(sprite.frame_index / img_unit_w) * sprite.frame_rect.height
+
+  Raylib.DrawTextureRec(sprite.sprite_sheet, sprite.frame_rect, position.position + sprite.offset, painter.color)
+end
+
+global RotorQuick.Systems.SpritePainter = @MakeSystem(SpritePainterRunner, false, true, false, 2, @record{
+  position: Position,
+  painter: Painter,
+  sprite: Sprite
+})

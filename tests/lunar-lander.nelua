@@ -14,6 +14,7 @@ local Velocity = RotorQuick.Components.Velocity
 local Gravity = RotorQuick.Components.Gravity
 local Intersectable = RotorQuick.Components.Intersectable
 local Intersections = RotorQuick.Components.Intersections
+local Sprite = RotorQuick.Components.Sprite
 
 local GravityApplier = RotorQuick.Systems.GravityApplier
 local ShapePainter = RotorQuick.Systems.ShapePainter
@@ -22,6 +23,7 @@ local IntersectableUpdate = RotorQuick.Systems.IntersectableUpdate
 local IntersectablePainter = RotorQuick.Systems.IntersectablePainter
 local IntersectionsDetector = RotorQuick.Systems.IntersectionsDetector
 local IntersectionsPainter = RotorQuick.Systems.IntersectionsPainter
+local SpritePainter = RotorQuick.Systems.SpritePainter
 
 -- ]] requires and imports ]]
 
@@ -105,6 +107,7 @@ local LanderControllerSystem = @MakeSystem(LanderControllerRunner, false, true, 
 local SafeLanding = #[make_entity{
   {'position', Position},
   {'shape', Shape},
+  {'sprite', Sprite},
   {'painter', Painter},
   {'intersectable', Intersectable},
   {'is_safe_landing', IsSafeLanding},
@@ -113,16 +116,16 @@ local SafeLanding = #[make_entity{
 local Floor = #[make_entity{
   {'position', Position},
   {'shape', Shape},
+  {'sprite', Sprite},
   {'painter', Painter},
   {'intersectable', Intersectable},
   {'is_floor', IsFloor},
 }]#
 
-
-
 local Lander = #[make_entity{
   {'position', Position},
   {'shape', Shape},
+  {'sprite', Sprite},
   {'painter', Painter},
   {'velocity', Velocity},
   {'gravity', Gravity},
@@ -191,7 +194,8 @@ local GameState = @record{
     intersectable_update: IntersectableUpdate,
     intersectable_painter: IntersectablePainter,
     intersections_detector: IntersectionsDetector,
-    intersections_painter: IntersectionsPainter
+    intersections_painter: IntersectionsPainter,
+    sprite_painter: SpritePainter
   }
 }
 
@@ -205,7 +209,8 @@ local Game_State: GameState = {
     intersectable_update = IntersectableUpdate.new(),
     intersectable_painter = IntersectablePainter.new(),
     intersections_detector = IntersectionsDetector.new(),
-    intersections_painter = IntersectionsPainter.new()
+    intersections_painter = IntersectionsPainter.new(),
+    sprite_painter = SpritePainter.new()
   }
 }
 
@@ -219,6 +224,7 @@ function GameState:update_systems(entity: *Entity)
   self.systems.intersectable_painter.system.system_data:update(entity)
   self.systems.intersections_detector.system.system_data:update(entity)
   self.systems.intersections_painter.system.system_data:update(entity)
+  self.systems.sprite_painter.system.system_data:update(entity)
 end
 
 function GameState:reset()
@@ -241,12 +247,21 @@ function GameState:create_safe_landing(pos: Vector2)
     vertices = { {0, 0}, {16, 0}, {16, 16}, {0,16}, {0, 0} }
   }
 
+  local safe_landing_sprite: Sprite = {
+    sprite_sheet = Raylib.LoadTexture("resources/lunar_safe_land.png"),
+    frame_index = 0,
+    frame_rect = { 0, 0, 16, 16 },
+    offset = { 0, 0 },
+    visible = true
+  }
+
   local safe_landing, safe_landing_entity = SafeLanding.new(
     RotorQuick.storages.entity,
     {
       --[[position       ]] { position = pos },
       --[[shape          ]] safe_landing_shape,
-      --[[painter        ]] { color = SKYBLUE, active = true },
+      --[[sprite         ]] safe_landing_sprite,
+      --[[painter        ]] { color = WHITE, active = true },
       --[[intersectable  ]] {},
       --[[is_safe_landing]] {}
     }
@@ -265,12 +280,21 @@ function GameState:create_floor(pos: Vector2)
     vertices = { {0, 0}, {16, 0}, {16, 16}, {0,16}, {0, 0} }
   }
 
+  local floor_sprite: Sprite = {
+    sprite_sheet = Raylib.LoadTexture("resources/lunar_floor.png"),
+    frame_index = 0,
+    frame_rect = { 0, 0, 16, 16 },
+    offset = { 0, 0 },
+    visible = true
+  }
+
   local floor, floor_entity = Floor.new(
     RotorQuick.storages.entity,
     {
       --[[position     ]] { position = pos },
       --[[shape        ]] floor_shape,
-      --[[painter      ]] { color = MAGENTA, active = true },
+      --[[sprite       ]] floor_sprite,
+      --[[painter      ]] { color = WHITE, active = true },
       --[[intersectable]] {},
       --[[is_floor     ]] {}
     }
@@ -299,11 +323,20 @@ function GameState:create_lander(pos: Vector2)
     vertices = { {8, 0}, {0, 16}, {16, 16} }
   }
 
+  local lander_sprite: Sprite = {
+    sprite_sheet = Raylib.LoadTexture("resources/lunar_lander_sprite.png"),
+    frame_index = 0,
+    frame_rect = { 0, 0, 16, 16 },
+    offset = { 0, 0 },
+    visible = true
+  }
+
   local lander, lander_entity = Lander.new(
     RotorQuick.storages.entity,
     {
       --[[Position     ]] { position = pos },
       --[[Shape        ]] lander_shape,
+      --[[Sprite       ]] lander_sprite,
       --[[Painter      ]] { color = WHITE, active = true },
       --[[Velocity     ]] { active = true, final_velocity = {0,0}, max_velocity = LANDER_MAX_VELOCITY, velocity_is_limited = true },
       --[[Gravity      ]] { acceleration = gravity_acceleration, direction = {0.0, 1.0}, active = true },
@@ -422,9 +455,11 @@ while not Raylib.WindowShouldClose() do
   Raylib.BeginDrawing()
     Raylib.ClearBackground(BLACK)
 
-    Game_State.systems.shape_painter:run({&RotorQuick.storages.position, &RotorQuick.storages.shape, &RotorQuick.storages.painter})
-    Game_State.systems.intersectable_painter:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.painter})
-    Game_State.systems.intersections_painter:run({&RotorQuick.storages.intersections, &RotorQuick.storages.painter})
+    --Game_State.systems.shape_painter:run({&RotorQuick.storages.position, &RotorQuick.storages.shape, &RotorQuick.storages.painter})
+    --Game_State.systems.intersectable_painter:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.painter})
+    --Game_State.systems.intersections_painter:run({&RotorQuick.storages.intersections, &RotorQuick.storages.painter})
+
+    Game_State.systems.sprite_painter:run({&RotorQuick.storages.position, &RotorQuick.storages.painter, &RotorQuick.storages.sprite})
 
     if not is_flying then
       local msg = (do
