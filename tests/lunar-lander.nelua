@@ -26,11 +26,11 @@ local IntersectionsPainter = RotorQuick.Systems.IntersectionsPainter
 -- ]] requires and imports ]]
 
 -- Main Game Record and general variables
-local screen_width: integer <comptime> = 400
-local screen_height: integer <comptime> = 304
+local screen_width: integer <comptime> = 800
+local screen_height: integer <comptime> = 608
 
 local LANDER_MAX_VELOCITY <comptime> = 10
-local LANDER_START_POSITION: Vector2 = {32, 32}
+local Lander_Start_Position: Vector2 = {32, 32}
 
 Raylib.SetConfigFlags(ConfigFlag.FLAG_WINDOW_RESIZABLE)
 Raylib.InitWindow(screen_width, screen_height, "raylib [core] example - basic window")
@@ -327,19 +327,76 @@ end
 
 -- [[ Game Setup [[
 
-Game_State:create_lander(LANDER_START_POSITION)
+##[[
+  local map = {
+    'ffffffffffffffffffffffffffffffffffffffffffffffffff',
+    'f                                                f',
+    'f   L                                            f',
+    'f                                                f',
+    'f                                                f',
+    'f                                                f',
+    'f               fffffffffffffffffffffffffff      f',
+    'f               f                         f      f',
+    'f               f                         f      f',
+    'fffffffffffffffff                         f      f',
+    'f                                         f      f',
+    'f                                         f      f',
+    'f                              f          f      f',
+    'f         fffffff              f          f      f',
+    'f         f f   f              f          f      f',
+    'f         f f   f              f          f      f',
+    'f         f f   f              f                 f',
+    'f         f f   ffffffffffffffff                 f',
+    'f         f f                  f                 f',
+    'f         f f                  f                 f',
+    'f         f f                  f                 f',
+    'f         f f       f          f                 f',
+    'f         f f       f          f                 f',
+    'f         f f       f          f                 f',
+    'f     fffffff     fff          fffffffffffffffffff',
+    'f     ff            f                            f',
+    'f     f             f                            f',
+    'f     f             f                            f',
+    'f     f       fffffff                            f',
+    'f     f             ffffffffffffffffffff         f',
+    'f     f             f                            f',
+    'f     f             f                            f',
+    'f     ffffffff      f                            f',
+    'f                   f       ffffffffffffffffffffff',
+    'f                   f                            f',
+    'f                   f                            f',
+    'f                   f                            f',
+    'f                   f                            f',
+    'fffffffffffffffffffffffffffffffffsssssssssssffffff',
+    'ffffffffffffffffffffffffffffffffffffffffffffffffff',
+  }
+]]
 
-for i = 0, < 25 do
-  for j = 17, < 21 do
-    local is_safe_landing_tiles = i >= 19 and i <= 21 and j <= 18
+local tileposition: Vector2 = Vector2.Zero()
+## for i = 1, #map do
+  ## local line = map[i]
+  ## local line_len = #line
 
-    if not is_safe_landing_tiles then
-      Game_State:create_floor({16*i, 16*j})
-    else
-      Game_State:create_safe_landing({16*i, 16*j})
-    end
-  end
-end
+  ## for j = 1, line_len do
+    ## local tileletter = string.sub(map[i], j, j)
+    ## local pos_x, pos_y = (j-1) * 16, (i-1) * 16
+
+    ## if tileletter ~= ' ' then
+      tileposition.x = #[ pos_x ]#
+      tileposition.y = #[ pos_y ]#
+
+      ## if tileletter == 'L' then
+        Lander_Start_Position = tileposition
+      ## elseif tileletter == 'f' then
+        Game_State:create_floor(tileposition)
+      ## elseif tileletter == 's' then
+        Game_State:create_safe_landing(tileposition)
+      ## end
+    ## end
+  ## end
+## end
+
+Game_State:create_lander(Lander_Start_Position)
 
 -- ]] Game Setup ]]
 
