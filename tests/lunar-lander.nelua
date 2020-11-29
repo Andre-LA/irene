@@ -1,5 +1,4 @@
 -- [[ requires and imports [[
-
 require 'math'
 
 require 'raylib'
@@ -36,6 +35,7 @@ local Lander_Start_Position: Vector2 = {32, 32}
 
 Raylib.SetConfigFlags(ConfigFlag.FLAG_WINDOW_RESIZABLE)
 Raylib.InitWindow(screen_width, screen_height, "raylib [core] example - basic window")
+Raylib.InitAudioDevice()
 Raylib.SetTargetFPS(60)
 
 -- [[ components [[
@@ -64,7 +64,11 @@ local LanderController = @record{
 
 global LanderControllerRunner = @record{}
 
-function LanderControllerRunner:run(lander_ctrl: *LanderController, velocity: *Velocity, gravity: *Gravity, system_data: *SystemData)
+function LanderControllerRunner:run(lander_ctrl: *LanderController,
+                                    velocity: *Velocity,
+                                    gravity: *Gravity,
+                                    system_data: *SystemData
+                                    )
   local is_right_down, is_up_down, is_left_down = Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT),
                                                   Raylib.IsKeyDown(KeyboardKey.KEY_UP),
                                                   Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)
@@ -135,51 +139,6 @@ local Lander = #[make_entity{
   {'lander_ctrl', LanderController},
 }]#
 
--- [[ callbacks [[
-
-local function intersected_is_floor(other_intersectable: *Intersectable)
-local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
-
-  if opt_other_entity.filled then
-    local other_entity = opt_other_entity:get()
-    local opt_other_is_floor_idx = other_entity:get_storage_index(RotorQuick.masks.is_floor)
-    return opt_other_is_floor_idx.filled
-  end
-
-  return false
-end
-
-local function intersected_is_safe_landing(other_intersectable: *Intersectable)
-local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
-
-  if opt_other_entity.filled then
-    local other_entity = opt_other_entity:get()
-    local opt_other_is_safe_landing_idx = other_entity:get_storage_index(RotorQuick.masks.is_safe_landing)
-    return opt_other_is_safe_landing_idx.filled
-  end
-
-  return false
-end
-
-local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
-  if intersected_is_safe_landing(other_intersectable) then
-    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
-    lander_ctrl.state = LanderState.Landed
-  elseif intersected_is_floor(other_intersectable) then
-    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
-    lander_ctrl.state = LanderState.Crashed
-  end
-end
-
-local function on_lander_intersect_exit(lander: *Lander, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
-  if intersected_is_safe_landing(other_intersectable) then
-    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
-    lander_ctrl.state = LanderState.Flying
-  end
-end
-
--- ]] callbacks ]]
-
 -- ]] entities ]]
 
 -- [[ Game State [[
@@ -196,23 +155,49 @@ local GameState = @record{
     intersections_detector: IntersectionsDetector,
     intersections_painter: IntersectionsPainter,
     sprite_painter: SpritePainter
+  },
+  audio: record{
+    music: record{ -- using something similar to double buffering, since our music is not "loop-friendly"
+      music1: Music,
+      music2: Music,
+    },
+    sound_effects: record{
+      propulsion: Sound,
+      land: Sound,
+      hit: Sound
+    }
   }
 }
 
-local Game_State: GameState = {
-  lander = {},
-  {
-    lander_ctrl_system = LanderControllerSystem.new(),
-    gravity_applier = GravityApplier.new(),
-    shape_painter = ShapePainter.new(),
-    velocity_applier = VelocityApplier.new(),
-    intersectable_update = IntersectableUpdate.new(),
-    intersectable_painter = IntersectablePainter.new(),
-    intersections_detector = IntersectionsDetector.new(),
-    intersections_painter = IntersectionsPainter.new(),
-    sprite_painter = SpritePainter.new()
-  }
-}
+function GameState:unload()
+  Raylib.StopSoundMulti()
+  Raylib.UnloadSound(self.audio.sound_effects.propulsion)
+  Raylib.UnloadSound(self.audio.sound_effects.land)
+  Raylib.UnloadSound(self.audio.sound_effects.hit)
+
+  Raylib.StopMusicStream(self.audio.music.music1)
+  Raylib.StopMusicStream(self.audio.music.music2)
+
+  Raylib.UnloadMusicStream(self.audio.music.music1)
+  Raylib.UnloadMusicStream(self.audio.music.music2)
+end
+
+function GameState:manage_music()
+  local music_end_time: number <comptime> = 60 * 2 + 24.1 -- 2:24 is when the music ends and should loop
+
+  if (Raylib.GetMusicTimePlayed(self.audio.music.music1) >= music_end_time and
+      not Raylib.IsMusicPlaying(self.audio.music.music2))
+  then
+    Raylib.PlayMusicStream(self.audio.music.music2)
+  elseif (Raylib.GetMusicTimePlayed(self.audio.music.music2) >= music_end_time and
+          not Raylib.IsMusicPlaying(self.audio.music.music1))
+  then
+    Raylib.PlayMusicStream(self.audio.music.music1)
+  end
+
+  Raylib.UpdateMusicStream(self.audio.music.music1)
+  Raylib.UpdateMusicStream(self.audio.music.music2)
+end
 
 function GameState:update_systems(entity: *Entity)
   self.systems.lander_ctrl_system.system.system_data:update(entity)
@@ -307,6 +292,86 @@ function GameState:create_floor(pos: Vector2)
   self:update_systems(floor_entity)
 end
 
+local Game_State: GameState = {
+  lander = {},
+  systems = {
+    lander_ctrl_system = LanderControllerSystem.new(),
+    gravity_applier = GravityApplier.new(),
+    shape_painter = ShapePainter.new(),
+    velocity_applier = VelocityApplier.new(),
+    intersectable_update = IntersectableUpdate.new(),
+    intersectable_painter = IntersectablePainter.new(),
+    intersections_detector = IntersectionsDetector.new(),
+    intersections_painter = IntersectionsPainter.new(),
+    sprite_painter = SpritePainter.new()
+  },
+  audio = {
+    music = {
+      music1 = Raylib.LoadMusicStream("resources/lunar-lander-music.ogg"),
+      music2 = Raylib.LoadMusicStream("resources/lunar-lander-music.ogg")
+    },
+    sound_effects = {
+      propulsion = Raylib.LoadSound("resources/propulsion.wav"),
+      land = Raylib.LoadSound("resources/land.wav"),
+      hit = Raylib.LoadSound("resources/hit.wav")
+    }
+  }
+}
+
+Game_State.audio.music.music1.loopCount = 1
+Game_State.audio.music.music2.loopCount = 1
+
+-- ]] Game State ]]
+
+-- [[ callbacks [[
+
+local function intersected_is_floor(other_intersectable: *Intersectable)
+local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
+
+  if opt_other_entity.filled then
+    local other_entity = opt_other_entity:get()
+    local opt_other_is_floor_idx = other_entity:get_storage_index(RotorQuick.masks.is_floor)
+    return opt_other_is_floor_idx.filled
+  end
+
+  return false
+end
+
+local function intersected_is_safe_landing(other_intersectable: *Intersectable)
+local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
+
+  if opt_other_entity.filled then
+    local other_entity = opt_other_entity:get()
+    local opt_other_is_safe_landing_idx = other_entity:get_storage_index(RotorQuick.masks.is_safe_landing)
+    return opt_other_is_safe_landing_idx.filled
+  end
+
+  return false
+end
+
+local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
+  if intersected_is_safe_landing(other_intersectable) then
+    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
+    lander_ctrl.state = LanderState.Landed
+
+    Raylib.PlaySoundMulti(Game_State.audio.sound_effects.land)
+
+  elseif intersected_is_floor(other_intersectable) then
+    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
+    lander_ctrl.state = LanderState.Crashed
+
+    Raylib.PlaySoundMulti(Game_State.audio.sound_effects.hit)
+  end
+end
+
+local function on_lander_intersect_exit(lander: *Lander, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
+  if intersected_is_safe_landing(other_intersectable) then
+    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
+    lander_ctrl.state = LanderState.Flying
+  end
+end
+
+
 local function _on_lander_intersect_enter(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
   on_lander_intersect_enter(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
 end
@@ -315,13 +380,26 @@ local function _on_lander_intersect_exit(self_intersectable: *Intersectable, sel
   on_lander_intersect_exit(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
 end
 
+-- ]] callbacks ]]
+
+-- [[ Game State extensions [[
+
 function GameState:create_lander(pos: Vector2)
   local gravity_acceleration: number = 0.1
 
   local lander_shape: Shape = {
-    category = Shape.ShapeCategory.Triangle,
-    vertices = { {8, 0}, {0, 16}, {16, 16} }
+    category = Shape.ShapeCategory.Polygon,
+    vertices = { {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} } -- create 8 "unreal" elements with no actual used values, just for code clarity
   }
+
+  ## local radius = 8
+  ## for i = 0, 8 do
+    ## local i_rad = i/4 * math.pi
+    ## local cos = math.cos(i_rad)
+    ## local sin = math.sin(i_rad)
+
+    lander_shape.vertices[ #[i]# ] = {  #[cos*radius + radius]#, #[sin*radius + radius]# }
+  ## end
 
   local lander_sprite: Sprite = {
     sprite_sheet = Raylib.LoadTexture("resources/lunar_lander_sprite.png"),
@@ -356,9 +434,9 @@ function GameState:create_lander(pos: Vector2)
   self.lander = lander
 end
 
--- ]] Game State ]]
+-- ]] Game State extensions ]]
 
--- [[ Game Setup [[
+-- [[ Game Start [[
 
 ##[[
   local map = {
@@ -375,8 +453,8 @@ end
     'f                                         f      f',
     'f                                         f      f',
     'f                              f          f      f',
+    'f                              f          f      f',
     'f         fffffff              f          f      f',
-    'f         f f   f              f          f      f',
     'f         f f   f              f          f      f',
     'f         f f   f              f                 f',
     'f         f f   ffffffffffffffff                 f',
@@ -390,12 +468,12 @@ end
     'f     ff            f                            f',
     'f     f             f                            f',
     'f     f             f                            f',
-    'f     f       fffffff                            f',
-    'f     f             ffffffffffffffffffff         f',
+    'f     f       ffffffffffffffffffffffffff         f',
     'f     f             f                            f',
     'f     f             f                            f',
-    'f     ffffffff      f                            f',
-    'f                   f       ffffffffffffffffffffff',
+    'f     f             f                            f',
+    'f     f             f                            f',
+    'f     fffffff       f       ffffffffffffffffffffff',
     'f                   f                            f',
     'f                   f                            f',
     'f                   f                            f',
@@ -406,13 +484,15 @@ end
 ]]
 
 local tileposition: Vector2 = Vector2.Zero()
-## for i = 1, #map do
-  ## local line = map[i]
-  ## local line_len = #line
+##[[
+for i = 1, #map do
+  local line = map[i]
+  local line_len = #line
 
-  ## for j = 1, line_len do
-    ## local tileletter = string.sub(map[i], j, j)
-    ## local pos_x, pos_y = (j-1) * 16, (i-1) * 16
+  for j = 1, line_len do
+    local tileletter = string.sub(map[i], j, j)
+    local pos_x, pos_y = (j-1) * 16, (i-1) * 16
+    ]]
 
     ## if tileletter ~= ' ' then
       tileposition.x = #[ pos_x ]#
@@ -424,18 +504,26 @@ local tileposition: Vector2 = Vector2.Zero()
         Game_State:create_floor(tileposition)
       ## elseif tileletter == 's' then
         Game_State:create_safe_landing(tileposition)
-      ## end
-    ## end
-  ## end
-## end
+      ##[[
+      end
+    end
+  end
+end
+]]
 
 Game_State:create_lander(Lander_Start_Position)
 
--- ]] Game Setup ]]
+Raylib.PlayMusicStream(Game_State.audio.music.music1)
+
+-- ]] Game Start ]]
 
 -- [[ Main Loop [[
 
 while not Raylib.WindowShouldClose() do
+  Game_State:manage_music()
+
+  local show_dev_info = Raylib.IsKeyDown(KeyboardKey.KEY_I)
+
   if Raylib.IsKeyDown(KeyboardKey.KEY_R) then
     Game_State:reset()
   end
@@ -455,11 +543,13 @@ while not Raylib.WindowShouldClose() do
   Raylib.BeginDrawing()
     Raylib.ClearBackground(BLACK)
 
-    --Game_State.systems.shape_painter:run({&RotorQuick.storages.position, &RotorQuick.storages.shape, &RotorQuick.storages.painter})
-    --Game_State.systems.intersectable_painter:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.painter})
-    --Game_State.systems.intersections_painter:run({&RotorQuick.storages.intersections, &RotorQuick.storages.painter})
-
     Game_State.systems.sprite_painter:run({&RotorQuick.storages.position, &RotorQuick.storages.painter, &RotorQuick.storages.sprite})
+
+    if show_dev_info then
+      Game_State.systems.shape_painter:run({&RotorQuick.storages.position, &RotorQuick.storages.shape, &RotorQuick.storages.painter})
+      Game_State.systems.intersectable_painter:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.painter})
+      Game_State.systems.intersections_painter:run({&RotorQuick.storages.intersections, &RotorQuick.storages.painter})
+    end
 
     if not is_flying then
       local msg = (do
@@ -482,40 +572,7 @@ while not Raylib.WindowShouldClose() do
 end
 -- ]] Main Loop ]]
 
+Game_State:unload()
+
+Raylib.CloseAudioDevice()
 Raylib.CloseWindow()
-
---[[
-asteroid = {
-  position = {},
-  velocity = {},
-  asteroid_info = {},
-  {
-    shape = {},
-    intersectable = {},
-    shape2intersectable = {}
-  },
-  {
-    shape = {},
-    mesh = {},
-    shape2mesh = {}.
-  },
-}
-
-spaceship = {
-  spaceship_controller = {},
-  position = {},
-  velocity = {},
-  spaceship_info = {},
-  {
-    shape = {},
-    intersectable = {},
-    shape2intersectable = {}
-    intersections = {},
-  },
-  {
-    shape = {},
-    mesh = {},
-    shape2mesh = {}.
-  },
-}
-]]

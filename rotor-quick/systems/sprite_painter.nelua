@@ -16,7 +16,6 @@ function SpritePainterRunner:run(position: *Position, painter: *Painter, sprite:
     return
   end
 
-  print(sprite.sprite_sheet.width, sprite.frame_rect.width, sprite.sprite_sheet.width / sprite.frame_rect.width)
   local img_unit_w: integer = math.ifloor(sprite.sprite_sheet.width / sprite.frame_rect.width)
   local img_unit_h: integer = math.ifloor(sprite.sprite_sheet.height / sprite.frame_rect.height)
 
