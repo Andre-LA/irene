@@ -152,14 +152,12 @@ global System = @record{
   local T = @#[T]#
 
   local optCollectionT = @record{}
-  local storagesCollectionT = @record{}
 
   ## for i, name in ipairs(component_names) do
     local opt_T = @optional(*#[ component_types[i] ]#)
     ## optCollectionT.value:add_field(name, opt_T.value)
 
     local stor_T = @pointer(Storage( #[ component_types[i] ]# ))
-    ## storagesCollectionT.value:add_field(name, stor_T.value)
   ## end
 
   local systemT <nickname #[string.format('system(%s)', T)]#> = @record{
@@ -203,7 +201,7 @@ global System = @record{
     return result
   end
 
-  function systemT:run(storages: storagesCollectionT)
+  function systemT:run()
     ## if PROF then
       nprof:push(#[systemT.value.nickname]#)
       defer nprof:pop() end
@@ -225,7 +223,7 @@ global System = @record{
           ## for i, name in ipairs(component_names) do
             ## local name_id = name..'_id'
             local #|name_id|# = ids[#[i-1]#]
-            self.opts.#|name|# = storages.#|name|#:get_entry(#|name_id|#)
+            self.opts.#|name|# = RotorQuick.storages.#|name|#:get_entry(#|name_id|#)
           ## end
 
           if self:verify() then

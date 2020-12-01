@@ -546,23 +546,23 @@ while not Raylib.WindowShouldClose() do
   local is_flying = lander_controller.state == LanderState.Flying
 
   if is_flying then
-    Game_State.systems.gravity_applier:run({&RotorQuick.storages.gravity, &RotorQuick.storages.velocity})
-    Game_State.systems.lander_ctrl_system:run({&RotorQuick.storages.lander_controller, &RotorQuick.storages.velocity, &RotorQuick.storages.gravity})
-    Game_State.systems.velocity_applier:run({&RotorQuick.storages.velocity, &RotorQuick.storages.position})
+    Game_State.systems.gravity_applier:run()
+    Game_State.systems.lander_ctrl_system:run()
+    Game_State.systems.velocity_applier:run()
   end
 
-  Game_State.systems.intersectable_update:run({&RotorQuick.storages.position, &RotorQuick.storages.intersectable})
-  Game_State.systems.intersections_detector:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.intersections})
+  Game_State.systems.intersectable_update:run()
+  Game_State.systems.intersections_detector:run()
 
   Raylib.BeginDrawing()
     Raylib.ClearBackground(BLACK)
 
-    Game_State.systems.sprite_painter:run({&RotorQuick.storages.position, &RotorQuick.storages.painter, &RotorQuick.storages.sprite})
+    Game_State.systems.sprite_painter:run()
 
     if show_dev_info then
-      Game_State.systems.shape_painter:run({&RotorQuick.storages.position, &RotorQuick.storages.shape, &RotorQuick.storages.painter})
-      Game_State.systems.intersectable_painter:run({&RotorQuick.storages.intersectable, &RotorQuick.storages.painter})
-      Game_State.systems.intersections_painter:run({&RotorQuick.storages.intersections, &RotorQuick.storages.painter})
+      Game_State.systems.shape_painter:run()
+      Game_State.systems.intersectable_painter:run()
+      Game_State.systems.intersections_painter:run()
     end
 
     if not is_flying then
