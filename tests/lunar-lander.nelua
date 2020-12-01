@@ -56,7 +56,7 @@ local LanderController = @record{
   propulsion_force: number,
   state: LanderState
 }
-## is_component('lander_ctrl', LanderController)
+## is_component('lander_controller', LanderController)
 
 -- ]] components ]]
 
@@ -64,7 +64,7 @@ local LanderController = @record{
 
 global LanderControllerRunner = @record{}
 
-function LanderControllerRunner:run(lander_ctrl: *LanderController,
+function LanderControllerRunner:run(lander_controller: *LanderController,
                                     velocity: *Velocity,
                                     gravity: *Gravity,
                                     system_data: *SystemData
@@ -94,12 +94,12 @@ function LanderControllerRunner:run(lander_ctrl: *LanderController,
       end)
     }
 
-    velocity:add_velocity(direction * lander_ctrl.propulsion_force)
+    velocity:add_velocity(direction * lander_controller.propulsion_force)
   end
 end
 
 local LanderControllerSystem = @MakeSystem(LanderControllerRunner, false, true, false, 1, @record{
-  lander_ctrl: LanderController,
+  lander_controller: LanderController,
   velocity: Velocity,
   gravity: Gravity,
 })
@@ -109,34 +109,34 @@ local LanderControllerSystem = @MakeSystem(LanderControllerRunner, false, true, 
 -- [[ entities [[
 
 local SafeLanding = #[make_entity{
-  {'position', Position},
-  {'shape', Shape},
-  {'sprite', Sprite},
-  {'painter', Painter},
-  {'intersectable', Intersectable},
-  {'is_safe_landing', IsSafeLanding},
+  Position,
+  Shape,
+  Sprite,
+  Painter,
+  Intersectable,
+  IsSafeLanding,
 }]#
 
 local Floor = #[make_entity{
-  {'position', Position},
-  {'shape', Shape},
-  {'sprite', Sprite},
-  {'painter', Painter},
-  {'intersectable', Intersectable},
-  {'is_floor', IsFloor},
+  Position,
+  Shape,
+  Sprite,
+  Painter,
+  Intersectable,
+  IsFloor,
 }]#
 
 local Lander = #[make_entity{
-  {'position', Position},
-  {'shape', Shape},
-  {'sprite', Sprite},
-  {'painter', Painter},
-  {'velocity', Velocity},
-  {'gravity', Gravity},
-  {'intersectable', Intersectable},
-  {'intersections', Intersections},
+  Position,
+  Shape,
+  Sprite,
+  Painter,
+  Velocity,
+  Gravity,
+  Intersectable,
+  Intersections,
 
-  {'lander_ctrl', LanderController},
+  LanderController,
 }]#
 
 -- ]] entities ]]
@@ -213,8 +213,8 @@ function GameState:update_systems(entity: *Entity)
 end
 
 function GameState:reset()
-  local lander_ctrl = self.lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
-  lander_ctrl.state = LanderState.Flying
+  local lander_controller = self.lander:get_lander_controller(RotorQuick.storages.lander_controller)
+  lander_controller.state = LanderState.Flying
 
   local position = self.lander:get_position(RotorQuick.storages.position)
   position.position = Lander_Start_Position
@@ -351,14 +351,14 @@ end
 
 local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
   if intersected_is_safe_landing(other_intersectable) then
-    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
-    lander_ctrl.state = LanderState.Landed
+    local lander_controller = lander:get_lander_controller(RotorQuick.storages.lander_controller)
+    lander_controller.state = LanderState.Landed
 
     Raylib.PlaySoundMulti(Game_State.audio.sound_effects.land)
 
   elseif intersected_is_floor(other_intersectable) then
-    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
-    lander_ctrl.state = LanderState.Crashed
+    local lander_controller = lander:get_lander_controller(RotorQuick.storages.lander_controller)
+    lander_controller.state = LanderState.Crashed
 
     Raylib.PlaySoundMulti(Game_State.audio.sound_effects.hit)
   end
@@ -366,8 +366,8 @@ end
 
 local function on_lander_intersect_exit(lander: *Lander, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
   if intersected_is_safe_landing(other_intersectable) then
-    local lander_ctrl = lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
-    lander_ctrl.state = LanderState.Flying
+    local lander_controller = lander:get_lander_controller(RotorQuick.storages.lander_controller)
+    lander_controller.state = LanderState.Flying
   end
 end
 
@@ -528,12 +528,12 @@ while not Raylib.WindowShouldClose() do
     Game_State:reset()
   end
 
-  local lander_ctrl = Game_State.lander:get_lander_ctrl(RotorQuick.storages.lander_ctrl)
-  local is_flying = lander_ctrl.state == LanderState.Flying
+  local lander_controller = Game_State.lander:get_lander_controller(RotorQuick.storages.lander_controller)
+  local is_flying = lander_controller.state == LanderState.Flying
 
   if is_flying then
     Game_State.systems.gravity_applier:run({&RotorQuick.storages.gravity, &RotorQuick.storages.velocity})
-    Game_State.systems.lander_ctrl_system:run({&RotorQuick.storages.lander_ctrl, &RotorQuick.storages.velocity, &RotorQuick.storages.gravity})
+    Game_State.systems.lander_ctrl_system:run({&RotorQuick.storages.lander_controller, &RotorQuick.storages.velocity, &RotorQuick.storages.gravity})
     Game_State.systems.velocity_applier:run({&RotorQuick.storages.velocity, &RotorQuick.storages.position})
   end
 
@@ -553,7 +553,7 @@ while not Raylib.WindowShouldClose() do
 
     if not is_flying then
       local msg = (do
-        switch lander_ctrl.state
+        switch lander_controller.state
         case LanderState.Landed then
           return "You're Landed"
         case LanderState.Crashed then

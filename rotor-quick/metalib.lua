@@ -49,4 +49,35 @@ function metalib.create_call_node(aster, T, func_name, ...)
    }
 end
 
+function metalib.basic_typecheck(value, type_expected, custom_typechecker)
+  local typechecker = custom_typechecker or type
+
+  local value_type = typechecker(value)
+  if value_type == type_expected or value_type == true then
+    return value
+  else
+    return nil, string.format('type "%s" expected, got "%s"', type_expected, value_type)
+  end
+end
+
+function metalib.basic_arg_typecheck(argnumber, argname, argvalue, type_expected, custom_typechecker)
+  local typecheck_result, err_msg = metalib.basic_typecheck(value, type_expected, custom_typechecker)
+  if not typecheck_result then
+    return nil, string.format('on #%s argument "%s", %s', argnumber, argname, err_msg)
+  else
+    return typecheck_result
+  end
+end
+
+function metalib.pascalcase_to_snakecase(s)
+  local words = {}
+
+  for w in string.gmatch(s, "(%u%l*)") do
+    table.insert(words, string.lower(w))
+  end
+
+  print('from "'..tostring(s)..'" returning ', table.concat(words, '_'))
+  return table.concat(words, '_')
+end
+
 return metalib
