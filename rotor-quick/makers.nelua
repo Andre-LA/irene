@@ -6,6 +6,18 @@ require 'rotor-quick'
   global nprof: NProf = {}
 ## end
 
+##[[
+  local function is_record(_type)
+    return metalib.basic_typecheck(_type, 'record', function(value)
+      if _type and _type.value and traits.is_type(_type.value) and _type.value.is_record then
+        return true
+      else
+        tostring(_type)
+      end
+    end)
+  end
+]]
+
 -- [[ mark record as component [[
 
 ##[[
@@ -21,8 +33,21 @@ require 'rotor-quick'
 -- [[ Entity maker [[
 ## make_entity = hygienize(function(components) -- components "shape": { string:NeluaRecord }, example: { type_name = TypeName }
   ##[[
+    local function gen_errmsg(comp_type, err_msg)
+      local comp_name, comp_name_snakecase = comp_type.name, metalib.pascalcase_to_snakecase(comp_type.name)
+      return string.format(
+        'assertion error with type %s: %s. Maybe you forgot to use ## is_component(%s, %s)?',
+        comp_name,
+        err_msg,
+        comp_name_snakecase,
+        comp_name
+      )
+    end
+
     local function assert_type_is_component(comp_type)
-       local c_type, err_msg = metalib.basic_typecheck(comp_type.value, "record with 'is_component' trait", function(value)
+      staticassert(is_record(comp_type))
+
+      local c_type, err_msg = metalib.basic_typecheck(comp_type.value, "record with 'is_component' trait", function(value)
         local is_type = traits.is_type(value)
         local is_record = is_type and value.is_record
         local is_component = is_record and value.is_component
@@ -32,15 +57,13 @@ require 'rotor-quick'
         elseif is_record then
           return "record without 'is_component' trait"
         else
-          return type(value)
+          return tostring(value)
         end
       end)
 
-      if not c_type then
-        return nil, err_msg
-      else
-        return comp_type
-      end
+      staticassert(c_type, gen_errmsg(comp_type, err_msg)) -- does assertion failure when ## is_component wasn't used
+
+      return comp_type
     end
   ]]
 

@@ -51,12 +51,12 @@ end
 
 function metalib.basic_typecheck(value, type_expected, custom_typechecker)
   local typechecker = custom_typechecker or type
-
   local value_type = typechecker(value)
+
   if value_type == type_expected or value_type == true then
     return value
   else
-    return nil, string.format('type "%s" expected, got "%s"', type_expected, value_type)
+    return nil, string.format('"%s" expected, got "%s"', type_expected, value_type)
   end
 end
 
@@ -76,7 +76,6 @@ function metalib.pascalcase_to_snakecase(s)
     table.insert(words, string.lower(w))
   end
 
-  print('from "'..tostring(s)..'" returning ', table.concat(words, '_'))
   return table.concat(words, '_')
 end
 
