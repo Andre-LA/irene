@@ -497,7 +497,6 @@ end
   }
 ]]
 
-local tileposition: Vector2 = Vector2.Zero()
 ##[[
 for i = 1, #map do
   local line = map[i]
@@ -509,15 +508,12 @@ for i = 1, #map do
     ]]
 
     ## if tileletter ~= ' ' then
-      tileposition.x = #[ pos_x ]#
-      tileposition.y = #[ pos_y ]#
-
       ## if tileletter == 'L' then
-        Lander_Start_Position = tileposition
+        Lander_Start_Position = { #[pos_x]#, #[pos_y]# }
       ## elseif tileletter == 'f' then
-        Game_State:create_floor(tileposition)
+        Game_State:create_floor({ #[pos_x]#, #[pos_y]# })
       ## elseif tileletter == 's' then
-        Game_State:create_safe_landing(tileposition)
+        Game_State:create_safe_landing({ #[pos_x]#, #[pos_y]# })
       ##[[
       end
     end
