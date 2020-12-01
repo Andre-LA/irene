@@ -166,6 +166,13 @@ local GameState = @record{
       land: Sound,
       hit: Sound
     }
+  },
+  resources: record{
+    textures: record{
+      safe_landing_sprite_tex: Texture2D,
+      floor_sprite_tex: Texture2D,
+      lander_sprite_tex: Texture2D,
+    }
   }
 }
 
@@ -226,6 +233,42 @@ function GameState:reset()
   intersectable:set_global_rect(position.position)
 end
 
+local Game_State: GameState = {
+  lander = {},
+  systems = {
+    lander_ctrl_system = LanderControllerSystem.new(),
+    gravity_applier = GravityApplier.new(),
+    shape_painter = ShapePainter.new(),
+    velocity_applier = VelocityApplier.new(),
+    intersectable_update = IntersectableUpdate.new(),
+    intersectable_painter = IntersectablePainter.new(),
+    intersections_detector = IntersectionsDetector.new(),
+    intersections_painter = IntersectionsPainter.new(),
+    sprite_painter = SpritePainter.new()
+  },
+  audio = {
+    music = {
+      music1 = Raylib.LoadMusicStream("resources/lunar-lander-music.ogg"),
+      music2 = Raylib.LoadMusicStream("resources/lunar-lander-music.ogg")
+    },
+    sound_effects = {
+      propulsion = Raylib.LoadSound("resources/propulsion.wav"),
+      land = Raylib.LoadSound("resources/land.wav"),
+      hit = Raylib.LoadSound("resources/hit.wav")
+    }
+  },
+  resources = {
+    textures = {
+      safe_landing_sprite_tex = Raylib.LoadTexture("resources/lunar_safe_land.png"),
+      floor_sprite_tex = Raylib.LoadTexture("resources/lunar_floor.png"),
+      lander_sprite_tex = Raylib.LoadTexture("resources/lunar_lander_sprite.png")
+    }
+  }
+}
+
+Game_State.audio.music.music1.loopCount = 1
+Game_State.audio.music.music2.loopCount = 1
+
 function GameState:create_safe_landing(pos: Vector2)
   local safe_landing_shape: Shape = {
     category = Shape.ShapeCategory.Polygon,
@@ -233,7 +276,7 @@ function GameState:create_safe_landing(pos: Vector2)
   }
 
   local safe_landing_sprite: Sprite = {
-    sprite_sheet = Raylib.LoadTexture("resources/lunar_safe_land.png"),
+    sprite_sheet = Game_State.resources.textures.safe_landing_sprite_tex,
     frame_index = 0,
     frame_rect = { 0, 0, 16, 16 },
     offset = { 0, 0 },
@@ -266,7 +309,7 @@ function GameState:create_floor(pos: Vector2)
   }
 
   local floor_sprite: Sprite = {
-    sprite_sheet = Raylib.LoadTexture("resources/lunar_floor.png"),
+    sprite_sheet = Game_State.resources.textures.floor_sprite_tex,
     frame_index = 0,
     frame_rect = { 0, 0, 16, 16 },
     offset = { 0, 0 },
@@ -291,35 +334,6 @@ function GameState:create_floor(pos: Vector2)
 
   self:update_systems(floor_entity)
 end
-
-local Game_State: GameState = {
-  lander = {},
-  systems = {
-    lander_ctrl_system = LanderControllerSystem.new(),
-    gravity_applier = GravityApplier.new(),
-    shape_painter = ShapePainter.new(),
-    velocity_applier = VelocityApplier.new(),
-    intersectable_update = IntersectableUpdate.new(),
-    intersectable_painter = IntersectablePainter.new(),
-    intersections_detector = IntersectionsDetector.new(),
-    intersections_painter = IntersectionsPainter.new(),
-    sprite_painter = SpritePainter.new()
-  },
-  audio = {
-    music = {
-      music1 = Raylib.LoadMusicStream("resources/lunar-lander-music.ogg"),
-      music2 = Raylib.LoadMusicStream("resources/lunar-lander-music.ogg")
-    },
-    sound_effects = {
-      propulsion = Raylib.LoadSound("resources/propulsion.wav"),
-      land = Raylib.LoadSound("resources/land.wav"),
-      hit = Raylib.LoadSound("resources/hit.wav")
-    }
-  }
-}
-
-Game_State.audio.music.music1.loopCount = 1
-Game_State.audio.music.music2.loopCount = 1
 
 -- ]] Game State ]]
 
@@ -402,7 +416,7 @@ function GameState:create_lander(pos: Vector2)
   ## end
 
   local lander_sprite: Sprite = {
-    sprite_sheet = Raylib.LoadTexture("resources/lunar_lander_sprite.png"),
+    sprite_sheet = Game_State.resources.textures.lander_sprite_tex,
     frame_index = 0,
     frame_rect = { 0, 0, 16, 16 },
     offset = { 0, 0 },
