@@ -14,6 +14,9 @@ local Gravity = RotorQuick.Components.Gravity
 local Intersectable = RotorQuick.Components.Intersectable
 local Intersections = RotorQuick.Components.Intersections
 local Sprite = RotorQuick.Components.Sprite
+local Follower = RotorQuick.Components.Follower
+local CameraHolder = RotorQuick.Components.CameraHolder
+local SceneGraphNode = RotorQuick.Components.SceneGraphNode
 
 local GravityApplier = RotorQuick.Systems.GravityApplier
 local ShapePainter = RotorQuick.Systems.ShapePainter
@@ -23,6 +26,9 @@ local IntersectablePainter = RotorQuick.Systems.IntersectablePainter
 local IntersectionsDetector = RotorQuick.Systems.IntersectionsDetector
 local IntersectionsPainter = RotorQuick.Systems.IntersectionsPainter
 local SpritePainter = RotorQuick.Systems.SpritePainter
+local FollowerSystem = RotorQuick.Systems.FollowerSystem
+local CameraHolderSystem = RotorQuick.Systems.CameraHolderSystem
+local PositionHierarchy = RotorQuick.Systems.PositionHierarchy
 
 -- ]] requires and imports ]]
 
@@ -41,10 +47,10 @@ Raylib.SetTargetFPS(60)
 -- [[ components [[
 
 local IsSafeLanding = @record{a: byte}
-## is_component('is_safe_landing', IsSafeLanding)
+## is_component(IsSafeLanding)
 
 local IsFloor = @record{ a: byte }
-## is_component('is_floor', IsFloor)
+## is_component(IsFloor)
 
 local LanderState = @enum {
   Flying = 1,
@@ -56,7 +62,7 @@ local LanderController = @record{
   propulsion_force: number,
   state: LanderState
 }
-## is_component('lander_controller', LanderController)
+## is_component(LanderController)
 
 -- ]] components ]]
 
@@ -128,6 +134,7 @@ local Floor = #[make_entity{
 
 local Lander = #[make_entity{
   Position,
+  SceneGraphNode,
   Shape,
   Sprite,
   Painter,
@@ -136,7 +143,13 @@ local Lander = #[make_entity{
   Intersectable,
   Intersections,
 
-  LanderController,
+  LanderController
+}]#
+
+local CameraEntity = #[make_entity{
+  Position,
+  SceneGraphNode,
+  CameraHolder,
 }]#
 
 -- ]] entities ]]
@@ -145,6 +158,7 @@ local Lander = #[make_entity{
 
 local GameState = @record{
   lander: Lander,
+  camera_entity: CameraEntity,
   systems: record{
     lander_ctrl_system: LanderControllerSystem,
     gravity_applier: GravityApplier,
@@ -154,7 +168,10 @@ local GameState = @record{
     intersectable_painter: IntersectablePainter,
     intersections_detector: IntersectionsDetector,
     intersections_painter: IntersectionsPainter,
-    sprite_painter: SpritePainter
+    sprite_painter: SpritePainter,
+    follower_system: FollowerSystem,
+    camera_holder_system: CameraHolderSystem,
+    position_hierarchy: PositionHierarchy,
   },
   audio: record{
     music: record{ -- using something similar to double buffering, since our music is not "loop-friendly"
@@ -217,20 +234,23 @@ function GameState:update_systems(entity: *Entity)
   self.systems.intersections_detector.system.system_data:update(entity)
   self.systems.intersections_painter.system.system_data:update(entity)
   self.systems.sprite_painter.system.system_data:update(entity)
+  self.systems.follower_system.system.system_data:update(entity)
+  self.systems.camera_holder_system.system.system_data:update(entity)
+  self.systems.position_hierarchy.system.system_data:update(entity)
 end
 
 function GameState:reset()
-  local lander_controller = self.lander:get_lander_controller(RotorQuick.storages.lander_controller)
+  local lander_controller = self.lander:get_lander_controller()
   lander_controller.state = LanderState.Flying
 
-  local position = self.lander:get_position(RotorQuick.storages.position)
-  position.position = Lander_Start_Position
+  local position = self.lander:get_position()
+  position.local_position = Lander_Start_Position
 
-  local velocity = self.lander:get_velocity(RotorQuick.storages.velocity)
+  local velocity = self.lander:get_velocity()
   velocity:reset_velocity()
 
-  local intersectable = self.lander:get_intersectable(RotorQuick.storages.intersectable)
-  intersectable:set_global_rect(position.position)
+  local intersectable = self.lander:get_intersectable()
+  intersectable:set_global_rect(position:get_global_position())
 end
 
 local Game_State: GameState = {
@@ -244,7 +264,10 @@ local Game_State: GameState = {
     intersectable_painter = IntersectablePainter.new(),
     intersections_detector = IntersectionsDetector.new(),
     intersections_painter = IntersectionsPainter.new(),
-    sprite_painter = SpritePainter.new()
+    sprite_painter = SpritePainter.new(),
+    follower_system = FollowerSystem.new(),
+    camera_holder_system = CameraHolderSystem.new(),
+    position_hierarchy = PositionHierarchy.new()
   },
   audio = {
     music = {
@@ -283,19 +306,16 @@ function GameState:create_safe_landing(pos: Vector2)
     visible = true
   }
 
-  local safe_landing, safe_landing_entity = SafeLanding.new(
-    RotorQuick.storages.entity,
-    {
-      --[[position       ]] { position = pos },
-      --[[shape          ]] safe_landing_shape,
-      --[[sprite         ]] safe_landing_sprite,
-      --[[painter        ]] { color = WHITE, active = true },
-      --[[intersectable  ]] {},
-      --[[is_safe_landing]] {}
-    }
-  )
+  local safe_landing, safe_landing_entity = SafeLanding.new{
+    --[[position       ]] { local_position = pos },
+    --[[shape          ]] safe_landing_shape,
+    --[[sprite         ]] safe_landing_sprite,
+    --[[painter        ]] { color = WHITE, active = true },
+    --[[intersectable  ]] {},
+    --[[is_safe_landing]] {}
+  }
 
-  local intersectable = safe_landing:get_intersectable(RotorQuick.storages.intersectable)
+  local intersectable = safe_landing:get_intersectable()
   intersectable:identify(safe_landing.entity_id)
   intersectable:set_rects(pos, safe_landing_shape.vertices.data)
 
@@ -316,23 +336,40 @@ function GameState:create_floor(pos: Vector2)
     visible = true
   }
 
-  local floor, floor_entity = Floor.new(
-    RotorQuick.storages.entity,
-    {
-      --[[position     ]] { position = pos },
-      --[[shape        ]] floor_shape,
-      --[[sprite       ]] floor_sprite,
-      --[[painter      ]] { color = WHITE, active = true },
-      --[[intersectable]] {},
-      --[[is_floor     ]] {}
-    }
-  )
+  local floor, floor_entity = Floor.new{
+    --[[position     ]] { local_position = pos },
+    --[[shape        ]] floor_shape,
+    --[[sprite       ]] floor_sprite,
+    --[[painter      ]] { color = WHITE, active = true },
+    --[[intersectable]] {},
+    --[[is_floor     ]] {}
+  }
 
-  local intersectable = floor:get_intersectable(RotorQuick.storages.intersectable)
+  local intersectable = floor:get_intersectable()
   intersectable:identify(floor.entity_id)
   intersectable:set_rects(pos, floor_shape.vertices.data)
 
   self:update_systems(floor_entity)
+end
+
+function GameState:create_camera_entity()
+  local camera_entity, camera_entity_entity = CameraEntity.new{
+    --[[position        ]] {},
+    --[[scene_graph_node]] {},
+    --[[camera_holder   ]] {
+      camera = {
+        offset = { screen_width / 2, screen_height / 2  },
+        rotation = 0,
+        zoom = 3,
+      }
+    }
+  }
+
+  local scene_graph_node = camera_entity:get_scene_graph_node()
+  scene_graph_node:init(camera_entity.entity_id, camera_entity.scene_graph_node_id)
+
+  self:update_systems(camera_entity_entity)
+  self.camera_entity = camera_entity
 end
 
 -- ]] Game State ]]
@@ -365,13 +402,13 @@ end
 
 local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
   if intersected_is_safe_landing(other_intersectable) then
-    local lander_controller = lander:get_lander_controller(RotorQuick.storages.lander_controller)
+    local lander_controller = lander:get_lander_controller()
     lander_controller.state = LanderState.Landed
 
     Raylib.PlaySoundMulti(Game_State.audio.sound_effects.land)
 
   elseif intersected_is_floor(other_intersectable) then
-    local lander_controller = lander:get_lander_controller(RotorQuick.storages.lander_controller)
+    local lander_controller = lander:get_lander_controller()
     lander_controller.state = LanderState.Crashed
 
     Raylib.PlaySoundMulti(Game_State.audio.sound_effects.hit)
@@ -380,11 +417,10 @@ end
 
 local function on_lander_intersect_exit(lander: *Lander, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
   if intersected_is_safe_landing(other_intersectable) then
-    local lander_controller = lander:get_lander_controller(RotorQuick.storages.lander_controller)
+    local lander_controller = lander:get_lander_controller()
     lander_controller.state = LanderState.Flying
   end
 end
-
 
 local function _on_lander_intersect_enter(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
   on_lander_intersect_enter(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
@@ -398,7 +434,7 @@ end
 
 -- [[ Game State extensions [[
 
-function GameState:create_lander(pos: Vector2)
+function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: GenerationalIndex)
   local gravity_acceleration: number = 0.1
 
   local lander_shape: Shape = {
@@ -406,11 +442,13 @@ function GameState:create_lander(pos: Vector2)
     vertices = { {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} } -- create 8 "unreal" elements with no actual used values, just for code clarity
   }
 
-  ## local radius = 8
-  ## for i = 0, 8 do
-    ## local i_rad = i/4 * math.pi
-    ## local cos = math.cos(i_rad)
-    ## local sin = math.sin(i_rad)
+  ##[[
+  local radius = 8
+  for i = 0, 8 do
+    local i_rad = i/4 * math.pi
+    local cos = math.cos(i_rad)
+    local sin = math.sin(i_rad)
+    ]]
 
     lander_shape.vertices[ #[i]# ] = {  #[cos*radius + radius]#, #[sin*radius + radius]# }
   ## end
@@ -423,25 +461,25 @@ function GameState:create_lander(pos: Vector2)
     visible = true
   }
 
-  local lander, lander_entity = Lander.new(
-    RotorQuick.storages.entity,
-    {
-      --[[Position     ]] { position = pos },
-      --[[Shape        ]] lander_shape,
-      --[[Sprite       ]] lander_sprite,
-      --[[Painter      ]] { color = WHITE, active = true },
-      --[[Velocity     ]] { active = true, final_velocity = {0,0}, max_velocity = LANDER_MAX_VELOCITY, velocity_is_limited = true },
-      --[[Gravity      ]] { acceleration = gravity_acceleration, direction = {0.0, 1.0}, active = true },
-      --[[Intersectable]] {  },
-      --[[Intersections]] { intersections = {}, on_enter_callback = _on_lander_intersect_enter, on_exit_callback = _on_lander_intersect_exit },
+  local lander, lander_entity = Lander.new{
+    --[[Position         ]] { local_position = pos },
+    --[[scene_graph_node ]] { children_ids = {camera_scene_graph_node_id} },
+    --[[Shape            ]] lander_shape,
+    --[[Sprite           ]] lander_sprite,
+    --[[Painter          ]] { color = WHITE, active = true },
+    --[[Velocity         ]] { active = true, final_velocity = {0,0}, max_velocity = LANDER_MAX_VELOCITY, velocity_is_limited = true },
+    --[[Gravity          ]] { acceleration = gravity_acceleration, direction = {0.0, 1.0}, active = true },
+    --[[Intersectable    ]] {  },
+    --[[Intersections    ]] { intersections = {}, on_enter_callback = _on_lander_intersect_enter, on_exit_callback = _on_lander_intersect_exit },
+    --[[lander_controller]] { propulsion_force = gravity_acceleration * 2.5, state = LanderState.Flying },
+  }
 
-      --[[Lander Ctrl  ]] { propulsion_force = gravity_acceleration * 2.5, state = LanderState.Flying },
-    }
-  )
-
-  local intersectable = lander:get_intersectable(RotorQuick.storages.intersectable)
+  local intersectable = lander:get_intersectable()
   intersectable:identify(lander.entity_id)
   intersectable:set_rects(pos, lander_shape.vertices.data)
+
+  local lander_scene_graph_node = lander:get_scene_graph_node()
+  lander_scene_graph_node:init(lander.entity_id, lander.scene_graph_node_id)
 
   self:update_systems(lander_entity)
 
@@ -521,7 +559,8 @@ for i = 1, #map do
 end
 ]]
 
-Game_State:create_lander(Lander_Start_Position)
+Game_State:create_camera_entity()
+Game_State:create_lander(Lander_Start_Position, Game_State.camera_entity.scene_graph_node_id)
 
 Raylib.PlayMusicStream(Game_State.audio.music.music1)
 
@@ -538,14 +577,21 @@ while not Raylib.WindowShouldClose() do
     Game_State:reset()
   end
 
-  local lander_controller = Game_State.lander:get_lander_controller(RotorQuick.storages.lander_controller)
+  local lander_controller = Game_State.lander:get_lander_controller()
+  local camera_holder = Game_State.camera_entity:get_camera_holder()
+
   local is_flying = lander_controller.state == LanderState.Flying
 
   if is_flying then
     Game_State.systems.gravity_applier:run()
     Game_State.systems.lander_ctrl_system:run()
     Game_State.systems.velocity_applier:run()
+    Game_State.systems.follower_system:run()
   end
+
+  Game_State.systems.position_hierarchy:run()
+
+  Game_State.systems.camera_holder_system:run()
 
   Game_State.systems.intersectable_update:run()
   Game_State.systems.intersections_detector:run()
@@ -553,13 +599,18 @@ while not Raylib.WindowShouldClose() do
   Raylib.BeginDrawing()
     Raylib.ClearBackground(BLACK)
 
-    Game_State.systems.sprite_painter:run()
+    Raylib.BeginMode2D(camera_holder.camera)
 
-    if show_dev_info then
-      Game_State.systems.shape_painter:run()
-      Game_State.systems.intersectable_painter:run()
-      Game_State.systems.intersections_painter:run()
-    end
+      Game_State.systems.sprite_painter:run()
+
+      if show_dev_info then
+        Game_State.systems.shape_painter:run()
+        Game_State.systems.intersectable_painter:run()
+        Game_State.systems.intersections_painter:run()
+      end
+
+
+    Raylib.EndMode2D()
 
     if not is_flying then
       local msg = (do
@@ -580,6 +631,7 @@ while not Raylib.WindowShouldClose() do
 
   Raylib.EndDrawing()
 end
+
 -- ]] Main Loop ]]
 
 Game_State:unload()
