@@ -9,5 +9,5 @@ require 'rotor-quick.components.gravity' -- NOTE: I may remove this in the futur
 require 'rotor-quick.components.intersectable'
 require 'rotor-quick.components.intersections'
 require 'rotor-quick.components.sprite'
-
---require 'rotor-quick.components.intersectable'
+require 'rotor-quick.components.follower'
+require 'rotor-quick.components.scene_graph_node'

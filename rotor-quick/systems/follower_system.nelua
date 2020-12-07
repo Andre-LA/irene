@@ -1,0 +1,24 @@
+require 'math'
+require 'raylib'
+require 'rotor'
+require 'rotor-quick.makers'
+require 'rotor-quick.components.position'
+require 'rotor-quick.components.follower'
+
+local Position = RotorQuick.Components.Position
+local Follower = RotorQuick.Components.Follower
+
+global FollowerSystemRunner = @record{}
+
+function FollowerSystemRunner:run(follower: *Follower, position: *Position, system_data: *SystemData)
+  local followed_position_opt = follower:get_position()
+  if followed_position_opt.filled then
+    local followed_position: *Position = followed_position_opt:get()
+    position:set_local_from_other_origin(followed_position.origin_position)
+  end
+end
+
+global RotorQuick.Systems.FollowerSystem = @MakeSystem(FollowerSystemRunner, false, true, false, 1, @record{
+  follower: Follower,
+  position: Position,
+})
