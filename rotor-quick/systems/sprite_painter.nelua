@@ -22,7 +22,7 @@ function SpritePainterRunner:run(position: *Position, painter: *Painter, sprite:
   sprite.frame_rect.x = (sprite.frame_index % img_unit_w) * sprite.frame_rect.width
   sprite.frame_rect.y = math.ifloor(sprite.frame_index / img_unit_w) * sprite.frame_rect.height
 
-  Raylib.DrawTextureRec(sprite.sprite_sheet, sprite.frame_rect, position.position + sprite.offset, painter.color)
+  Raylib.DrawTextureRec(sprite.sprite_sheet, sprite.frame_rect, position:get_global_position() + sprite.offset, painter.color)
 end
 
 global RotorQuick.Systems.SpritePainter = @MakeSystem(SpritePainterRunner, false, true, false, 2, @record{

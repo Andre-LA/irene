@@ -1,8 +1,61 @@
+require 'rotor.optional'
 require 'rotor-quick.makers'
 
 global RotorQuick.Components.Position = @record{
-  position: Vector2
+  -- local position relative to parent's position, should be modified through set_local_position method
+  local_position: Vector2,
+
+  -- parent's position, should only be modified by a position hierarchy system
+  origin_position: Vector2,
+
+  -- flag for optimization (https://gameprogrammingpatterns.com/dirty-flag.html),
+  -- is true when the local_position is modified on the current frame
+  -- (this is why you should use set_local_position to change local_position);
+  -- is reset to false by the position hierarchy system
+  is_dirty: boolean,
 }
 
 local Position = RotorQuick.Components.Position
 ## is_component(Position)
+
+-- TODO: auto-declare this with a future @MakeComponent generic
+function Position.get_entry_from_id(id: GenerationalIndex): optional(*Position)
+  return RotorQuick.storages.position:get_entry(id)
+end
+
+-- TODO: auto-declare this with a future @MakeComponent generic
+function Position.get_entry_from_entity_id(id: GenerationalIndex): optional(*Position)
+  local result: optional(*Position) = {}
+
+  local entity_opt = RotorQuick.storages.entity:get_entry(id)
+
+  if entity_opt.filled then
+    local entity = entity_opt:get()
+    local pos_stor_index_opt = entity:get_storage_index(RotorQuick.masks.position)
+    if pos_stor_index_opt.filled then
+      local pos_stor_index = pos_stor_index_opt:get()
+
+      local entity_pos_id = entity.associated_components[pos_stor_index]
+
+      local entity_pos_opt = Position.get_entry_from_id(entity_pos_id)
+      if entity_pos_opt.filled then
+        result:set(entity_pos_opt:get())
+      end
+    end
+  end
+
+  return result
+end
+
+function Position:get_global_position(): Vector2
+  return self.origin_position + self.local_position
+end
+
+function Position:set_local_position(pos: Vector2)
+  self.local_position = pos
+  self.is_dirty = true
+end
+
+function Position:set_local_from_other_origin(origin_pos: Vector2)
+  self:set_local_position(origin_pos - self.origin_position)
+end
