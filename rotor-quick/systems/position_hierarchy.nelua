@@ -1,0 +1,37 @@
+require 'math'
+require 'raylib'
+require 'rotor'
+require 'rotor-quick.makers'
+require 'rotor-quick.components.position'
+require 'rotor-quick.components.scene_graph_node'
+
+local Position = RotorQuick.Components.Position
+local SceneGraphNode = RotorQuick.Components.SceneGraphNode
+
+global PositionHierarchyRunner = @record{}
+
+-- TODO: optimize with is_dirty flag
+local function traverse(origin_sg_node: *SceneGraphNode, origin_pos: *Position)
+  for i, child_node, child_node_id in origin_sg_node:iter_children() do
+    local child_pos_opt = Position.get_entry_from_entity_id(child_node.entity_id)
+    if child_pos_opt.filled then
+      local child_pos = child_pos_opt:get()
+      child_pos.origin_position = origin_pos:get_global_position()
+
+      if #child_node.children_ids > 0 then
+        traverse(child_node, child_pos)
+      end
+    end
+  end
+end
+
+function PositionHierarchyRunner:run(scene_graph_node: *SceneGraphNode, position: *Position, system_data: *SystemData)
+  if scene_graph_node.parent_id == {0,0} then
+    traverse(scene_graph_node, position)
+  end
+end
+
+global RotorQuick.Systems.PositionHierarchy = @MakeSystem(PositionHierarchyRunner, false, true, false, 1, @record{
+  scene_graph_node: SceneGraphNode,
+  position: Position,
+})
