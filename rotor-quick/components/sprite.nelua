@@ -9,4 +9,4 @@ global RotorQuick.Components.Sprite = @record{
 }
 
 local Sprite = RotorQuick.Components.Sprite
-## is_component('sprite', Sprite)
+## is_component(Sprite)

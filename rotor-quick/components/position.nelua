@@ -5,4 +5,4 @@ global RotorQuick.Components.Position = @record{
 }
 
 local Position = RotorQuick.Components.Position
-## is_component('position', Position)
+## is_component(Position)

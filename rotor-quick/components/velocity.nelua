@@ -10,7 +10,7 @@ global RotorQuick.Components.Velocity = @record{
 }
 
 local Velocity = RotorQuick.Components.Velocity
-## is_component('velocity', Velocity)
+## is_component(Velocity)
 
 function Velocity:add_velocity(velocity: Vector2)
   self.final_velocity = self.final_velocity + velocity

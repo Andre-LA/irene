@@ -11,7 +11,7 @@ global RotorQuick.Components.Intersectable = @record{
 }
 
 local Intersectable = RotorQuick.Components.Intersectable
-## is_component('intersectable', Intersectable)
+## is_component(Intersectable)
 
 function Intersectable:identify(entity_id: GenerationalIndex)
   self.entity_id = entity_id

@@ -16,6 +16,39 @@ require 'rotor-quick'
       end
     end)
   end
+
+  local function gen_errmsg(comp_type, err_msg)
+    local comp_name, comp_name_snakecase = comp_type.name, metalib.pascalcase_to_snakecase(comp_type.name)
+    return string.format(
+      'assertion error with type %s: %s. Maybe you forgot to use ## is_component(%s, %s)?',
+      comp_name,
+      err_msg,
+      comp_name_snakecase,
+      comp_name
+    )
+  end
+
+  local function assert_type_is_component(comp_type)
+    staticassert(is_record(comp_type))
+
+    local c_type, err_msg = metalib.basic_typecheck(comp_type.value, "record with 'is_component' trait", function(value)
+      local is_type = traits.is_type(value)
+      local is_record = is_type and value.is_record
+      local is_component = is_record and value.is_component
+
+      if is_component then
+        return true
+      elseif is_record then
+        return "record without 'is_component' trait"
+      else
+        return tostring(value)
+      end
+    end)
+
+    staticassert(c_type, gen_errmsg(comp_type, err_msg)) -- does assertion failure when ## is_component wasn't used
+
+    return comp_type
+  end
 ]]
 
 -- [[ mark record as component [[
@@ -23,50 +56,18 @@ require 'rotor-quick'
 ##[[
   local masks_count = 0
 
-  is_component = hygienize(function(compname, T)
+  is_component = hygienize(function(T)
+    staticassert(is_record(T))
     T.value.is_component = true
-    RQ_add_mask_and_storage(compname, T)
+    RQ_add_mask_and_storage(metalib.pascalcase_to_snakecase(T.name), T)
   end)
 ]]
+
 -- ]] mark record as component ]]
 
 -- [[ Entity maker [[
-## make_entity = hygienize(function(components) -- components "shape": { string:NeluaRecord }, example: { type_name = TypeName }
-  ##[[
-    local function gen_errmsg(comp_type, err_msg)
-      local comp_name, comp_name_snakecase = comp_type.name, metalib.pascalcase_to_snakecase(comp_type.name)
-      return string.format(
-        'assertion error with type %s: %s. Maybe you forgot to use ## is_component(%s, %s)?',
-        comp_name,
-        err_msg,
-        comp_name_snakecase,
-        comp_name
-      )
-    end
 
-    local function assert_type_is_component(comp_type)
-      staticassert(is_record(comp_type))
-
-      local c_type, err_msg = metalib.basic_typecheck(comp_type.value, "record with 'is_component' trait", function(value)
-        local is_type = traits.is_type(value)
-        local is_record = is_type and value.is_record
-        local is_component = is_record and value.is_component
-
-        if is_component then
-          return true
-        elseif is_record then
-          return "record without 'is_component' trait"
-        else
-          return tostring(value)
-        end
-      end)
-
-      staticassert(c_type, gen_errmsg(comp_type, err_msg)) -- does assertion failure when ## is_component wasn't used
-
-      return comp_type
-    end
-  ]]
-
+## make_entity = hygienize(function(components) -- components "shape": { ComponentRecord }, example: { AnComponent, OtherComponent }
   local NewEntityType = @record{ entity_id: GenerationalIndex }
   local InitialValuesCollection = @record{}
 
@@ -83,18 +84,18 @@ require 'rotor-quick'
     ## NewEntityType.value:add_field(name_id, GenerationalIndex.value)
     ## InitialValuesCollection.value:add_field(name_vl, comp_type.value)
 
-    function NewEntityType:#|get_name|#(storage: pointer(Storage(#[comp_type.value]#))): pointer(#[comp_type.value]#)
-      local possible_result = storage:get_entry(self.#|name_id|#)
+    function NewEntityType:#|get_name|#(): pointer(#[comp_type.value]#)
+      local possible_result = RotorQuick.storages.#|comp_name|#:get_entry(self.#|name_id|#)
       check(possible_result.filled, #[comp_name .. ' is not associated with entity!']#)
       local result = possible_result:get()
       return result
     end
   ## end
 
-  function NewEntityType.new(entity_storage: *Storage(Entity), values: InitialValuesCollection): (NewEntityType, *Entity)
+  function NewEntityType.new(values: InitialValuesCollection): (NewEntityType, *Entity)
     local result: NewEntityType = {}
 
-    local entity_id, entity = entity_storage:new_entry(Entity.new())
+    local entity_id, entity = RotorQuick.storages.entity:new_entry(Entity.new())
     result.entity_id = entity_id
 
     ## for i = 1, #components do

@@ -7,4 +7,4 @@ global RotorQuick.Components.Gravity = @record{
 }
 
 local Gravity = RotorQuick.Components.Gravity
-## is_component('gravity', Gravity)
+## is_component(Gravity)

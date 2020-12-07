@@ -14,6 +14,6 @@ global RotorQuick.Components.Shape = @record{
 }
 
 local Shape = RotorQuick.Components.Shape
-## is_component('shape', Shape)
+## is_component(Shape)
 
 global Shape.ShapeCategory = ShapeCategory

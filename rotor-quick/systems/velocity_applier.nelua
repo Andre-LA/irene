@@ -21,8 +21,8 @@ function VelocityApplierRunner:run(velocity: *Velocity, position: *Position, sys
   end
 
   -- TODO (discussion): Should Δt be used? (see: https://github.com/Andre-LA/rotor-quick/issues/1)
-  position.position.x = position.position.x + velocity.final_velocity.x
-  position.position.y = position.position.y + velocity.final_velocity.y
+  position.local_position.x = position.local_position.x + velocity.final_velocity.x
+  position.local_position.y = position.local_position.y + velocity.final_velocity.y
 end
 
 global RotorQuick.Systems.VelocityApplier = @MakeSystem(VelocityApplierRunner, false, true, false, 1, @record{

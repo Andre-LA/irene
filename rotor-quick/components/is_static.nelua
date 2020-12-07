@@ -5,4 +5,4 @@ global RotorQuick.Components.IsStatic = @record{
 }
 
 local IsStatic = RotorQuick.Components.IsStatic
-## is_component('is_static', IsStatic)
+## is_component(IsStatic)

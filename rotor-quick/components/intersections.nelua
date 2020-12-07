@@ -18,6 +18,8 @@ local Intersections = @record{
   on_exit_callback: function(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
 }
 
+## is_component(Intersections)
+
 global RotorQuick.Components.Intersections = Intersections
 global RotorQuick.Components.Intersections.Intersection = @Intersection
 
@@ -53,5 +55,3 @@ function Intersections:update_intersection(intersection: Rectangle, entity_id: G
 
   return false
 end
-
-## is_component('intersections', Intersections)
