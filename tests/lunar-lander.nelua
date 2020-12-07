@@ -629,6 +629,11 @@ while not Raylib.WindowShouldClose() do
       Raylib.DrawText(msg, math.ifloor(screen_width / 2 - msg_width / 2), math.ifloor(screen_height / 2), msg_fontsize, WHITE)
     end
 
+  ## if PROF then
+  nprof:draw()
+  nprof:reset()
+  ## end
+
   Raylib.EndDrawing()
 end
 
