@@ -316,8 +316,7 @@ function GameState:create_safe_landing(pos: Vector2)
   }
 
   local intersectable = safe_landing:get_intersectable()
-  intersectable:identify(safe_landing.entity_id)
-  intersectable:set_rects(pos, safe_landing_shape.vertices.data)
+  intersectable:init(safe_landing.entity_id, pos, safe_landing_shape.vertices.data)
 
   self:update_systems(safe_landing_entity)
 end
@@ -346,8 +345,7 @@ function GameState:create_floor(pos: Vector2)
   }
 
   local intersectable = floor:get_intersectable()
-  intersectable:identify(floor.entity_id)
-  intersectable:set_rects(pos, floor_shape.vertices.data)
+  intersectable:init(floor.entity_id, pos, floor_shape.vertices.data)
 
   self:update_systems(floor_entity)
 end
@@ -369,6 +367,7 @@ function GameState:create_camera_entity()
   scene_graph_node:init(camera_entity.entity_id, camera_entity.scene_graph_node_id)
 
   self:update_systems(camera_entity_entity)
+
   self.camera_entity = camera_entity
 end
 
@@ -475,8 +474,7 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
   }
 
   local intersectable = lander:get_intersectable()
-  intersectable:identify(lander.entity_id)
-  intersectable:set_rects(pos, lander_shape.vertices.data)
+  intersectable:init(lander.entity_id, pos, lander_shape.vertices.data)
 
   local lander_scene_graph_node = lander:get_scene_graph_node()
   lander_scene_graph_node:init(lander.entity_id, lander.scene_graph_node_id)

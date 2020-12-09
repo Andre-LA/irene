@@ -26,11 +26,6 @@ local function find_child_index(node: *SceneGraphNode, child_node_id: Generation
   return result
 end
 
-function SceneGraphNode:init(entity_id: GenerationalIndex, self_id: GenerationalIndex)
-  self.entity_id = entity_id
-  self.self_id = self_id
-end
-
 -- TODO: auto-declare this with a future @MakeComponent generic
 function SceneGraphNode.get_entry_from_id(id: GenerationalIndex): optional(*SceneGraphNode)
   return RotorQuick.storages.scene_graph_node:get_entry(id)
@@ -111,4 +106,9 @@ function SceneGraphNode:get_traversal(nodes: *vector(GenerationalIndex), childre
   ## if _children_first then
     nodes:push(self.self_id)
   ## end
+end
+
+function SceneGraphNode:init(entity_id: GenerationalIndex, self_id: GenerationalIndex)
+  self.entity_id = entity_id
+  self.self_id = self_id
 end

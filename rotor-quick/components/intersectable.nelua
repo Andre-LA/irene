@@ -13,10 +13,6 @@ global RotorQuick.Components.Intersectable = @record{
 local Intersectable = RotorQuick.Components.Intersectable
 ## is_component(Intersectable)
 
-function Intersectable:identify(entity_id: GenerationalIndex)
-  self.entity_id = entity_id
-end
-
 function Intersectable.get_local_rect(vertices: *span(Vector2)): Rectangle
   local min_x, min_y, max_x, max_y = 0.0, 0.0, 0.0, 0.0
 
@@ -59,4 +55,9 @@ end
 
 function Intersectable:get_intersection(other_intersectable: *Intersectable): Rectangle
   return Raylib.GetCollisionRec(self.global_rect, other_intersectable.global_rect)
+end
+
+function Intersectable:init(entity_id: GenerationalIndex, pos: Vector2, vertices: *span(Vector2))
+  self.entity_id = entity_id
+  self:set_rects(pos, vertices)
 end
