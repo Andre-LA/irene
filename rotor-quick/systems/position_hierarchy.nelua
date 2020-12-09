@@ -16,6 +16,7 @@ local function traverse(origin_sg_node: *SceneGraphNode, origin_pos: *Position)
     local child_pos_opt = Position.get_entry_from_entity_id(child_node.entity_id)
     if child_pos_opt.filled then
       local child_pos = child_pos_opt:get()
+
       child_pos.origin_position = origin_pos:get_global_position()
 
       if #child_node.children_ids > 0 then

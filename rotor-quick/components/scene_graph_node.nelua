@@ -1,3 +1,6 @@
+-- Note: while this is called scene "Graph", the data structure is actually
+-- a tree (one specific type of graph).
+
 require 'math'
 require 'vector'
 require 'rotor.optional'
@@ -63,6 +66,9 @@ function SceneGraphNode:iter_children(): (
 end
 
 function SceneGraphNode:attach_child(child_node_id: GenerationalIndex)
+  check(child_node_id ~= self.self_id, 'cannot attach itself as a child')
+  check(child_node_id ~= self.parent_id, 'cannot attach parent as a child')
+
   local sg_node_opt = SceneGraphNode.get_entry_from_id(child_node_id)
   check(sg_node_opt.filled, "trying to attach a child that doesn't exists")
 
