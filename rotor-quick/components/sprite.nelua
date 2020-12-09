@@ -5,7 +5,7 @@ global RotorQuick.Components.Sprite = @record{
   frame_index: uinteger,
   frame_rect: Rectangle,
   offset: Vector2,
-  visible: boolean
+  invisible: boolean
 }
 
 local Sprite = RotorQuick.Components.Sprite

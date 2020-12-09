@@ -12,7 +12,7 @@ local Painter = RotorQuick.Components.Painter
 global SpritePainterRunner = @record{}
 
 function SpritePainterRunner:run(position: *Position, painter: *Painter, sprite: *Sprite, system_data: *SystemData)
-  if not painter.active then
+  if not painter.active and not sprite.invisible then
     return
   end
 

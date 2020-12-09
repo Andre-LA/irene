@@ -303,7 +303,6 @@ function GameState:create_safe_landing(pos: Vector2)
     frame_index = 0,
     frame_rect = { 0, 0, 16, 16 },
     offset = { 0, 0 },
-    visible = true
   }
 
   local safe_landing, safe_landing_entity = SafeLanding.new{
@@ -332,7 +331,6 @@ function GameState:create_floor(pos: Vector2)
     frame_index = 0,
     frame_rect = { 0, 0, 16, 16 },
     offset = { 0, 0 },
-    visible = true
   }
 
   local floor, floor_entity = Floor.new{
@@ -457,7 +455,6 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
     frame_index = 0,
     frame_rect = { 0, 0, 16, 16 },
     offset = { 0, 0 },
-    visible = true
   }
 
   local lander, lander_entity = Lander.new{
