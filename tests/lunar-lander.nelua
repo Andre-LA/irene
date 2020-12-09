@@ -173,54 +173,52 @@ local GameState = @record{
     camera_holder_system: CameraHolderSystem,
     position_hierarchy: PositionHierarchy,
   },
-  audio: record{
-    music: record{ -- using something similar to double buffering, since our music is not "loop-friendly"
-      music1: Music,
-      music2: Music,
-    },
-    sound_effects: record{
-      propulsion: Sound,
-      land: Sound,
-      hit: Sound
-    }
-  },
   resources: record{
     textures: record{
-      safe_landing_sprite_tex: Texture2D,
-      floor_sprite_tex: Texture2D,
-      lander_sprite_tex: Texture2D,
-    }
+      sprites_tex: Texture2D,
+    },
+    audio: record{
+      music: record{ -- using something similar to double buffering, since our music is not "loop-friendly"
+        music1: Music,
+        music2: Music,
+      },
+      sound_effects: record{
+        propulsion: Sound,
+        land: Sound,
+        hit: Sound
+      }
+    },
   }
 }
 
 function GameState:unload()
   Raylib.StopSoundMulti()
-  Raylib.UnloadSound(self.audio.sound_effects.propulsion)
-  Raylib.UnloadSound(self.audio.sound_effects.land)
-  Raylib.UnloadSound(self.audio.sound_effects.hit)
+  Raylib.UnloadSound(self.resources.audio.sound_effects.propulsion)
+  Raylib.UnloadSound(self.resources.audio.sound_effects.land)
+  Raylib.UnloadSound(self.resources.audio.sound_effects.hit)
 
-  Raylib.StopMusicStream(self.audio.music.music1)
-  Raylib.StopMusicStream(self.audio.music.music2)
+  Raylib.StopMusicStream(self.resources.audio.music.music1)
+  Raylib.StopMusicStream(self.resources.audio.music.music2)
 
-  Raylib.UnloadMusicStream(self.audio.music.music1)
-  Raylib.UnloadMusicStream(self.audio.music.music2)
+  Raylib.UnloadMusicStream(self.resources.audio.music.music1)
+  Raylib.UnloadMusicStream(self.resources.audio.music.music2)
 end
 
 function GameState:manage_music()
   local music_end_time: number <comptime> = 60 * 2 + 24.1 -- 2:24 is when the music ends and should loop
 
-  if (Raylib.GetMusicTimePlayed(self.audio.music.music1) >= music_end_time and
-      not Raylib.IsMusicPlaying(self.audio.music.music2))
+  if (Raylib.GetMusicTimePlayed(self.resources.audio.music.music1) >= music_end_time and
+      not Raylib.IsMusicPlaying(self.resources.audio.music.music2))
   then
-    Raylib.PlayMusicStream(self.audio.music.music2)
-  elseif (Raylib.GetMusicTimePlayed(self.audio.music.music2) >= music_end_time and
-          not Raylib.IsMusicPlaying(self.audio.music.music1))
+    Raylib.PlayMusicStream(self.resources.audio.music.music2)
+  elseif (Raylib.GetMusicTimePlayed(self.resources.audio.music.music2) >= music_end_time and
+          not Raylib.IsMusicPlaying(self.resources.audio.music.music1))
   then
-    Raylib.PlayMusicStream(self.audio.music.music1)
+    Raylib.PlayMusicStream(self.resources.audio.music.music1)
   end
 
-  Raylib.UpdateMusicStream(self.audio.music.music1)
-  Raylib.UpdateMusicStream(self.audio.music.music2)
+  Raylib.UpdateMusicStream(self.resources.audio.music.music1)
+  Raylib.UpdateMusicStream(self.resources.audio.music.music2)
 end
 
 function GameState:update_systems(entity: *Entity)
@@ -269,28 +267,26 @@ local Game_State: GameState = {
     camera_holder_system = CameraHolderSystem.new(),
     position_hierarchy = PositionHierarchy.new()
   },
-  audio = {
-    music = {
-      music1 = Raylib.LoadMusicStream("resources/lunar-lander-music.ogg"),
-      music2 = Raylib.LoadMusicStream("resources/lunar-lander-music.ogg")
-    },
-    sound_effects = {
-      propulsion = Raylib.LoadSound("resources/propulsion.wav"),
-      land = Raylib.LoadSound("resources/land.wav"),
-      hit = Raylib.LoadSound("resources/hit.wav")
-    }
-  },
   resources = {
     textures = {
-      safe_landing_sprite_tex = Raylib.LoadTexture("resources/lunar_safe_land.png"),
-      floor_sprite_tex = Raylib.LoadTexture("resources/lunar_floor.png"),
-      lander_sprite_tex = Raylib.LoadTexture("resources/lunar_lander_sprite.png")
-    }
+      sprites_tex = Raylib.LoadTexture("resources/lunarlander_sprites.png")
+    },
+    audio = {
+      music = {
+        music1 = Raylib.LoadMusicStream("resources/lunar-lander-music.ogg"),
+        music2 = Raylib.LoadMusicStream("resources/lunar-lander-music.ogg")
+      },
+      sound_effects = {
+        propulsion = Raylib.LoadSound("resources/propulsion.wav"),
+        land = Raylib.LoadSound("resources/land.wav"),
+        hit = Raylib.LoadSound("resources/hit.wav")
+      }
+    },
   }
 }
 
-Game_State.audio.music.music1.loopCount = 1
-Game_State.audio.music.music2.loopCount = 1
+Game_State.resources.audio.music.music1.loopCount = 1
+Game_State.resources.audio.music.music2.loopCount = 1
 
 function GameState:create_safe_landing(pos: Vector2)
   local safe_landing_shape: Shape = {
@@ -299,10 +295,10 @@ function GameState:create_safe_landing(pos: Vector2)
   }
 
   local safe_landing_sprite: Sprite = {
-    sprite_sheet = Game_State.resources.textures.safe_landing_sprite_tex,
-    frame_index = 0,
+    sprite_sheet = Game_State.resources.textures.sprites_tex,
+    frame_index = 4,
     frame_rect = { 0, 0, 16, 16 },
-    offset = { 0, 0 },
+    offset = { 0, 0 }
   }
 
   local safe_landing, safe_landing_entity = SafeLanding.new{
@@ -327,10 +323,10 @@ function GameState:create_floor(pos: Vector2)
   }
 
   local floor_sprite: Sprite = {
-    sprite_sheet = Game_State.resources.textures.floor_sprite_tex,
-    frame_index = 0,
+    sprite_sheet = Game_State.resources.textures.sprites_tex,
+    frame_index = 3,
     frame_rect = { 0, 0, 16, 16 },
-    offset = { 0, 0 },
+    offset = { 0, 0 }
   }
 
   local floor, floor_entity = Floor.new{
@@ -402,13 +398,13 @@ local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *I
     local lander_controller = lander:get_lander_controller()
     lander_controller.state = LanderState.Landed
 
-    Raylib.PlaySoundMulti(Game_State.audio.sound_effects.land)
+    Raylib.PlaySoundMulti(Game_State.resources.audio.sound_effects.land)
 
   elseif intersected_is_floor(other_intersectable) then
     local lander_controller = lander:get_lander_controller()
     lander_controller.state = LanderState.Crashed
 
-    Raylib.PlaySoundMulti(Game_State.audio.sound_effects.hit)
+    Raylib.PlaySoundMulti(Game_State.resources.audio.sound_effects.hit)
   end
 end
 
@@ -451,10 +447,10 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
   ## end
 
   local lander_sprite: Sprite = {
-    sprite_sheet = Game_State.resources.textures.lander_sprite_tex,
-    frame_index = 0,
+    sprite_sheet = Game_State.resources.textures.sprites_tex,
+    frame_index = 5,
     frame_rect = { 0, 0, 16, 16 },
-    offset = { 0, 0 },
+    offset = { 0, 0 }
   }
 
   local lander, lander_entity = Lander.new{
@@ -557,7 +553,7 @@ end
 Game_State:create_camera_entity()
 Game_State:create_lander(Lander_Start_Position, Game_State.camera_entity.scene_graph_node_id)
 
-Raylib.PlayMusicStream(Game_State.audio.music.music1)
+Raylib.PlayMusicStream(Game_State.resources.audio.music.music1)
 
 -- ]] Game Start ]]
 
