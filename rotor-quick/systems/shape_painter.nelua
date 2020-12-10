@@ -12,7 +12,7 @@ local Painter = RotorQuick.Components.Painter
 local Shape = RotorQuick.Components.Shape
 local ShapeCategory = Shape.ShapeCategory
 
-global  ShapePainterRunner = @record{}
+global ShapePainterRunner = @record{}
 
 function ShapePainterRunner:run(position: *Position, shape: *Shape, painter: *Painter, system_data: *SystemData)
   if not painter.active then

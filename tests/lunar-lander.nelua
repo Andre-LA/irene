@@ -420,7 +420,7 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
   }
 
   local lander_propulsion, lander_propulsion_entity = LanderPropulsionEntity.new{
-    --[[position        ]] {  },
+    --[[position        ]] {},
     --[[scene_graph_node]] {},
     --[[sprite          ]] lander_propulstion_sprite,
     --[[animations      ]] lander_propulstion_animations,
@@ -529,15 +529,31 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
   }
 
   local lander, lander_entity = Lander.new{
-    --[[position         ]] { local_position = pos },
-    --[[scene_graph_node ]] { },
-    --[[shape            ]] lander_shape,
-    --[[sprite           ]] lander_sprite,
-    --[[painter          ]] { color = WHITE, active = true },
-    --[[velocity         ]] { active = true, final_velocity = {0,0}, max_velocity = LANDER_MAX_VELOCITY, velocity_is_limited = true },
-    --[[gravity          ]] { acceleration = gravity_acceleration, direction = {0.0, 1.0}, active = true },
-    --[[intersectable    ]] {  },
-    --[[intersections    ]] { intersections = {}, on_enter_callback = _on_lander_intersect_enter, on_exit_callback = _on_lander_intersect_exit },
+    --[[position        ]] { local_position = pos },
+    --[[scene_graph_node]] { },
+    --[[shape           ]] lander_shape,
+    --[[sprite          ]] lander_sprite,
+    --[[painter         ]] {
+      active = true,
+      color = WHITE
+    },
+    --[[velocity]] {
+      active = true,
+      final_velocity = {0,0},
+      max_velocity = LANDER_MAX_VELOCITY,
+      velocity_is_limited = true
+    },
+    --[[gravity]] {
+      active = true,
+      acceleration = gravity_acceleration,
+      direction = {0.0, 1.0}
+    },
+    --[[intersectable]] { },
+    --[[intersections]] {
+      intersections = {},
+      on_enter_callback = _on_lander_intersect_enter,
+      on_exit_callback = _on_lander_intersect_exit
+    },
     --[[lander_controller]] {
       prop_animations_id = lander_propulsion.animations_id,
       propulsion_force = gravity_acceleration * 2.5,
