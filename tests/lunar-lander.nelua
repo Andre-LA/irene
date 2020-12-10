@@ -17,6 +17,7 @@ local Sprite = RotorQuick.Components.Sprite
 local Follower = RotorQuick.Components.Follower
 local CameraHolder = RotorQuick.Components.CameraHolder
 local SceneGraphNode = RotorQuick.Components.SceneGraphNode
+local Animations = RotorQuick.Components.Animations
 
 local GravityApplier = RotorQuick.Systems.GravityApplier
 local ShapePainter = RotorQuick.Systems.ShapePainter
@@ -29,6 +30,7 @@ local SpritePainter = RotorQuick.Systems.SpritePainter
 local FollowerSystem = RotorQuick.Systems.FollowerSystem
 local CameraHolderSystem = RotorQuick.Systems.CameraHolderSystem
 local PositionHierarchy = RotorQuick.Systems.PositionHierarchy
+local SpriteAnimation = RotorQuick.Systems.SpriteAnimation
 
 -- ]] requires and imports ]]
 
@@ -58,7 +60,13 @@ local LanderState = @enum {
   Crashed,
 }
 
+local LanderAnimations = @enum {
+  Inactive = 0,
+  Active
+}
+
 local LanderController = @record{
+  prop_animations_id: GenerationalIndex,
   propulsion_force: number,
   state: LanderState
 }
@@ -75,9 +83,16 @@ function LanderControllerRunner:run(lander_controller: *LanderController,
                                     gravity: *Gravity,
                                     system_data: *SystemData
                                     )
+
   local is_right_down, is_up_down, is_left_down = Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT),
                                                   Raylib.IsKeyDown(KeyboardKey.KEY_UP),
                                                   Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)
+
+  local prop_animations_opt = Animations.get_entry_from_id(lander_controller.prop_animations_id)
+  if prop_animations_opt.filled then
+    local prop_animations = prop_animations_opt:get()
+    prop_animations:change_animation(is_up_down and LanderAnimations.Active or LanderAnimations.Inactive)
+  end
 
   if is_right_down or is_up_down or is_left_down then
     local direction: Vector2 = {
@@ -156,7 +171,7 @@ local LanderPropulsionEntity = #[make_entity{
   Position,
   SceneGraphNode,
   Sprite,
-  -- Animation
+  Animations,
   Painter,
 }]#
 
@@ -180,6 +195,7 @@ local GameState = @record{
     follower_system: FollowerSystem,
     camera_holder_system: CameraHolderSystem,
     position_hierarchy: PositionHierarchy,
+    sprite_animation: SpriteAnimation,
   },
   resources: record{
     textures: record{
@@ -243,6 +259,7 @@ function GameState:update_systems(entity: *Entity)
   self.systems.follower_system.system.system_data:update(entity)
   self.systems.camera_holder_system.system.system_data:update(entity)
   self.systems.position_hierarchy.system.system_data:update(entity)
+  self.systems.sprite_animation.system.system_data:update(entity)
 end
 
 function GameState:reset()
@@ -273,7 +290,8 @@ local Game_State: GameState = {
     sprite_painter = SpritePainter.new(),
     follower_system = FollowerSystem.new(),
     camera_holder_system = CameraHolderSystem.new(),
-    position_hierarchy = PositionHierarchy.new()
+    position_hierarchy = PositionHierarchy.new(),
+    sprite_animation = SpriteAnimation.new()
   },
   resources = {
     textures = {
@@ -381,11 +399,31 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
     offset = { 0, 0 }
   }
 
+  local AnimationUnit = Animations.AnimationUnit
+
+  local lander_propulstion_animations: Animations = {
+    animations = {
+      --[[inactive]] {
+        frames = { {2, 0} },
+        looping = false,
+        frame_callback = nilptr,
+        duration = 1,
+      },
+      --[[active] ]] {
+        frames = { {0, 0}, {1, 0.5} },
+        looping = true,
+        frame_callback = nilptr,
+        duration = 0.06,
+      },
+    },
+    last_change_time = os.clock()
+  }
+
   local lander_propulsion, lander_propulsion_entity = LanderPropulsionEntity.new{
     --[[position        ]] {  },
     --[[scene_graph_node]] {},
     --[[sprite          ]] lander_propulstion_sprite,
-    --[[animation       ]]
+    --[[animations      ]] lander_propulstion_animations,
     --[[painter         ]] { color = WHITE, active = true }
   }
 
@@ -500,7 +538,11 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
     --[[gravity          ]] { acceleration = gravity_acceleration, direction = {0.0, 1.0}, active = true },
     --[[intersectable    ]] {  },
     --[[intersections    ]] { intersections = {}, on_enter_callback = _on_lander_intersect_enter, on_exit_callback = _on_lander_intersect_exit },
-    --[[lander_controller]] { propulsion_force = gravity_acceleration * 2.5, state = LanderState.Flying },
+    --[[lander_controller]] {
+      prop_animations_id = lander_propulsion.animations_id,
+      propulsion_force = gravity_acceleration * 2.5,
+      state = LanderState.Flying
+    },
   }
 
   local intersectable = lander:get_intersectable()
@@ -626,6 +668,8 @@ while not Raylib.WindowShouldClose() do
 
   Game_State.systems.intersectable_update:run()
   Game_State.systems.intersections_detector:run()
+
+  Game_State.systems.sprite_animation:run()
 
   Raylib.BeginDrawing()
     Raylib.ClearBackground(BLACK)
