@@ -152,6 +152,14 @@ local CameraEntity = #[make_entity{
   CameraHolder,
 }]#
 
+local LanderPropulsionEntity = #[make_entity{
+  Position,
+  SceneGraphNode,
+  Sprite,
+  -- Animation
+  Painter,
+}]#
+
 -- ]] entities ]]
 
 -- [[ Game State [[
@@ -365,6 +373,33 @@ function GameState:create_camera_entity()
   self.camera_entity = camera_entity
 end
 
+function GameState:create_lander_propulsion(): LanderPropulsionEntity
+  local lander_propulstion_sprite: Sprite = {
+    sprite_sheet = Game_State.resources.textures.sprites_tex,
+    frame_index = 0,
+    frame_rect = { 0, 0, 16, 16 },
+    offset = { 0, 0 }
+  }
+
+  local lander_propulsion, lander_propulsion_entity = LanderPropulsionEntity.new{
+    --[[position        ]] {  },
+    --[[scene_graph_node]] {},
+    --[[sprite          ]] lander_propulstion_sprite,
+    --[[animation       ]]
+    --[[painter         ]] { color = WHITE, active = true }
+  }
+
+  local position = lander_propulsion:get_position()
+  position:set_local_position({ 0, 16 })
+
+  local scene_graph_node = lander_propulsion:get_scene_graph_node()
+  scene_graph_node:init(lander_propulsion.entity_id, lander_propulsion.scene_graph_node_id)
+
+  self:update_systems(lander_propulsion_entity)
+
+  return lander_propulsion
+end
+
 -- ]] Game State ]]
 
 -- [[ callbacks [[
@@ -428,6 +463,8 @@ end
 -- [[ Game State extensions [[
 
 function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: GenerationalIndex)
+  local lander_propulsion: LanderPropulsionEntity = self:create_lander_propulsion()
+
   local gravity_acceleration: number = 0.1
 
   local lander_shape: Shape = {
@@ -454,15 +491,15 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
   }
 
   local lander, lander_entity = Lander.new{
-    --[[Position         ]] { local_position = pos },
-    --[[scene_graph_node ]] { children_ids = {camera_scene_graph_node_id} },
-    --[[Shape            ]] lander_shape,
-    --[[Sprite           ]] lander_sprite,
-    --[[Painter          ]] { color = WHITE, active = true },
-    --[[Velocity         ]] { active = true, final_velocity = {0,0}, max_velocity = LANDER_MAX_VELOCITY, velocity_is_limited = true },
-    --[[Gravity          ]] { acceleration = gravity_acceleration, direction = {0.0, 1.0}, active = true },
-    --[[Intersectable    ]] {  },
-    --[[Intersections    ]] { intersections = {}, on_enter_callback = _on_lander_intersect_enter, on_exit_callback = _on_lander_intersect_exit },
+    --[[position         ]] { local_position = pos },
+    --[[scene_graph_node ]] { },
+    --[[shape            ]] lander_shape,
+    --[[sprite           ]] lander_sprite,
+    --[[painter          ]] { color = WHITE, active = true },
+    --[[velocity         ]] { active = true, final_velocity = {0,0}, max_velocity = LANDER_MAX_VELOCITY, velocity_is_limited = true },
+    --[[gravity          ]] { acceleration = gravity_acceleration, direction = {0.0, 1.0}, active = true },
+    --[[intersectable    ]] {  },
+    --[[intersections    ]] { intersections = {}, on_enter_callback = _on_lander_intersect_enter, on_exit_callback = _on_lander_intersect_exit },
     --[[lander_controller]] { propulsion_force = gravity_acceleration * 2.5, state = LanderState.Flying },
   }
 
@@ -471,6 +508,9 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
 
   local lander_scene_graph_node = lander:get_scene_graph_node()
   lander_scene_graph_node:init(lander.entity_id, lander.scene_graph_node_id)
+
+  lander_scene_graph_node:attach_child(camera_scene_graph_node_id)
+  lander_scene_graph_node:attach_child(lander_propulsion.scene_graph_node_id)
 
   self:update_systems(lander_entity)
 
