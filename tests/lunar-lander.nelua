@@ -661,8 +661,8 @@ while not Raylib.WindowShouldClose() do
     end
 
   ## if PROF then
-  nprof:draw()
-  nprof:reset()
+    nprof:draw()
+    nprof:reset()
   ## end
 
   Raylib.EndDrawing()
