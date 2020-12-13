@@ -46,6 +46,13 @@ Raylib.InitWindow(screen_width, screen_height, "raylib [core] example - basic wi
 Raylib.InitAudioDevice()
 Raylib.SetTargetFPS(60)
 
+local GameLayers = @enum{
+  Background = 0,
+  Tiles,
+  Propulsion,
+  Lander
+}
+
 -- [[ components [[
 
 local IsSafeLanding = @record{a: byte}
@@ -324,7 +331,8 @@ function GameState:create_safe_landing(pos: Vector2)
     sprite_sheet = Game_State.resources.textures.sprites_tex,
     frame_index = 4,
     frame_rect = { 0, 0, 16, 16 },
-    offset = { 0, 0 }
+    offset = { 0, 0 },
+    layer = GameLayers.Tiles,
   }
 
   local safe_landing, safe_landing_entity = SafeLanding.new{
@@ -352,7 +360,8 @@ function GameState:create_floor(pos: Vector2)
     sprite_sheet = Game_State.resources.textures.sprites_tex,
     frame_index = 3,
     frame_rect = { 0, 0, 16, 16 },
-    offset = { 0, 0 }
+    offset = { 0, 0 },
+    layer = GameLayers.Tiles,
   }
 
   local floor, floor_entity = Floor.new{
@@ -396,7 +405,8 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
     sprite_sheet = Game_State.resources.textures.sprites_tex,
     frame_index = 0,
     frame_rect = { 0, 0, 16, 16 },
-    offset = { 0, 0 }
+    offset = { 0, 0 },
+    layer = GameLayers.Propulsion,
   }
 
   local AnimationUnit = Animations.AnimationUnit
@@ -525,7 +535,8 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
     sprite_sheet = Game_State.resources.textures.sprites_tex,
     frame_index = 5,
     frame_rect = { 0, 0, 16, 16 },
-    offset = { 0, 0 }
+    offset = { 0, 0 },
+    layer = GameLayers.Lander
   }
 
   local lander, lander_entity = Lander.new{

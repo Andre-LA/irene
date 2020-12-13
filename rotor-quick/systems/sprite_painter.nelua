@@ -9,9 +9,18 @@ local Position = RotorQuick.Components.Position
 local Sprite = RotorQuick.Components.Sprite
 local Painter = RotorQuick.Components.Painter
 
-global SpritePainterRunner = @record{}
+local EachRunIds = @record{
+  position_id: GenerationalIndex,
+  painter_id: GenerationalIndex,
+  sprite_id: GenerationalIndex,
+}
 
-function SpritePainterRunner:run(position: *Position, painter: *Painter, sprite: *Sprite, system_data: *SystemData)
+global SpritePainterRunner = @record{
+  -- vector of layers, each layer is a vector of the triple of ids to components of each iterated entity
+  draw_order: vector(vector(EachRunIds)),
+}
+
+local function paint(position: *Position, painter: *Painter, sprite: *Sprite)
   if not painter.active then
     return
   end
@@ -25,7 +34,55 @@ function SpritePainterRunner:run(position: *Position, painter: *Painter, sprite:
   Raylib.DrawTextureRec(sprite.sprite_sheet, sprite.frame_rect, position:get_global_position() + sprite.offset, painter.color)
 end
 
-global RotorQuick.Systems.SpritePainter = @MakeSystem(SpritePainterRunner, false, true, false, 2, @record{
+function SpritePainterRunner:before_all(system_data: *SystemData)
+  defer
+    for i = 0, < #self.draw_order do
+      self.draw_order[i]:destroy()
+    end
+    self.draw_order:destroy()
+  end
+
+  -- collect ids of the components to iterate
+  for i = 0, < #system_data.components_indexes do
+    local ids = system_data.components_indexes[i]
+
+    if #ids > 0 then
+      local position_id = ids[0]
+      local painter_id = ids[1]
+      local sprite_id = ids[2]
+
+      local position_opt = RotorQuick.storages.position:get_entry(position_id)
+      local painter_opt = RotorQuick.storages.painter:get_entry(painter_id)
+      local sprite_opt = RotorQuick.storages.sprite:get_entry(sprite_id)
+
+      if position_opt.filled and painter_opt.filled and sprite_opt.filled then
+        local sprite: *Sprite = sprite_opt:get()
+
+        if #self.draw_order <= sprite.layer then
+          self.draw_order:resize(sprite.layer + 1)
+        end
+
+        self.draw_order[sprite.layer]:push({ position_id, painter_id, sprite_id })
+      else
+        system_data:mark_available(i)
+      end
+    end
+  end
+
+  for i = 0, < #self.draw_order do
+    local current_layer = self.draw_order[i]
+
+    for j = 0, < #current_layer do
+      local position_opt = RotorQuick.storages.position:get_entry(current_layer[j].position_id)
+      local painter_opt = RotorQuick.storages.painter:get_entry(current_layer[j].painter_id)
+      local sprite_opt = RotorQuick.storages.sprite:get_entry(current_layer[j].sprite_id)
+
+      paint(position_opt:get(), painter_opt:get(), sprite_opt:get())
+    end
+  end
+end
+
+global RotorQuick.Systems.SpritePainter = @MakeSystem(SpritePainterRunner, true, false, false, 2, @record{
   position: Position,
   painter: Painter,
   sprite: Sprite
