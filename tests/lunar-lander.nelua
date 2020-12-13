@@ -671,26 +671,50 @@ while not Raylib.WindowShouldClose() do
 
   local is_flying = lander_controller.state == LanderState.Flying
 
-  if is_flying then
-    Game_State.systems.gravity_applier:run()
-    Game_State.systems.lander_ctrl_system:run()
-    Game_State.systems.velocity_applier:run()
-    Game_State.systems.follower_system:run()
+  ## if PROF then
+    nprof:push'systems' -- [[ nprof systems [[
+  ## end
+
+  do
+    ## if PROF then
+      nprof:push'processing systems'
+      defer nprof:pop() end
+    ## end
+
+    if is_flying then
+      ## if PROF then
+        nprof:push'is flying system'
+        defer nprof:pop() end
+      ## end
+
+      Game_State.systems.gravity_applier:run()
+      Game_State.systems.lander_ctrl_system:run()
+      Game_State.systems.velocity_applier:run()
+      Game_State.systems.follower_system:run()
+    end
+
+    Game_State.systems.position_hierarchy:run()
+
+    Game_State.systems.camera_holder_system:run()
+
+    Game_State.systems.intersectable_update:run()
+    Game_State.systems.intersections_detector:run()
+
+    Game_State.systems.sprite_animation:run()
   end
 
-  Game_State.systems.position_hierarchy:run()
+  do Raylib.BeginDrawing()
+    ## if PROF then
+      nprof:push'drawing systems' -- [[ nprof drawying systems [[
+    ## end
 
-  Game_State.systems.camera_holder_system:run()
-
-  Game_State.systems.intersectable_update:run()
-  Game_State.systems.intersections_detector:run()
-
-  Game_State.systems.sprite_animation:run()
-
-  Raylib.BeginDrawing()
     Raylib.ClearBackground(BLACK)
 
-    Raylib.BeginMode2D(camera_holder.camera)
+    do Raylib.BeginMode2D(camera_holder.camera)
+      ## if PROF then
+        nprof:push'painting systems'
+        defer nprof:pop() end
+      ## end
 
       Game_State.systems.sprite_painter:run()
 
@@ -701,7 +725,7 @@ while not Raylib.WindowShouldClose() do
       end
 
 
-    Raylib.EndMode2D()
+    end Raylib.EndMode2D()
 
     if not is_flying then
       local msg = (do
@@ -720,12 +744,14 @@ while not Raylib.WindowShouldClose() do
       Raylib.DrawText(msg, math.ifloor(screen_width / 2 - msg_width / 2), math.ifloor(screen_height / 2), msg_fontsize, WHITE)
     end
 
-  ## if PROF then
-    nprof:draw()
-    nprof:reset()
-  ## end
+    ## if PROF then
+      nprof:pop() -- ]] nprof drawying systems ]]
+      nprof:pop() -- ]] nprof systems ]]
+      nprof:draw()
+      nprof:reset()
+    ## end
 
-  Raylib.EndDrawing()
+  end Raylib.EndDrawing()
 end
 
 -- ]] Main Loop ]]
