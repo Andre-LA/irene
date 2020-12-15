@@ -29,11 +29,6 @@ local function find_child_index(node: *SceneGraphNode, child_node_id: Generation
   return result
 end
 
--- TODO: auto-declare this with a future @MakeComponent generic
-function SceneGraphNode.get_entry_from_id(id: GenerationalIndex): optional(*SceneGraphNode)
-  return RotorQuick.storages.scene_graph_node:get_entry(id)
-end
-
 function SceneGraphNode:iter_children(): (
   function(state: *vector(GenerationalIndex), ctrl_var: isize): (boolean, isize, *SceneGraphNode, GenerationalIndex), -- state: the children_ids; ctrl_var: child_index
   *vector(GenerationalIndex),

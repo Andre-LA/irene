@@ -26,11 +26,6 @@ global RotorQuick.Components.Animations = @record{
 local Animations = RotorQuick.Components.Animations
 ## is_component(Animations)
 
--- TODO: auto-declare this with a future @MakeComponent generic
-function Animations.get_entry_from_id(id: GenerationalIndex): optional(*Animations)
-  return RotorQuick.storages.animations:get_entry(id)
-end
-
 function Animations:change_animation(next_anim: usize)
   if next_anim ~= self.current_animation then
     check(next_anim < #self.animations, 'change_animation: trying to switch to an inexistent animation')

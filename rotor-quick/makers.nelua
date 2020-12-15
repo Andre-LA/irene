@@ -53,15 +53,60 @@ require 'rotor-quick'
 
 -- [[ mark record as component [[
 
-##[[
-  local masks_count = 0
+--##[[
+--  local masks_count = 0
+--
+--  is_component = hygienize(function(T)
+--    staticassert(is_record(T))
+--    T.value.is_component = true
+--    RQ_add_mask_and_storage(metalib.pascalcase_to_snakecase(T.name), T)
+--  end)
+--]]
 
-  is_component = hygienize(function(T)
-    staticassert(is_record(T))
-    T.value.is_component = true
-    RQ_add_mask_and_storage(metalib.pascalcase_to_snakecase(T.name), T)
-  end)
-]]
+## function impl_is_component(R)
+  -- ensure that a record is passed
+  ## staticassert(is_record(R))
+
+  -- mark the is_component trait
+  ## R.value.is_component = true
+
+  ## local R_snakecased_name = metalib.pascalcase_to_snakecase(R.name)
+
+  -- macro do add the mask and the storage of this component
+  ## RQ_add_mask_and_storage(R_snakecased_name, R)
+
+  local R: type = #[R]#
+
+  function R.get_entry_from_id(id: GenerationalIndex): optional(*R)
+    return RotorQuick.storages.#|R_snakecased_name|#:get_entry(id)
+  end
+
+  function R.get_entry_from_entity_id(id: GenerationalIndex): optional(*R)
+    local result: optional(*R) = {}
+
+    local entity_opt = RotorQuick.storages.entity:get_entry(id)
+
+    if entity_opt.filled then
+      local entity = entity_opt:get()
+      local r_storage_index_opt = entity:get_storage_index(RotorQuick.masks.#|R_snakecased_name|#)
+      if r_storage_index_opt.filled then
+        local r_storage_index = r_storage_index_opt:get()
+
+        local entity_r_id = entity.associated_components[r_storage_index]
+
+        local entity_r_opt = R.get_entry_from_id(entity_r_id)
+        if entity_r_opt.filled then
+          result:set(entity_r_opt:get())
+        end
+      end
+    end
+
+    return result
+  end
+## end
+
+-- temporary alias
+## is_component = impl_is_component
 
 -- ]] mark record as component ]]
 

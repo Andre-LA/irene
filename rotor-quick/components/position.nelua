@@ -18,35 +18,6 @@ global RotorQuick.Components.Position = @record{
 local Position = RotorQuick.Components.Position
 ## is_component(Position)
 
--- TODO: auto-declare this with a future @MakeComponent generic
-function Position.get_entry_from_id(id: GenerationalIndex): optional(*Position)
-  return RotorQuick.storages.position:get_entry(id)
-end
-
--- TODO: auto-declare this with a future @MakeComponent generic
-function Position.get_entry_from_entity_id(id: GenerationalIndex): optional(*Position)
-  local result: optional(*Position) = {}
-
-  local entity_opt = RotorQuick.storages.entity:get_entry(id)
-
-  if entity_opt.filled then
-    local entity = entity_opt:get()
-    local pos_stor_index_opt = entity:get_storage_index(RotorQuick.masks.position)
-    if pos_stor_index_opt.filled then
-      local pos_stor_index = pos_stor_index_opt:get()
-
-      local entity_pos_id = entity.associated_components[pos_stor_index]
-
-      local entity_pos_opt = Position.get_entry_from_id(entity_pos_id)
-      if entity_pos_opt.filled then
-        result:set(entity_pos_opt:get())
-      end
-    end
-  end
-
-  return result
-end
-
 function Position:get_global_position(): Vector2
   return self.origin_position + self.local_position
 end
