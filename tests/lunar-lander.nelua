@@ -41,7 +41,6 @@ local screen_height: integer <comptime> = 608
 local LANDER_MAX_VELOCITY <comptime> = 10
 local Lander_Start_Position: Vector2 = {32, 32}
 
-Raylib.SetConfigFlags(ConfigFlag.FLAG_WINDOW_RESIZABLE)
 Raylib.InitWindow(screen_width, screen_height, "raylib [core] example - basic window")
 Raylib.InitAudioDevice()
 Raylib.SetTargetFPS(60)
@@ -85,12 +84,12 @@ local LanderController = @record{
 
 global LanderControllerRunner = @record{}
 
-function LanderControllerRunner:run(lander_controller: *LanderController,
-                                    velocity: *Velocity,
-                                    gravity: *Gravity,
-                                    system_data: *SystemData
-                                    )
-
+function LanderControllerRunner:run(
+  lander_controller: *LanderController,
+  velocity: *Velocity,
+  gravity: *Gravity,
+  system_data: *SystemData
+)
   local is_right_down, is_up_down, is_left_down = Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT),
                                                   Raylib.IsKeyDown(KeyboardKey.KEY_UP),
                                                   Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)
@@ -105,9 +104,9 @@ function LanderControllerRunner:run(lander_controller: *LanderController,
     local direction: Vector2 = {
       x = (do
         if is_right_down then
-          return 1
+          return 0.6
         elseif is_left_down then
-          return -1
+          return -0.6
         else
           return 0
         end
@@ -477,7 +476,7 @@ end
 -- [[ callbacks [[
 
 local function intersected_is_floor(other_intersectable: *Intersectable)
-local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
+  local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
 
   if opt_other_entity.filled then
     local other_entity = opt_other_entity:get()
@@ -522,14 +521,6 @@ local function on_lander_intersect_exit(lander: *Lander, self_intersectable: *In
   end
 end
 
-local function _on_lander_intersect_enter(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
-  on_lander_intersect_enter(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
-end
-
-local function _on_lander_intersect_exit(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
-  on_lander_intersect_exit(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
-end
-
 -- ]] callbacks ]]
 
 -- [[ Game State extensions [[
@@ -552,7 +543,7 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
     local sin = math.sin(i_rad)
     ]]
 
-    lander_shape.vertices[ #[i]# ] = {  #[cos*radius + radius]#, #[sin*radius + radius]# }
+    lander_shape.vertices[ #[i]# ] = { #[cos*radius + radius]#, #[sin*radius + radius]# }
   ## end
 
   local lander_sprite: Sprite = {
@@ -586,8 +577,12 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
     --[[intersectable]] { },
     --[[intersections]] {
       intersections = {},
-      on_enter_callback = _on_lander_intersect_enter,
-      on_exit_callback = _on_lander_intersect_exit
+      on_enter_callback = function(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
+        on_lander_intersect_enter(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
+      end,
+      on_exit_callback =  function (self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
+        on_lander_intersect_exit(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
+      end
     },
     --[[lander_controller]] {
       prop_animations_id = lander_propulsion.animations_id,
