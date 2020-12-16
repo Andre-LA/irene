@@ -1,5 +1,7 @@
-require 'rotor-quick'
+## local tabler = require 'nelua.utils.tabler'
 ## local metalib = require 'rotor-quick.metalib'
+
+require 'rotor-quick'
 
 ## if PROF then
   require 'nprof'
@@ -18,12 +20,11 @@ require 'rotor-quick'
   end
 
   local function gen_errmsg(comp_type, err_msg)
-    local comp_name, comp_name_snakecase = comp_type.name, metalib.pascalcase_to_snakecase(comp_type.name)
+    local comp_name = comp_type.name, metalib.pascalcase_to_snakecase(comp_type.name)
     return string.format(
-      'assertion error with type %s: %s. Maybe you forgot to use ## is_component(%s, %s)?',
+      'assertion error with type %s: %s. Maybe you forgot to use ## is_component(%s)?',
       comp_name,
       err_msg,
-      comp_name_snakecase,
       comp_name
     )
   end
@@ -63,24 +64,29 @@ require 'rotor-quick'
 --  end)
 --]]
 
+-- this macro auto-implements the is_component trait
 ## function impl_is_component(R)
   -- ensure that a record is passed
   ## staticassert(is_record(R))
 
   -- mark the is_component trait
-  ## R.value.is_component = true
-
   ## local R_snakecased_name = metalib.pascalcase_to_snakecase(R.name)
+
+  ## R.value.is_component = true
+  ## R.value.component_metainfo = {snakecase_name = R_snakecased_name}
 
   -- macro do add the mask and the storage of this component
   ## RQ_add_mask_and_storage(R_snakecased_name, R)
 
   local R: type = #[R]#
 
+  ## if not R.value.metafields.get_entry_from_id then
   function R.get_entry_from_id(id: GenerationalIndex): optional(*R)
     return RotorQuick.storages.#|R_snakecased_name|#:get_entry(id)
   end
+  ## end
 
+  ## if not R.value.metafields.get_entry_from_entity_id then
   function R.get_entry_from_entity_id(id: GenerationalIndex): optional(*R)
     local result: optional(*R) = {}
 
@@ -103,6 +109,7 @@ require 'rotor-quick'
 
     return result
   end
+  ## end
 ## end
 
 -- temporary alias
@@ -111,58 +118,96 @@ require 'rotor-quick'
 -- ]] mark record as component ]]
 
 -- [[ Entity maker [[
+## local n = {'st', 'nd', 'rd'}
 
-## make_entity = hygienize(function(components) -- components "shape": { ComponentRecord }, example: { AnComponent, OtherComponent }
-  local NewEntityType = @record{ entity_id: GenerationalIndex }
-  local InitialValuesCollection = @record{}
+## local make_entity = generalize(function(...)
+  ##[[
+    local ins = function(v, d) return require ('nelua.thirdparty.inspect') (v, {depth = d or 1}) end
 
-  ## for i = 1, #components do
-    ##[[
-      local comp_type = assert_type_is_component(components[i])
-      local comp_name = metalib.pascalcase_to_snakecase(comp_type.name)
+    local entity_shape = {...}
+    local components, children = {}, {}
 
-      local name_id = comp_name..'_id'
-      local name_vl = comp_name..'_vl'
-      local get_name =  'get_'..comp_name
-    ]]
+    local entity_subnickname = table.concat(
+      tabler.imap(entity_shape, function(v) return v.nickname end),
+      ', '
+    )
+  ]]
 
-    ## NewEntityType.value:add_field(name_id, GenerationalIndex.value)
-    ## InitialValuesCollection.value:add_field(name_vl, comp_type.value)
+  local EntityT <nickname #['entity('..entity_subnickname..')']#> = @record{
+    entity_id: GenerationalIndex,
+    -- more added below
+  }
 
-    function NewEntityType:#|get_name|#(): pointer(#[comp_type.value]#)
-      local possible_result = RotorQuick.storages.#|comp_name|#:get_entry(self.#|name_id|#)
-      check(possible_result.filled, #[comp_name .. ' is not associated with entity!']#)
-      local result = possible_result:get()
-      return result
+  ## EntityT.value.is_entity = true
+
+  local EntityInitValues = @record{
+    -- more added below
+  }
+
+  ##[[
+    -- collect entities and components
+    for i = 1, #entity_shape do
+      -- ensures that there are only components or entities in entity_shape
+      local msg_nth = 'error on '..(i < 4 and i..n[i] or i..'th')..'parameter: '
+      staticassert(entity_shape[i].is_component or entity_shape[i].is_entity, msg_nth..'is neither component or entity')
+
+      if entity_shape[i].is_component then
+        table.insert(components, entity_shape[i])
+      elseif entity_shape[i].is_entity then
+        table.insert(children, entity_shape[i])
+      end
+    end
+
+  ]]
+
+  -- add fields and and functions to EntityT for each component
+  -- it also configures EntityInitValues
+  ## for i, comp in ipairs(components) do
+    ## local comp_scname = comp.component_metainfo.snakecase_name
+    --## print(ins(comp, 2))
+
+    -- add the corresponding id field
+    ## EntityT.value:add_field(comp_scname..'_id', GenerationalIndex.value)
+    ## EntityInitValues.value:add_field(comp_scname..'_vl', comp)
+
+    -- add EntityT:get_"component" method
+    function EntityT:#|'get_'..comp_scname|#(): pointer(#[comp]#)
+      local possible_result = RotorQuick.storages.#|comp_scname|#:get_entry(self.#|comp_scname..'_id'|#)
+
+      check(
+        possible_result.filled,
+        #[EntityT.value.nickname..':get_'..comp_scname..': '..comp_scname..' is not associated with entity']#
+      )
+
+      return possible_result:get()
     end
   ## end
 
-  function NewEntityType.new(values: InitialValuesCollection): (NewEntityType, *Entity)
-    local result: NewEntityType = {}
+  function EntityT.new(initial_values: EntityInitValues): (EntityT, *Entity)
+    local result: EntityT = {}
 
     local entity_id, entity = RotorQuick.storages.entity:new_entry(Entity.new())
     result.entity_id = entity_id
 
-    ## for i = 1, #components do
-      ##[[
-        local comp_type = assert_type_is_component(components[i])
-        local comp_name = metalib.pascalcase_to_snakecase(comp_type.name)
+    ## for i, comp in ipairs(components) do
+      ## local comp_scname = comp.component_metainfo.snakecase_name
 
-        local name_id = comp_name..'_id'
-        local name_vl = comp_name..'_vl'
-      ]]
+      ## local c_id = comp_scname..'_id'
+      ## local c_vl = comp_scname..'_vl'
 
-      local #|name_id|#, #|name_vl|# = RotorQuick.storages.#|comp_name|#:new_entry(values.#|name_vl|#)
-      entity:associate(#|name_id|#, RotorQuick.masks.#|comp_name|#)
+      local #|c_id|#, #|c_vl|# = RotorQuick.storages.#|comp_scname|#:new_entry(initial_values.#|c_vl|#)
+      entity:associate(#|c_id|#, RotorQuick.masks.#|comp_scname|#)
 
-      result.#|name_id|# = #|name_id|#
+      result.#|c_id|# = #|c_id|#
     ## end
 
     return result, entity
   end
 
-  ## return NewEntityType
+  ## return EntityT
 ## end)
+
+global MakeEntity = #[make_entity]#
 
 -- ]] Entity maker ]]
 

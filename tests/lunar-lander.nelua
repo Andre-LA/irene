@@ -135,25 +135,33 @@ local LanderControllerSystem = @MakeSystem(LanderControllerRunner, false, true, 
 
 -- [[ entities [[
 
-local SafeLanding = #[make_entity{
+local SafeLanding = @MakeEntity(
   Position,
   Shape,
   Sprite,
   Painter,
   Intersectable,
-  IsSafeLanding,
-}]#
+  IsSafeLanding
+)
 
-local Floor = #[make_entity{
+local Floor = @MakeEntity(
   Position,
   Shape,
   Sprite,
   Painter,
   Intersectable,
-  IsFloor,
-}]#
+  IsFloor
+)
 
-local Lander = #[make_entity{
+local LanderPropulsionEntity = @MakeEntity(
+  Position,
+  SceneGraphNode,
+  Sprite,
+  Animations,
+  Painter
+)
+
+local Lander = @MakeEntity(
   Position,
   SceneGraphNode,
   Shape,
@@ -165,27 +173,19 @@ local Lander = #[make_entity{
   Intersections,
 
   LanderController
-}]#
+)
 
-local CameraEntity = #[make_entity{
+local CameraEntity = @MakeEntity(
   Position,
   SceneGraphNode,
-  CameraHolder,
-}]#
+  CameraHolder
+)
 
-local LanderPropulsionEntity = #[make_entity{
-  Position,
-  SceneGraphNode,
-  Sprite,
-  Animations,
-  Painter,
-}]#
-
-local BackgroundEntity = #[make_entity{
+local BackgroundEntity = @MakeEntity(
   Position,
   Sprite,
-  Painter,
-}]#
+  Painter
+)
 
 -- ]] entities ]]
 
