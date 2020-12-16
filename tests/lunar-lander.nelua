@@ -182,6 +182,12 @@ local LanderPropulsionEntity = #[make_entity{
   Painter,
 }]#
 
+local BackgroundEntity = #[make_entity{
+  Position,
+  Sprite,
+  Painter,
+}]#
+
 -- ]] entities ]]
 
 -- [[ Game State [[
@@ -329,7 +335,7 @@ function GameState:create_safe_landing(pos: Vector2)
 
   local safe_landing_sprite: Sprite = {
     sprite_sheet = Game_State.resources.textures.sprites_tex,
-    frame_index = 4,
+    frame_index = 6,
     frame_rect = { 0, 0, 16, 16 },
     offset = { 0, 0 },
     layer = GameLayers.Tiles,
@@ -350,6 +356,24 @@ function GameState:create_safe_landing(pos: Vector2)
   self:update_systems(safe_landing_entity)
 end
 
+function GameState:create_background(pos: Vector2)
+  local background_sprite: Sprite = {
+    sprite_sheet = Game_State.resources.textures.sprites_tex,
+    frame_index = 1,
+    frame_rect = { 0, 0, 32, 32 },
+    offset = { 0, 0 },
+    layer = GameLayers.Background,
+  }
+
+  local background, background_entity = BackgroundEntity.new{
+    --[[position     ]] { local_position = pos },
+    --[[sprite       ]] background_sprite,
+    --[[painter      ]] { color = WHITE, active = true },
+  }
+
+  self:update_systems(background_entity)
+end
+
 function GameState:create_floor(pos: Vector2)
   local floor_shape: Shape = {
     category = Shape.ShapeCategory.Polygon,
@@ -358,7 +382,7 @@ function GameState:create_floor(pos: Vector2)
 
   local floor_sprite: Sprite = {
     sprite_sheet = Game_State.resources.textures.sprites_tex,
-    frame_index = 3,
+    frame_index = 5,
     frame_rect = { 0, 0, 16, 16 },
     offset = { 0, 0 },
     layer = GameLayers.Tiles,
@@ -414,7 +438,7 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
   local lander_propulstion_animations: Animations = {
     animations = {
       --[[inactive]] {
-        frames = { {2, 0} },
+        frames = { {4, 0} },
         looping = false,
         frame_callback = nilptr,
         duration = 1,
@@ -533,7 +557,7 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
 
   local lander_sprite: Sprite = {
     sprite_sheet = Game_State.resources.textures.sprites_tex,
-    frame_index = 5,
+    frame_index = 9,
     frame_rect = { 0, 0, 16, 16 },
     offset = { 0, 0 },
     layer = GameLayers.Lander
@@ -592,6 +616,8 @@ end
 
 ##[[
   local map = {
+  -- 0         1         2         3         4
+  -- 01234567890123456789012345678901234567890123456789
     'ffffffffffffffffffffffffffffffffffffffffffffffffff',
     'f                                                f',
     'f   L                                            f',
@@ -635,29 +661,33 @@ end
   }
 ]]
 
-##[[
-for i = 1, #map do
-  local line = map[i]
-  local line_len = #line
+## for i = 1, #map do
+  ## local line = map[i]
+  ## local line_len = #line
 
-  for j = 1, line_len do
-    local tileletter = string.sub(map[i], j, j)
-    local pos_x, pos_y = (j-1) * 16, (i-1) * 16
-    ]]
+  ## for j = 1, line_len do
+    ## local tileletter = string.sub(map[i], j, j)
+    ## local pos_x, pos_y = (j-1) * 16, (i-1) * 16
 
-    ## if tileletter ~= ' ' then
-      ## if tileletter == 'L' then
-        Lander_Start_Position = { #[pos_x]#, #[pos_y]# }
-      ## elseif tileletter == 'f' then
-        Game_State:create_floor({ #[pos_x]#, #[pos_y]# })
-      ## elseif tileletter == 's' then
-        Game_State:create_safe_landing({ #[pos_x]#, #[pos_y]# })
-      ##[[
-      end
-    end
-  end
-end
-]]
+    ## local can_place_background = i < line_len and i < #map and pos_x % 32 == 0 and pos_y % 32 == 0
+
+    ## if tileletter == 'L' then
+      Lander_Start_Position = { #[pos_x]#, #[pos_y]# }
+      ## if can_place_background then
+        Game_State:create_background({ #[pos_x]#, #[pos_y]# })
+      ## end
+    ## elseif tileletter == ' ' and can_place_background then
+      Game_State:create_background({ #[pos_x]#, #[pos_y]# })
+    ## elseif tileletter == 'f' then
+      Game_State:create_floor({ #[pos_x]#, #[pos_y]# })
+      ## if can_place_background then
+        Game_State:create_background({ #[pos_x]#, #[pos_y]# })
+      ## end
+    ## elseif tileletter == 's' then
+      Game_State:create_safe_landing({ #[pos_x]#, #[pos_y]# })
+    ## end
+  ## end
+## end
 
 Game_State:create_camera_entity()
 Game_State:create_lander(Lander_Start_Position, Game_State.camera_entity.scene_graph_node_id)
