@@ -104,9 +104,9 @@ function LanderControllerRunner:run(
     local direction: Vector2 = {
       x = (do
         if is_right_down then
-          return 0.6
+          return 1
         elseif is_left_down then
-          return -0.6
+          return -1
         else
           return 0
         end
@@ -245,12 +245,18 @@ end
 function GameState:manage_music()
   local music_end_time: number <comptime> = 60 * 2 + 24.1 -- 2:24 is when the music ends and should loop
 
-  if (Raylib.GetMusicTimePlayed(self.resources.audio.music.music1) >= music_end_time and
-      not Raylib.IsMusicPlaying(self.resources.audio.music.music2))
+  if (
+    Raylib.GetMusicTimePlayed(self.resources.audio.music.music1) >= music_end_time
+    and
+    not Raylib.IsMusicPlaying(self.resources.audio.music.music2)
+  )
   then
     Raylib.PlayMusicStream(self.resources.audio.music.music2)
-  elseif (Raylib.GetMusicTimePlayed(self.resources.audio.music.music2) >= music_end_time and
-          not Raylib.IsMusicPlaying(self.resources.audio.music.music1))
+  elseif (
+    Raylib.GetMusicTimePlayed(self.resources.audio.music.music2) >= music_end_time
+    and
+    not Raylib.IsMusicPlaying(self.resources.audio.music.music1)
+  )
   then
     Raylib.PlayMusicStream(self.resources.audio.music.music1)
   end
@@ -477,6 +483,7 @@ end
 
 -- [[ callbacks [[
 
+-- helper function to know if some intersectable is owned by a floor entity
 local function intersected_is_floor(other_intersectable: *Intersectable)
   local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
 
@@ -489,6 +496,7 @@ local function intersected_is_floor(other_intersectable: *Intersectable)
   return false
 end
 
+-- helper function to know if some intersectable is owned by a safe landing entity
 local function intersected_is_safe_landing(other_intersectable: *Intersectable)
 local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
 
@@ -501,6 +509,7 @@ local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectabl
   return false
 end
 
+-- callback when lander intersects other intersectable
 local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
   if intersected_is_safe_landing(other_intersectable) then
     local lander_controller = lander:get_lander_controller()
@@ -516,6 +525,7 @@ local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *I
   end
 end
 
+-- callback when lander exit the intersection with other intersectable
 local function on_lander_intersect_exit(lander: *Lander, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
   if intersected_is_safe_landing(other_intersectable) then
     local lander_controller = lander:get_lander_controller()
@@ -532,7 +542,9 @@ function GameState:create_lander(pos: Vector2)
 
   local lander_shape: Shape = {
     category = Shape.ShapeCategory.Polygon,
-    vertices = { {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} } -- create 8 "unreal" elements with no actual used values, just for code clarity
+
+    -- create 8 elements with no actual used values, the numbers here are just for code clarity about the indexes
+    vertices = { {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} }
   }
 
   ##[[
@@ -731,16 +743,16 @@ while not Raylib.WindowShouldClose() do
       Game_State.systems.lander_ctrl_system:run()
       Game_State.systems.velocity_applier:run()
       Game_State.systems.follower_system:run()
+
+      Game_State.systems.position_hierarchy:run()
+
+      Game_State.systems.camera_holder_system:run()
+
+      Game_State.systems.intersectable_update:run()
+      Game_State.systems.intersections_detector:run()
+
+      Game_State.systems.sprite_animation:run()
     end
-
-    Game_State.systems.position_hierarchy:run()
-
-    Game_State.systems.camera_holder_system:run()
-
-    Game_State.systems.intersectable_update:run()
-    Game_State.systems.intersections_detector:run()
-
-    Game_State.systems.sprite_animation:run()
   end
 
   do Raylib.BeginDrawing()
