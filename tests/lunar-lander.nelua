@@ -350,12 +350,12 @@ function GameState:create_safe_landing(pos: Vector2)
   }
 
   local safe_landing, safe_landing_entity = SafeLanding.new{
-    --[[position       ]] { local_position = pos },
-    --[[shape          ]] safe_landing_shape,
-    --[[sprite         ]] safe_landing_sprite,
-    --[[painter        ]] { color = WHITE, active = true },
-    --[[intersectable  ]] {},
-    --[[is_safe_landing]] {}
+    position        = { local_position = pos },
+    shape           = safe_landing_shape,
+    sprite          = safe_landing_sprite,
+    painter         = { color = WHITE, active = true },
+    intersectable   = {},
+    is_safe_landing = {}
   }
 
   local intersectable = safe_landing:get_intersectable()
@@ -374,9 +374,9 @@ function GameState:create_background(pos: Vector2)
   }
 
   local background, background_entity = BackgroundEntity.new{
-    --[[position     ]] { local_position = pos },
-    --[[sprite       ]] background_sprite,
-    --[[painter      ]] { color = WHITE, active = true },
+    position = { local_position = pos },
+    sprite   = background_sprite,
+    painter  = { color = WHITE, active = true },
   }
 
   self:update_systems(background_entity)
@@ -397,12 +397,12 @@ function GameState:create_floor(pos: Vector2)
   }
 
   local floor, floor_entity = Floor.new{
-    --[[position     ]] { local_position = pos },
-    --[[shape        ]] floor_shape,
-    --[[sprite       ]] floor_sprite,
-    --[[painter      ]] { color = WHITE, active = true },
-    --[[intersectable]] {},
-    --[[is_floor     ]] {}
+    position      = { local_position = pos },
+    shape         = floor_shape,
+    sprite        = floor_sprite,
+    painter       = { color = WHITE, active = true },
+    intersectable = {},
+    is_floor      = {}
   }
 
   local intersectable = floor:get_intersectable()
@@ -413,9 +413,9 @@ end
 
 function GameState:create_camera_entity(): CameraEntity
   local camera_entity, camera_entity_entity = CameraEntity.new{
-    --[[position        ]] {},
-    --[[scene_graph_node]] {},
-    --[[camera_holder   ]] {
+    position         = {},
+    scene_graph_node = {},
+    camera_holder    = {
       camera = {
         offset = { screen_width / 2, screen_height / 2  },
         rotation = 0,
@@ -462,11 +462,11 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
   }
 
   local lander_propulsion, lander_propulsion_entity = LanderPropulsionEntity.new{
-    --[[position        ]] {},
-    --[[scene_graph_node]] {},
-    --[[sprite          ]] lander_propulstion_sprite,
-    --[[animations      ]] lander_propulstion_animations,
-    --[[painter         ]] { color = WHITE, active = true }
+    position         = {},
+    scene_graph_node = {},
+    sprite           = lander_propulstion_sprite,
+    animations       = lander_propulstion_animations,
+    painter          = { color = WHITE, active = true }
   }
 
   local position = lander_propulsion:get_position()
@@ -568,27 +568,27 @@ function GameState:create_lander(pos: Vector2): Lander
   }
 
   local lander, lander_entity = Lander.new{
-    --[[position        ]] { local_position = pos },
-    --[[scene_graph_node]] { },
-    --[[shape           ]] lander_shape,
-    --[[sprite          ]] lander_sprite,
-    --[[painter         ]] {
+    position         = { local_position = pos },
+    scene_graph_node = { },
+    shape            = lander_shape,
+    sprite           = lander_sprite,
+    painter          = {
       active = true,
       color = WHITE
     },
-    --[[velocity]] {
+    velocity = {
       active = true,
       final_velocity = {0,0},
       max_velocity = LANDER_MAX_VELOCITY,
       velocity_is_limited = true
     },
-    --[[gravity]] {
+    gravity = {
       active = true,
       acceleration = gravity_acceleration,
       direction = {0.0, 1.0}
     },
-    --[[intersectable]] { },
-    --[[intersections]] {
+    intersectable = { },
+    intersections = {
       intersections = {},
       on_enter_callback = function(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
         on_lander_intersect_enter(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
@@ -597,13 +597,13 @@ function GameState:create_lander(pos: Vector2): Lander
         on_lander_intersect_exit(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
       end
     },
-    --[[lander_controller]] {
+    lander_controller = {
       prop_animations_id = {0, 0},
       propulsion_force = gravity_acceleration * 2.5,
       state = LanderState.Flying
     },
-    --[[lander propulsion child]] self:create_lander_propulsion(),
-    --[[camera child           ]] self:create_camera_entity()
+    lander_propulsion = self:create_lander_propulsion(),
+    camera            = self:create_camera_entity()
   }
 
   local lander_controller = lander:get_lander_controller()

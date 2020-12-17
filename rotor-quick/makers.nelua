@@ -170,7 +170,7 @@ require 'rotor-quick'
     ## EntityT.value:add_field(comp_scname..'_id', GenerationalIndex.value)
 
     -- add the init
-    ## EntityInitValues.value:add_field(comp_scname..'_vl', comp)
+    ## EntityInitValues.value:add_field(comp_scname, comp)
 
     -- add EntityT:get_"component" method
     function EntityT:#|'get_'..comp_scname|#(): pointer(#[comp]#)
@@ -206,9 +206,8 @@ require 'rotor-quick'
       ## local comp_scname = comp.component_metainfo.snakecase_name
 
       ## local c_id = comp_scname..'_id'
-      ## local c_vl = comp_scname..'_vl'
 
-      local #|c_id|#, #|c_vl|# = RotorQuick.storages.#|comp_scname|#:new_entry(initial_values.#|c_vl|#)
+      local #|c_id|#, #|comp_scname|# = RotorQuick.storages.#|comp_scname|#:new_entry(initial_values.#|comp_scname|#)
       entity:associate(#|c_id|#, RotorQuick.masks.#|comp_scname|#)
 
       result.#|c_id|# = #|c_id|#
