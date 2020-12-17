@@ -10,5 +10,13 @@ local CameraHolder = RotorQuick.Components.CameraHolder
 ## is_component(CameraHolder)
 
 function CameraHolder:set_target(target: Vector2)
+  -- when one of the target is, for example, "121.5", the textures are drawn weirdly
+  if target.x % 0.5 == 0 then
+    target.x = target.x + 0.001
+  end
+  if target.y % 0.5 == 0 then
+    target.y = target.y + 0.001
+  end
+
   self.camera.target = target
 end
