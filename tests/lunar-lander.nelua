@@ -135,7 +135,7 @@ local LanderControllerSystem = @MakeSystem(LanderControllerRunner, false, true, 
 
 -- [[ entities [[
 
-local SafeLanding = @MakeEntity(
+local SafeLanding = @MakeEntity('safe_landing',
   Position,
   Shape,
   Sprite,
@@ -144,7 +144,7 @@ local SafeLanding = @MakeEntity(
   IsSafeLanding
 )
 
-local Floor = @MakeEntity(
+local Floor = @MakeEntity('floor',
   Position,
   Shape,
   Sprite,
@@ -153,15 +153,7 @@ local Floor = @MakeEntity(
   IsFloor
 )
 
-local LanderPropulsionEntity = @MakeEntity(
-  Position,
-  SceneGraphNode,
-  Sprite,
-  Animations,
-  Painter
-)
-
-local Lander = @MakeEntity(
+local Lander = @MakeEntity('lander',
   Position,
   SceneGraphNode,
   Shape,
@@ -172,16 +164,27 @@ local Lander = @MakeEntity(
   Intersectable,
   Intersections,
 
-  LanderController
+  LanderController,
+
+  @MakeEntity('lander_propulsion',
+    Position,
+    SceneGraphNode,
+    Sprite,
+    Animations,
+    Painter
+  ),
+
+  @MakeEntity('camera',
+    Position,
+    SceneGraphNode,
+    CameraHolder
+  )
 )
 
-local CameraEntity = @MakeEntity(
-  Position,
-  SceneGraphNode,
-  CameraHolder
-)
+local LanderPropulsionEntity: type = #[Lander.value.fields.lander_propulsion.type]#
+local CameraEntity: type = #[Lander.value.fields.camera.type]#
 
-local BackgroundEntity = @MakeEntity(
+local BackgroundEntity = @MakeEntity('background_entity',
   Position,
   Sprite,
   Painter
@@ -193,7 +196,6 @@ local BackgroundEntity = @MakeEntity(
 
 local GameState = @record{
   lander: Lander,
-  camera_entity: CameraEntity,
   systems: record{
     lander_ctrl_system: LanderControllerSystem,
     gravity_applier: GravityApplier,
@@ -402,7 +404,7 @@ function GameState:create_floor(pos: Vector2)
   self:update_systems(floor_entity)
 end
 
-function GameState:create_camera_entity()
+function GameState:create_camera_entity(): CameraEntity
   local camera_entity, camera_entity_entity = CameraEntity.new{
     --[[position        ]] {},
     --[[scene_graph_node]] {},
@@ -420,7 +422,7 @@ function GameState:create_camera_entity()
 
   self:update_systems(camera_entity_entity)
 
-  self.camera_entity = camera_entity
+  return camera_entity
 end
 
 function GameState:create_lander_propulsion(): LanderPropulsionEntity
@@ -525,9 +527,7 @@ end
 
 -- [[ Game State extensions [[
 
-function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: GenerationalIndex)
-  local lander_propulsion: LanderPropulsionEntity = self:create_lander_propulsion()
-
+function GameState:create_lander(pos: Vector2)
   local gravity_acceleration: number = 0.1
 
   local lander_shape: Shape = {
@@ -585,11 +585,16 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
       end
     },
     --[[lander_controller]] {
-      prop_animations_id = lander_propulsion.animations_id,
+      prop_animations_id = {0, 0},
       propulsion_force = gravity_acceleration * 2.5,
       state = LanderState.Flying
     },
+    --[[lander propulsion child]] self:create_lander_propulsion(),
+    --[[camera child           ]] self:create_camera_entity()
   }
+
+  local lander_controller = lander:get_lander_controller()
+  lander_controller.prop_animations_id = lander.lander_propulsion.animations_id
 
   local intersectable = lander:get_intersectable()
   intersectable:init(lander.entity_id, pos, lander_shape.vertices.data)
@@ -597,8 +602,8 @@ function GameState:create_lander(pos: Vector2, camera_scene_graph_node_id: Gener
   local lander_scene_graph_node = lander:get_scene_graph_node()
   lander_scene_graph_node:init(lander.entity_id, lander.scene_graph_node_id)
 
-  lander_scene_graph_node:attach_child(camera_scene_graph_node_id)
-  lander_scene_graph_node:attach_child(lander_propulsion.scene_graph_node_id)
+  lander_scene_graph_node:attach_child(lander.camera.scene_graph_node_id)
+  lander_scene_graph_node:attach_child(lander.lander_propulsion.scene_graph_node_id)
 
   self:update_systems(lander_entity)
 
@@ -684,8 +689,7 @@ end
   ## end
 ## end
 
-Game_State:create_camera_entity()
-Game_State:create_lander(Lander_Start_Position, Game_State.camera_entity.scene_graph_node_id)
+Game_State:create_lander(Lander_Start_Position)
 
 Raylib.PlayMusicStream(Game_State.resources.audio.music.music1)
 
@@ -703,7 +707,7 @@ while not Raylib.WindowShouldClose() do
   end
 
   local lander_controller = Game_State.lander:get_lander_controller()
-  local camera_holder = Game_State.camera_entity:get_camera_holder()
+  local camera_holder = Game_State.lander.camera:get_camera_holder()
 
   local is_flying = lander_controller.state == LanderState.Flying
 
