@@ -61,15 +61,15 @@ function SceneGraphNode:iter_children(): (
 end
 
 function SceneGraphNode:attach_child(child_node_id: GenerationalIndex)
-  check(child_node_id ~= self.self_id, 'cannot attach itself as a child')
-  check(child_node_id ~= self.parent_id, 'cannot attach parent as a child')
+  check(child_node_id ~= self.self_id, 'SceneGraphNode: cannot attach itself as a child')
+  check(child_node_id ~= self.parent_id, 'SceneGraphNode: cannot attach parent as a child')
 
   local sg_node_opt = SceneGraphNode.get_entry_from_id(child_node_id)
-  check(sg_node_opt.filled, "trying to attach a child that doesn't exists")
+  check(sg_node_opt.filled, "SceneGraphNode: trying to attach a child that doesn't exists")
 
   if sg_node_opt.filled then
     local is_already_child = find_child_index(self, child_node_id)
-    check(not is_already_child.filled, "trying to attach a child that is already a child")
+    check(not is_already_child.filled, "SceneGraphNode: trying to attach a child that is already a child")
 
     self.children_ids:push(child_node_id)
 
@@ -81,7 +81,7 @@ end
 
 function SceneGraphNode:detach_child(child_node_id: GenerationalIndex)
   local child_index_opt = find_child_index(self, child_node_id)
-  check(child_index_opt.filled, 'trying to detach a child that is not attached')
+  check(child_index_opt.filled, 'SceneGraphNode: trying to detach a child that is not attached')
 
   if child_index_opt.filled then
     local child_index = child_index_opt:get()
