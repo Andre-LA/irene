@@ -41,6 +41,7 @@ local screen_height: integer <comptime> = 608
 local LANDER_MAX_VELOCITY <comptime> = 10
 local Lander_Start_Position: Vector2 = {32, 32}
 
+Raylib.SetConfigFlags(ConfigFlag.FLAG_WINDOW_RESIZABLE)
 Raylib.InitWindow(screen_width, screen_height, "raylib [core] example - basic window")
 Raylib.InitAudioDevice()
 Raylib.SetTargetFPS(60)
@@ -537,7 +538,7 @@ end
 
 -- [[ Game State extensions [[
 
-function GameState:create_lander(pos: Vector2)
+function GameState:create_lander(pos: Vector2): Lander
   local gravity_acceleration: number = 0.1
 
   local lander_shape: Shape = {
@@ -619,7 +620,7 @@ function GameState:create_lander(pos: Vector2)
 
   self:update_systems(lander_entity)
 
-  self.lander = lander
+  return lander
 end
 
 -- ]] Game State extensions ]]
@@ -701,7 +702,7 @@ end
   ## end
 ## end
 
-Game_State:create_lander(Lander_Start_Position)
+Game_State.lander = Game_State:create_lander(Lander_Start_Position)
 
 Raylib.PlayMusicStream(Game_State.resources.audio.music.music1)
 
