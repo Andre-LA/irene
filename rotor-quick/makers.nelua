@@ -120,9 +120,10 @@ require 'rotor-quick'
 -- [[ Entity maker [[
 ## local n = {'st', 'nd', 'rd'}
 
-## local make_entity = generalize(function(...)
+## local make_entity = generalize(function(entity_name, ...)
   ##[[
-    local ins = function(v, d) return require ('nelua.thirdparty.inspect') (v, {depth = d or 1}) end
+    -- TODO: also should asserts if the first character is a number
+    staticassert(not string.find(entity_name, '[^_%w]'), 'entity name must contains only alphanumeric and/or underscores')
 
     local entity_shape = {...}
     local components, children = {}, {}
@@ -133,12 +134,13 @@ require 'rotor-quick'
     )
   ]]
 
-  local EntityT <nickname #['entity('..entity_subnickname..')']#> = @record{
+  local EntityT <nickname #['entity('..entity_subnickname..')']#, codename #['rotor_quick_'..entity_name]#> = @record{
     entity_id: GenerationalIndex,
     -- more added below
   }
 
   ## EntityT.value.is_entity = true
+  ## EntityT.value.entity_metainfo = {name = entity_name}
 
   local EntityInitValues = @record{
     -- more added below
@@ -157,17 +159,17 @@ require 'rotor-quick'
         table.insert(children, entity_shape[i])
       end
     end
-
   ]]
 
-  -- add fields and and functions to EntityT for each component
+  -- add fields and functions to EntityT for each component
   -- it also configures EntityInitValues
   ## for i, comp in ipairs(components) do
     ## local comp_scname = comp.component_metainfo.snakecase_name
-    --## print(ins(comp, 2))
 
     -- add the corresponding id field
     ## EntityT.value:add_field(comp_scname..'_id', GenerationalIndex.value)
+
+    -- add the init
     ## EntityInitValues.value:add_field(comp_scname..'_vl', comp)
 
     -- add EntityT:get_"component" method
@@ -183,12 +185,23 @@ require 'rotor-quick'
     end
   ## end
 
+  -- add fields and functions to EntityT for each child entity
+  -- add the child type to EntityInitValues
+  ## for i, child in ipairs(children) do
+    ## local child_name = child.entity_metainfo.name
+    ## EntityT.value:add_field(child_name, child)
+
+    local ChildType: type = #[EntityT.value.fields[child_name].type]#
+    ## EntityInitValues.value:add_field(child_name, ChildType.value)
+  ## end
+
   function EntityT.new(initial_values: EntityInitValues): (EntityT, *Entity)
     local result: EntityT = {}
 
     local entity_id, entity = RotorQuick.storages.entity:new_entry(Entity.new())
     result.entity_id = entity_id
 
+    -- create and associate each component
     ## for i, comp in ipairs(components) do
       ## local comp_scname = comp.component_metainfo.snakecase_name
 
@@ -199,6 +212,12 @@ require 'rotor-quick'
       entity:associate(#|c_id|#, RotorQuick.masks.#|comp_scname|#)
 
       result.#|c_id|# = #|c_id|#
+    ## end
+
+    -- children are already created, so it should be just copied
+    ## for i, child in ipairs(children) do
+      ## local child_name = child.entity_metainfo.name
+      result.#|child_name|# = initial_values.#|child_name|#
     ## end
 
     return result, entity
