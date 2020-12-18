@@ -230,11 +230,6 @@ global MakeEntity = #[make_entity]#
 -- ]] Entity maker ]]
 
 -- [[ system maker [[
-global System = @record{
-  read: vector(BitsetArray),
-  write: vector(BitsetArray),
-  system_data: SystemData,
-}
 
 ## local make_system = generalize(function(T, use_before, use_run, use_after, read_count, run_T)
   ##[[
@@ -250,12 +245,6 @@ global System = @record{
       table.insert(component_names, field.name)
       table.insert(component_types, ftype)
     end
-
-    local read_names = table.move(component_names, 1, read_count, 1, {})
-    local read_types = table.move(component_types, 1, read_count, 1, {})
-
-    local write_names = table.move(component_names, read_count+1, #component_names, 1, {})
-    local write_types = table.move(component_types, read_count+1, #component_names, 1, {})
   ]]
 
   local T = @#[T]#
@@ -270,7 +259,7 @@ global System = @record{
   ## end
 
   local systemT <nickname #[string.format('system(%s)', T)]#> = @record{
-    system: System,
+    system_data: SystemData,
     opts: optCollectionT,
     runner: T,
   }
@@ -278,20 +267,16 @@ global System = @record{
   ## systemT.value.subtype = T
 
   function systemT.new(): systemT
+    local components: vector(BitsetArray) = {}
+    components:reserve(#[#component_names]#)
+
     local new_system: systemT = {}
 
-    new_system.system.read:reserve(#[#read_names]#)
-    new_system.system.write:reserve(#[#read_names]#)
-
-    ## for i, name in ipairs(read_names) do
-      new_system.system.read:push(bitset_array.copy(RotorQuick.masks.#|name|#))
+    ## for _, name in ipairs(component_names) do
+      components:push(bitset_array.copy(RotorQuick.masks.#|name|#))
     ## end
 
-    ## for i, name in ipairs(write_names) do
-      new_system.system.write:push(bitset_array.copy(RotorQuick.masks.#|name|#))
-    ## end
-
-    new_system.system.system_data = SystemData.new(new_system.system.read, new_system.system.write)
+    new_system.system_data = SystemData.new(components)
     return new_system
   end
 
@@ -319,11 +304,11 @@ global System = @record{
     local runner: *T = self.runner
 
     ## if use_before then
-      runner:before_all(self.system.system_data)
+      runner:before_all(self.system_data)
     ## end
 
     ## if use_run then
-      local system_data: *SystemData = self.system.system_data
+      local system_data: *SystemData = self.system_data
 
       for i = 0, < #system_data.components_indexes do
         local ids = system_data.components_indexes[i]
@@ -349,19 +334,19 @@ global System = @record{
               inject_astnode(metalib.create_call_node(aster, T, 'run', table.unpack(ids)))
             ]]
           else
-            self.system.system_data:mark_available(i)
+            self.system_data:mark_available(i)
           end
         end
       end
     ## end
 
     ## if use_after then
-      runner:after_all(self.system.system_data)
+      runner:after_all(self.system_data)
     ## end
   end
 
   function systemT:update(entity: *Entity)
-    self.system.system_data:update(entity)
+    self.system_data:update(entity)
   end
 
   ## return systemT
