@@ -1,4 +1,9 @@
 -- [[ requires and imports [[
+
+##[[ if RAYLIB_STATIC then
+  cflags"-Ilibs -Llibs"
+end]]
+
 require 'math'
 
 require 'raylib'
