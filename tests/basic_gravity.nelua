@@ -1,0 +1,76 @@
+-- minimal example of a box falling
+
+require 'raylib'
+require 'rotor'
+require 'rotor-quick'
+require 'rotor-quick.makers'
+
+local Position = RotorQuick.Components.Position
+local Shape = RotorQuick.Components.Shape
+local Painter = RotorQuick.Components.Painter
+local Velocity = RotorQuick.Components.Velocity
+local Gravity = RotorQuick.Components.Gravity
+
+local GravityApplier = RotorQuick.Systems.GravityApplier
+local ShapePainter = RotorQuick.Systems.ShapePainter
+local VelocityApplier = RotorQuick.Systems.VelocityApplier
+
+local gravity_applier = GravityApplier.new()
+local shape_painter = ShapePainter.new()
+local velocity_applier = VelocityApplier.new()
+
+local FallingBox = @MakeEntity('falling_box',
+  Position,
+  Shape,
+  Painter,
+  Velocity,
+  Gravity
+)
+
+local falling_box, falling_box_entity = FallingBox.new{
+  position = {
+    origin_position = {32, 32},
+  },
+  shape    = {
+    category = Shape.ShapeCategory.Rectangle,
+    vertices = { {0, 0}, {16, 0}, {16, 16}, {0, 16} }
+  },
+  painter  = {
+    color = WHITE,
+    active = true
+  },
+  velocity = {
+    active = true,
+    max_velocity = 10,
+  },
+  gravity  = {
+    acceleration = 0.1,
+    direction = {0,1},
+    active = true
+  }
+}
+
+gravity_applier.system_data:update(falling_box_entity)
+shape_painter.system_data:update(falling_box_entity)
+velocity_applier.system_data:update(falling_box_entity)
+
+local screen_width: integer <comptime> = 800
+local screen_height: integer <comptime> = 450
+
+Raylib.InitWindow(screen_width, screen_height, "Basic Gravity test")
+Raylib.SetTargetFPS(60)
+
+while not Raylib.WindowShouldClose() do
+  gravity_applier:run()
+  velocity_applier:run()
+
+  Raylib.BeginDrawing()
+  do
+    Raylib.ClearBackground(BLACK)
+
+    shape_painter:run()
+  end
+  Raylib.EndDrawing()
+end
+
+Raylib.CloseWindow()
