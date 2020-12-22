@@ -8,55 +8,69 @@ require 'rotor-quick.components.painter'
 
 local Position = RotorQuick.Components.Position
 local Painter = RotorQuick.Components.Painter
-
 local Shape = RotorQuick.Components.Shape
 local ShapeCategory = Shape.ShapeCategory
 
-global ShapePainterRunner = @record{}
-
-function ShapePainterRunner:run(position: *Position, shape: *Shape, painter: *Painter, system_data: *SystemData)
-  if not painter.active then
-    return
-  end
-
-  local size_x, size_y = 0.0, 0.0
-
-  for i = 0, < #shape.vertices do
-    size_x = math.max(shape.vertices[i].x, size_x)
-    size_y = math.max(shape.vertices[i].y, size_y)
-  end
-
-  local global_pos = position:get_global_position()
-
-  switch shape.category
-  case ShapeCategory.Rectangle then
-    Raylib.DrawRectangleV(global_pos, {size_x, size_y}, painter.color)
-
-  case ShapeCategory.Circle then
-    Raylib.DrawCircleV(global_pos, math.max(size_x, size_y) / 2, painter.color)
-
-  case ShapeCategory.Triangle then
-    local pos = global_pos
-    local p1, p2, p3 = shape.vertices[0], shape.vertices[1], shape.vertices[2]
-    Raylib.DrawTriangle(pos + p1, pos + p2, pos + p3, painter.color)
-
-  case ShapeCategory.Polygon then
-    local points: vector(Vector2)
-    points:reserve(#shape.vertices)
-    defer points:destroy() end
-
-    for i = 0, < #shape.vertices do
-      points:push({ global_pos.x + shape.vertices[i].x, global_pos.y + shape.vertices[i].y })
-    end
-
-    points:push({ global_pos.x + shape.vertices[0].x, global_pos.y + shape.vertices[0].y })
-
-    Raylib.DrawLineStrip(&points.data[0], #points, painter.color)
-  end
-end
-
-global RotorQuick.Systems.ShapePainter = @MakeSystem(ShapePainterRunner, false, true, false, 3, @record{
+global RotorQuick.Systems.ShapePainter = @MakeSystem('ShapePainter', @record{
   position: Position,
   shape: Shape,
   painter: Painter,
 })
+
+local ShapePainter = RotorQuick.Systems.ShapePainter
+
+function ShapePainter:run()
+  ## if PROF then
+    nprof:push(#[ShapePainter.value.nickname]#)
+  ## end
+
+  for _, components in self:iterate_components() do
+    local position: *Position = components.position
+    local shape: *Shape = components.shape
+    local painter: *Painter = components.painter
+
+    if not painter.active then
+      return
+    end
+
+    local size_x, size_y = 0.0, 0.0
+
+    for i = 0, < #shape.vertices do
+      size_x = math.max(shape.vertices[i].x, size_x)
+      size_y = math.max(shape.vertices[i].y, size_y)
+    end
+
+    local global_pos = position:get_global_position()
+
+    switch shape.category
+    case ShapeCategory.Rectangle then
+      Raylib.DrawRectangleV(global_pos, {size_x, size_y}, painter.color)
+
+    case ShapeCategory.Circle then
+      Raylib.DrawCircleV(global_pos, math.max(size_x, size_y) / 2, painter.color)
+
+    case ShapeCategory.Triangle then
+      local pos = global_pos
+      local p1, p2, p3 = shape.vertices[0], shape.vertices[1], shape.vertices[2]
+      Raylib.DrawTriangle(pos + p1, pos + p2, pos + p3, painter.color)
+
+    case ShapeCategory.Polygon then
+      local points: vector(Vector2)
+      points:reserve(#shape.vertices)
+      defer points:destroy() end
+
+      for i = 0, < #shape.vertices do
+        points:push({ global_pos.x + shape.vertices[i].x, global_pos.y + shape.vertices[i].y })
+      end
+
+      points:push({ global_pos.x + shape.vertices[0].x, global_pos.y + shape.vertices[0].y })
+
+      Raylib.DrawLineStrip(&points.data[0], #points, painter.color)
+    end
+  end
+
+  ## if PROF then
+    nprof:pop()
+  ## end
+end
+

@@ -1,8 +1,6 @@
 require 'vector'
 require 'rotor'
 
-## local ins = function(v) return require 'nelua.thirdparty.inspect' (v, {depth = 2}) end
-
 ## local masks_count = 0
 
 global RotorQuick = @record{}

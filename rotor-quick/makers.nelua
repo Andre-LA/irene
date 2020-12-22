@@ -231,40 +231,38 @@ global MakeEntity = #[make_entity]#
 
 -- [[ system maker [[
 
-## local make_system = generalize(function(T, use_before, use_run, use_after, read_count, run_T)
-  ##[[
-    staticassert(traits.is_type(T), "invalid type %s", T)
+## local ins = function(v) return require 'nelua.thirdparty.inspect' (v, {depth = 2}) end
 
-    local component_names = {}
+## local make_system = generalize(function(nickname, run_T)
+  ##[[
+  local component_names = {}
     local component_types = {}
 
     for _, field in ipairs(run_T.fields) do
       local ftype = field.type
-      staticassert(traits.is_type(ftype) and ftype.is_component, 'type %s is not a component!', ftype)
+      staticassert(traits.is_type(ftype) and ftype.is_component, 'MakeSystem: type %s is not a component!', ftype)
 
       table.insert(component_names, field.name)
       table.insert(component_types, ftype)
     end
   ]]
 
-  local T = @#[T]#
-
   local optCollectionT = @record{}
+  local ptrCollectionT = @record{}
 
   ## for i, name in ipairs(component_names) do
-    local opt_T = @optional(*#[ component_types[i] ]#)
+    local ptr_T = @pointer(#[ component_types[i] ]#)
+    ## ptrCollectionT.value:add_field(name, ptr_T.value)
+
+    local opt_T = @optional(ptr_T)
     ## optCollectionT.value:add_field(name, opt_T.value)
 
     local stor_T = @pointer(Storage( #[ component_types[i] ]# ))
   ## end
 
-  local systemT <nickname #[string.format('system(%s)', T)]#> = @record{
-    system_data: SystemData,
-    opts: optCollectionT,
-    runner: T,
+  local systemT <nickname #[string.format('system(%s)', nickname)]#> = @record{
+    system_data: SystemData
   }
-
-  ## systemT.value.subtype = T
 
   function systemT.new(): systemT
     local components: vector(BitsetArray) = {}
@@ -280,73 +278,66 @@ global MakeEntity = #[make_entity]#
     return new_system
   end
 
-  function systemT:verify(): boolean
-    local values: array(boolean, #[ #component_names]#) = {}
+  function systemT.components_are_available(opts: *optCollectionT): boolean
     local result: boolean = true
 
     ## for i, name in ipairs(component_names) do
-      values[#[i-1]#] = self.opts.#|name|#.filled
+      result = result and opts.#|name|#.filled
     ## end
-
-    for i = 0, < #[#component_names]# do
-      result = result and values[i]
-    end
 
     return result
   end
 
-  function systemT:run()
-    ## if PROF then
-      nprof:push(#[systemT.value.nickname]#)
-      defer nprof:pop() end
-    ## end
-
-    local runner: *T = self.runner
-
-    ## if use_before then
-      runner:before_all(self.system_data)
-    ## end
-
-    ## if use_run then
-      local system_data: *SystemData = self.system_data
-
-      for i = 0, < #system_data.components_indexes do
-        local ids = system_data.components_indexes[i]
-
-        if #ids > 0 then
-          ## for i, name in ipairs(component_names) do
-            ## local name_id = name..'_id'
-            local #|name_id|# = ids[#[i-1]#]
-            self.opts.#|name|# = RotorQuick.storages.#|name|#:get_entry(#|name_id|#)
-          ## end
-
-          if self:verify() then
-             ## for _, name in ipairs(component_names) do
-               local #|name|# = self.opts.#|name|#:get()
-             ## end
-
-            ##[[
-              local ids = metalib.create_id_nodes(aster, component_names)
-
-              table.insert(ids, aster.Id{'system_data'})
-              table.insert(ids, 1, aster.Id{'runner'})
-
-              inject_astnode(metalib.create_call_node(aster, T, 'run', table.unpack(ids)))
-            ]]
-          else
-            self.system_data:mark_available(i)
-          end
-        end
-      end
-    ## end
-
-    ## if use_after then
-      runner:after_all(self.system_data)
-    ## end
-  end
-
   function systemT:update(entity: *Entity)
     self.system_data:update(entity)
+  end
+
+  local IterState = @record{
+    system_data: *SystemData,
+    ids_iterator: function(ids_vec: *vector(vector(GenerationalIndex)), index: isize): (boolean, isize, vector(GenerationalIndex)),
+    ids_vec: *vector(vector(GenerationalIndex)),
+    index: isize
+  }
+
+  function systemT:iterate_components(): (
+    function(state: *IterState, index: isize): (boolean, isize, ptrCollectionT),
+    IterState,
+    isize
+  )
+    local function iterator(state: *IterState, index: isize): (boolean, isize, ptrCollectionT)
+      while state.index < #state.ids_vec do
+        local can_iter, index, ids = state.ids_iterator(state.ids_vec, state.index)
+        state.index = index
+
+        if can_iter then
+          local opts: optCollectionT = {}
+
+          ## for i, field in ipairs(ptrCollectionT.value.fields) do
+            ## local component_snakecase_name = field.type.subtype.component_metainfo.snakecase_name
+            opts.#|field.name|# = RotorQuick.storages.#|component_snakecase_name|#:get_entry( ids[ #[i-1]# ] )
+          ## end
+
+          if systemT.components_are_available(opts) then
+            local iter_result: ptrCollectionT = {}
+
+            ## for _, field in ipairs(ptrCollectionT.value.fields) do
+              iter_result.#|field.name|# = opts.#|field.name|#:get()
+            ## end
+
+            return true, index, iter_result
+          else
+            state.system_data:mark_available(state.index)
+          end
+        else
+          return false, -1, (@ptrCollectionT){}
+        end
+      end
+
+      return false, -1, (@ptrCollectionT){}
+    end
+
+    local ids_iterator, ids_vec, index = self.system_data:iterate_ids()
+    return iterator, (@IterState){ system_data = self.system_data, =ids_iterator, =ids_vec, =index }, -1
   end
 
   ## return systemT

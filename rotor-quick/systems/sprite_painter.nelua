@@ -15,11 +15,6 @@ local EachRunIds = @record{
   sprite_id: GenerationalIndex,
 }
 
-global SpritePainterRunner = @record{
-  -- vector of layers, each layer is a vector of the triple of ids to components of each iterated entity
-  draw_order: vector(vector(EachRunIds)),
-}
-
 local function paint(position: *Position, painter: *Painter, sprite: *Sprite)
   if not painter.active then
     return
@@ -34,7 +29,24 @@ local function paint(position: *Position, painter: *Painter, sprite: *Sprite)
   Raylib.DrawTextureRec(sprite.sprite_sheet, sprite.frame_rect, position:get_global_position() + sprite.offset, painter.color)
 end
 
-function SpritePainterRunner:before_all(system_data: *SystemData)
+global RotorQuick.Systems.SpritePainter = @MakeSystem('SpritePainter', @record{
+  position: Position,
+  painter: Painter,
+  sprite: Sprite
+})
+
+local SpritePainter = RotorQuick.Systems.SpritePainter
+
+-- vector of layers, each layer is a vector of the triple of ids to components of each iterated entity
+local DrawOrder: type = @vector(vector(EachRunIds))
+## SpritePainter.value:add_field('draw_order', DrawOrder.value)
+
+function SpritePainter:run()
+  ## if PROF then
+    nprof:push(#[SpritePainter.value.nickname]#)
+    defer nprof:pop() end
+  ## end
+
   defer
     for i = 0, < #self.draw_order do
       self.draw_order[i]:destroy()
@@ -43,8 +55,8 @@ function SpritePainterRunner:before_all(system_data: *SystemData)
   end
 
   -- collect ids of the components to iterate
-  for i = 0, < #system_data.components_indexes do
-    local ids = system_data.components_indexes[i]
+  for i = 0, < #self.system_data.components_indexes do
+    local ids = self.system_data.components_indexes[i]
 
     if #ids > 0 then
       local position_id = ids[0]
@@ -64,7 +76,7 @@ function SpritePainterRunner:before_all(system_data: *SystemData)
 
         self.draw_order[sprite.layer]:push({ position_id, painter_id, sprite_id })
       else
-        system_data:mark_available(i)
+        self.system_data:mark_available(i)
       end
     end
   end
@@ -82,8 +94,3 @@ function SpritePainterRunner:before_all(system_data: *SystemData)
   end
 end
 
-global RotorQuick.Systems.SpritePainter = @MakeSystem(SpritePainterRunner, true, false, false, 2, @record{
-  position: Position,
-  painter: Painter,
-  sprite: Sprite
-})

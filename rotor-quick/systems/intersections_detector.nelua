@@ -7,31 +7,41 @@ require 'rotor-quick.components.intersections'
 local Intersectable = RotorQuick.Components.Intersectable
 local Intersections = RotorQuick.Components.Intersections
 
-global IntersectionsDetectorRunner = @record{}
+global RotorQuick.Systems.IntersectionsDetector = @MakeSystem('IntersectionsDetector', @record{
+  intersectable: Intersectable,
+  intersections: Intersections
+})
 
-function IntersectionsDetectorRunner:run(intersectable: *Intersectable, intersections: *Intersections, system_data: *SystemData)
-  for i = 0, < #RotorQuick.storages.intersectable.generations do
-    if RotorQuick.storages.intersectable.generations[i].filled then
-      local intersectable_i: *Intersectable = RotorQuick.storages.intersectable.entries[i]
+local IntersectionsDetector = RotorQuick.Systems.IntersectionsDetector
 
-      if intersectable.entity_id ~= intersectable_i.entity_id then
-        if intersectable:is_intersecting(intersectable_i) then
-          local already_existent = intersections:update_intersection(intersectable:get_intersection(intersectable_i) , intersectable_i.entity_id)
-          if not already_existent and intersections.on_enter_callback ~= nilptr then
-            intersections.on_enter_callback(intersectable, intersections, intersectable_i)
-          end
-        else
-          local was_existent = intersections:update_no_intersection(intersectable_i.entity_id)
-          if was_existent and intersections.on_exit_callback ~= nilptr then
-            intersections.on_exit_callback(intersectable, intersections, intersectable_i)
+function IntersectionsDetector:run()
+  ## if PROF then
+    nprof:push(#[IntersectionsDetector.value.nickname]#)
+    defer nprof:pop() end
+  ## end
+
+  for _, components in self:iterate_components() do
+    local intersectable: *Intersectable = components.intersectable
+    local intersections: *Intersections = components.intersections
+
+    for i = 0, < #RotorQuick.storages.intersectable.generations do
+      if RotorQuick.storages.intersectable.generations[i].filled then
+        local intersectable_i: *Intersectable = RotorQuick.storages.intersectable.entries[i]
+
+        if intersectable.entity_id ~= intersectable_i.entity_id then
+          if intersectable:is_intersecting(intersectable_i) then
+            local already_existent = intersections:update_intersection(intersectable:get_intersection(intersectable_i) , intersectable_i.entity_id)
+            if not already_existent and intersections.on_enter_callback ~= nilptr then
+              intersections.on_enter_callback(intersectable, intersections, intersectable_i)
+            end
+          else
+            local was_existent = intersections:update_no_intersection(intersectable_i.entity_id)
+            if was_existent and intersections.on_exit_callback ~= nilptr then
+              intersections.on_exit_callback(intersectable, intersections, intersectable_i)
+            end
           end
         end
       end
     end
   end
 end
-
-global RotorQuick.Systems.IntersectionsDetector = @MakeSystem(IntersectionsDetectorRunner, false, true, false, 1, @record{
-  intersectable: Intersectable,
-  intersections: Intersections
-})

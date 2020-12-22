@@ -9,17 +9,31 @@ require 'rotor-quick.components.painter'
 local Gravity = RotorQuick.Components.Gravity
 local Velocity = RotorQuick.Components.Velocity
 
-global  GravityApplierRunner = @record{}
+global RotorQuick.Systems.GravityApplier = @MakeSystem('GravityApplier', @record{
+  gravity: Gravity,
+  velocity: Velocity
+})
 
-function GravityApplierRunner:run(gravity: *Gravity, velocity: *Velocity, system_data: *SystemData)
-  if not gravity.active then
-    return
+local GravityApplier = RotorQuick.Systems.GravityApplier
+
+function GravityApplier:run()
+  ## if PROF then
+    nprof:push(#[GravityApplier.value.nickname]#)
+  ## end
+
+  for _, components in self:iterate_components() do
+    local gravity: *Gravity = components.gravity
+    local velocity: *Velocity = components.velocity
+
+    if not gravity.active then
+      return
+    end
+
+    velocity:add_velocity(gravity.direction * gravity.acceleration)
   end
 
-  velocity:add_velocity(gravity.direction * gravity.acceleration)
+  ## if PROF then
+    nprof:pop()
+  ## end
 end
 
-global RotorQuick.Systems.GravityApplier = @MakeSystem(GravityApplierRunner, false, true, false, 1, @record{
-  gravity: Gravity,
-  velocity: Velocity,
-})

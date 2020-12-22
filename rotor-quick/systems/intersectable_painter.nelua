@@ -7,17 +7,31 @@ require 'rotor-quick.components.painter'
 local Intersectable = RotorQuick.Components.Intersectable
 local Painter = RotorQuick.Components.Painter
 
-global IntersectablePainterRunner = @record{}
-
-function IntersectablePainterRunner:run(intersectable: *Intersectable, painter: *Painter, system_data: *SystemData)
-  if not painter.active then
-    return
-  end
-
-  Raylib.DrawRectangleLinesEx(intersectable.global_rect, 1, painter.color)
-end
-
-global RotorQuick.Systems.IntersectablePainter = @MakeSystem(IntersectablePainterRunner, false, true, false, 2, @record{
+global RotorQuick.Systems.IntersectablePainter = @MakeSystem('IntersectablePainter', @record{
   intersectable: Intersectable,
   painter: Painter
 })
+
+local IntersectablePainter = RotorQuick.Systems.IntersectablePainter
+
+function IntersectablePainter:run()
+  ## if PROF then
+    nprof:push(#[IntersectablePainter.value.nickname]#)
+  ## end
+
+  for _, components in self:iterate_components() do
+    local intersectable: *Intersectable = components.intersectable
+    local painter: *Painter = components.painter
+
+    if not painter.active then
+      return
+    end
+
+    Raylib.DrawRectangleLinesEx(intersectable.global_rect, 1, painter.color)
+  end
+
+  ## if PROF then
+    nprof:pop()
+  ## end
+end
+

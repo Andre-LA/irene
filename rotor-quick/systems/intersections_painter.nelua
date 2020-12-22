@@ -6,32 +6,44 @@ require 'rotor-quick.components.painter'
 
 local Intersections = RotorQuick.Components.Intersections
 local Intersection = RotorQuick.Components.Intersections.Intersection
-
 local Painter = RotorQuick.Components.Painter
 
-global IntersectionsPainterRunner = @record{}
-
-function IntersectionsPainterRunner:run(intersections: *Intersections, painter: *Painter, system_data: *SystemData)
-  if not painter.active then
-    return
-  end
-
-  for i = 0, < #intersections.intersections do
-    local intersection: *Intersection = intersections.intersections[i]
-    local rect_color: Color = (do
-      if intersection.cycles_live > 0 then
-        return RED
-      else
-        return GREEN
-      end
-    end)
-
-    Raylib.DrawRectangleLinesEx(intersection.rect, 1, rect_color)
-  end
-
-end
-
-global RotorQuick.Systems.IntersectionsPainter = @MakeSystem(IntersectionsPainterRunner, false, true, false, 2, @record{
+global RotorQuick.Systems.IntersectionsPainter = @MakeSystem('IntersectionsPainter', @record{
   intersections: Intersections,
   painter: Painter
 })
+
+local IntersectionsPainter = RotorQuick.Systems.IntersectionsPainter
+
+function IntersectionsPainter:run()
+  ## if PROF then
+    nprof:push(#[IntersectionsPainter.value.nickname]#)
+  ## end
+
+  for _, components in self:iterate_components() do
+    local intersections: *Intersections = components.intersections
+    local painter: *Painter = components.painter
+
+    if not painter.active then
+      return
+    end
+
+    for i = 0, < #intersections.intersections do
+      local intersection: *Intersection = intersections.intersections[i]
+      local rect_color: Color = (do
+        if intersection.cycles_live > 0 then
+          return RED
+        else
+          return GREEN
+        end
+      end)
+
+      Raylib.DrawRectangleLinesEx(intersection.rect, 1, rect_color)
+    end
+  end
+
+  ## if PROF then
+    nprof:pop()
+  ## end
+end
+

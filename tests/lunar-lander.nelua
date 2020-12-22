@@ -41,8 +41,9 @@ local screen_height: integer <comptime> = 608
 local LANDER_MAX_VELOCITY <comptime> = 10
 local Lander_Start_Position: Vector2 = {32, 32}
 
-Raylib.SetConfigFlags(ConfigFlag.FLAG_WINDOW_RESIZABLE)
-Raylib.InitWindow(screen_width, screen_height, "raylib [core] example - basic window")
+-- TODO: enable this with a resizing feature
+--Raylib.SetConfigFlags(ConfigFlag.FLAG_WINDOW_RESIZABLE)
+Raylib.InitWindow(screen_width, screen_height, "Lunar Lander test")
 Raylib.InitAudioDevice()
 Raylib.SetTargetFPS(60)
 
@@ -83,54 +84,53 @@ local LanderController = @record{
 
 -- [[ systems [[
 
-global LanderControllerRunner = @record{}
-
-function LanderControllerRunner:run(
-  lander_controller: *LanderController,
-  velocity: *Velocity,
-  gravity: *Gravity,
-  system_data: *SystemData
-)
-  local is_right_down, is_up_down, is_left_down = Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT),
-                                                  Raylib.IsKeyDown(KeyboardKey.KEY_UP),
-                                                  Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)
-
-  local prop_animations_opt = Animations.get_entry_from_id(lander_controller.prop_animations_id)
-  if prop_animations_opt.filled then
-    local prop_animations = prop_animations_opt:get()
-    prop_animations:change_animation(is_up_down and LanderAnimations.Active or LanderAnimations.Inactive)
-  end
-
-  if is_right_down or is_up_down or is_left_down then
-    local direction: Vector2 = {
-      x = (do
-        if is_right_down then
-          return 1
-        elseif is_left_down then
-          return -1
-        else
-          return 0
-        end
-      end),
-
-      y = (do
-        if is_up_down then
-          return -1
-        else
-          return 0
-        end
-      end)
-    }
-
-    velocity:add_velocity(direction * lander_controller.propulsion_force)
-  end
-end
-
-local LanderControllerSystem = @MakeSystem(LanderControllerRunner, false, true, false, 1, @record{
+local LanderControllerSystem = @MakeSystem('LanderController', @record{
   lander_controller: LanderController,
   velocity: Velocity,
   gravity: Gravity,
 })
+
+function LanderControllerSystem:run()
+  for _, components in self:iterate_components() do
+    local lander_controller: *LanderController = components.lander_controller
+    local velocity: *Velocity = components.velocity
+    local gravity: *Gravity = components.gravity
+
+    local is_right_down, is_up_down, is_left_down = Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT),
+                                                    Raylib.IsKeyDown(KeyboardKey.KEY_UP),
+                                                    Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)
+
+    local prop_animations_opt = Animations.get_entry_from_id(lander_controller.prop_animations_id)
+    if prop_animations_opt.filled then
+      local prop_animations = prop_animations_opt:get()
+      prop_animations:change_animation(is_up_down and LanderAnimations.Active or LanderAnimations.Inactive)
+    end
+
+    if is_right_down or is_up_down or is_left_down then
+      local direction: Vector2 = {
+        x = (do
+          if is_right_down then
+            return 1
+          elseif is_left_down then
+            return -1
+          else
+            return 0
+          end
+        end),
+
+        y = (do
+          if is_up_down then
+            return -1
+          else
+            return 0
+          end
+        end)
+      }
+
+      velocity:add_velocity(direction * lander_controller.propulsion_force)
+    end
+  end
+end
 
 -- ]] systems ]]
 
@@ -756,14 +756,16 @@ while not Raylib.WindowShouldClose() do
     end
   end
 
-  do Raylib.BeginDrawing()
+  Raylib.BeginDrawing()
+  do
     ## if PROF then
       nprof:push'drawing systems' -- [[ nprof drawying systems [[
     ## end
 
     Raylib.ClearBackground(BLACK)
 
-    do Raylib.BeginMode2D(camera_holder.camera)
+    Raylib.BeginMode2D(camera_holder.camera)
+    do
       ## if PROF then
         nprof:push'painting systems'
         defer nprof:pop() end
@@ -776,9 +778,8 @@ while not Raylib.WindowShouldClose() do
         Game_State.systems.intersectable_painter:run()
         Game_State.systems.intersections_painter:run()
       end
-
-
-    end Raylib.EndMode2D()
+    end
+    Raylib.EndMode2D()
 
     if not is_flying then
       local msg = (do
@@ -803,8 +804,8 @@ while not Raylib.WindowShouldClose() do
       nprof:draw()
       nprof:reset()
     ## end
-
-  end Raylib.EndDrawing()
+  end
+  Raylib.EndDrawing()
 end
 
 -- ]] Main Loop ]]

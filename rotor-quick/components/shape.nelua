@@ -10,7 +10,7 @@ local ShapeCategory = @enum{
 
 global RotorQuick.Components.Shape = @record{
   category: ShapeCategory,
-  vertices: vector(Vector2), -- TODO: rethink this type, can be optmized?
+  vertices: vector(Vector2), -- TODO: rethink this type, can be optimized?
 }
 
 local Shape = RotorQuick.Components.Shape

@@ -8,8 +8,6 @@ require 'rotor-quick.components.scene_graph_node'
 local Position = RotorQuick.Components.Position
 local SceneGraphNode = RotorQuick.Components.SceneGraphNode
 
-global PositionHierarchyRunner = @record{}
-
 -- TODO: optimize with is_dirty flag
 local function traverse(origin_sg_node: *SceneGraphNode, origin_pos: *Position)
   for i, child_node, child_node_id in origin_sg_node:iter_children() do
@@ -26,13 +24,25 @@ local function traverse(origin_sg_node: *SceneGraphNode, origin_pos: *Position)
   end
 end
 
-function PositionHierarchyRunner:run(scene_graph_node: *SceneGraphNode, position: *Position, system_data: *SystemData)
-  if scene_graph_node.parent_id == {0,0} then
-    traverse(scene_graph_node, position)
+global RotorQuick.Systems.PositionHierarchy = @MakeSystem('PositionHierarchy', @record{
+  scene_graph_node: SceneGraphNode,
+  position: Position
+})
+
+local PositionHierarchy = RotorQuick.Systems.PositionHierarchy
+
+function PositionHierarchy:run()
+  ## if PROF then
+    nprof:push(#[PositionHierarchy.value.nickname]#)
+    defer nprof:pop() end
+  ## end
+
+  for _, components in self:iterate_components() do
+    local scene_graph_node: *SceneGraphNode = components.scene_graph_node
+    local position: *Position = components.position
+
+    if scene_graph_node.parent_id == {0,0} then
+      traverse(scene_graph_node, position)
+    end
   end
 end
-
-global RotorQuick.Systems.PositionHierarchy = @MakeSystem(PositionHierarchyRunner, false, true, false, 1, @record{
-  scene_graph_node: SceneGraphNode,
-  position: Position,
-})
