@@ -1,19 +1,34 @@
 require 'span'
 require 'math'
-require 'raylib'
-require 'rotor'
+require 'tico'
 require 'rotor-quick.makers'
 
+local Vec2 = tico.Vec2
+local Rectf = tico.Rectf
+
 global RotorQuick.Components.Intersectable = @record{
-  local_rect: Rectangle,
-  global_rect: Rectangle,
+  local_rect: Rectf,
+  global_rect: Rectf,
   entity_id: GenerationalIndex,
 }
 
 local Intersectable = RotorQuick.Components.Intersectable
 ## is_component(Intersectable)
 
-function Intersectable.get_local_rect(vertices: *span(Vector2)): Rectangle
+local function _gen_intersection_coords(self_rect: *Rectf, other_rect: *Rectf): (Vec2, Vec2)
+  local max_x = math.max(self_rect.x, other_rect.x)
+  local max_y = math.max(self_rect.y, other_rect.y)
+  local min_xw = math.min(self_rect.x + self_rect.w, other_rect.x + other_rect.w)
+  local min_yh = math.min(self_rect.y + self_rect.h, other_rect.y + other_rect.h)
+
+  return (@Vec2){ max_x, max_y }, (@Vec2){ min_xw, min_yh }
+end
+
+local function _is_point_inside_rect(p: *Vec2, rect: *Rectf): boolean
+  return p.x >= rect.x and p.x <= rect.x + rect.w and p.y >= rect.y and p.y <= rect.y + rect.h
+end
+
+function Intersectable.rect_from_vertices(vertices: *span(Vec2)): Rectf
   local min_x, min_y, max_x, max_y = 0.0, 0.0, 0.0, 0.0
 
   for i = 0, < #vertices do
@@ -24,40 +39,58 @@ function Intersectable.get_local_rect(vertices: *span(Vector2)): Rectangle
     max_y = math.max(vertices[i].y, max_y)
   end
 
-  return (@Rectangle){
+  return (@Rectf){
     min_x, min_y,
     max_x, max_y
   }
 end
 
-function Intersectable.get_global_rect(rect: Rectangle, pos: Vector2): Rectangle
+function Intersectable.get_global_rect(rect: Rectf, pos: Vec2): Rectf
   rect.x = rect.x + pos.x
   rect.y = rect.y + pos.y
   return rect
 end
 
-function Intersectable:set_local_rect(vertices: *span(Vector2))
-  self.local_rect = Intersectable.get_local_rect(vertices)
-end
-
-function Intersectable:set_global_rect(pos: Vector2)
+function Intersectable:set_global_rect(pos: Vec2)
   self.global_rect = Intersectable.get_global_rect(self.local_rect, pos)
 end
 
-function Intersectable:set_rects(pos: Vector2, vertices: *span(Vector2))
-  self:set_local_rect(vertices)
+function Intersectable:set_rects(pos: Vec2, vertices: *span(Vec2))
+  self.local_rect = Intersectable.rect_from_vertices(vertices)
   self:set_global_rect(pos)
 end
 
-function Intersectable:is_intersecting(other_intersectable: *Intersectable): boolean
-  return Raylib.CheckCollisionRecs(self.global_rect, other_intersectable.global_rect)
+function Intersectable:is_intersecting(other: overload(*Intersectable, *Rectf, Vec2)): boolean
+  --return true
+  ## if other.type.is_pointer then -- can be an Intersectable or Rectf
+    local other_rect: Rectf = {}
+
+    ## if other.type.subtype.is_intersectable then -- is an Intersectable
+      other_rect = other.global_rect
+    ## else -- is a Rectf
+      other_rect = other
+    ## end
+
+    local pmin = _gen_intersection_coords(self.global_rect, other_rect)
+    return _is_point_inside_rect(pmin, self.global_rect) and _is_point_inside_rect(pmin, other_rect)
+  ## else -- is a Vec2
+    return _is_point_inside_rect(other, self.global_rect)
+  ## end
 end
 
-function Intersectable:get_intersection(other_intersectable: *Intersectable): Rectangle
-  return Raylib.GetCollisionRec(self.global_rect, other_intersectable.global_rect)
+function Intersectable:get_intersection(other_intersectable: *Intersectable): (Rectf, boolean)
+  local result: Rectf = {}
+  local is_intersecting = self:is_intersecting(other_intersectable)
+
+  if is_intersecting then
+    local pmin, pmax = _gen_intersection_coords(self.global_rect, other_intersectable.global_rect)
+    result = { x = pmin.x, y = pmin.y, w = math.abs(pmax.x - pmin.x), h = math.abs(pmax.y - pmin.y)}
+  end
+
+  return result, is_intersecting
 end
 
-function Intersectable:init(entity_id: GenerationalIndex, pos: Vector2, vertices: *span(Vector2))
+function Intersectable:init(entity_id: GenerationalIndex, pos: Vec2, vertices: *span(Vec2))
   self.entity_id = entity_id
   self:set_rects(pos, vertices)
 end

@@ -73,6 +73,7 @@ require 'rotor-quick'
   ## local R_snakecased_name = metalib.pascalcase_to_snakecase(R.name)
 
   ## R.value.is_component = true
+  ## R.value["is_"..R_snakecased_name] = true
   ## R.value.component_metainfo = {snakecase_name = R_snakecased_name}
 
   -- macro do add the mask and the storage of this component

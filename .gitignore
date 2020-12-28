@@ -1,2 +1,2 @@
-nelua_cache/*
-*.c
+nelua_cache
+tinycoffee

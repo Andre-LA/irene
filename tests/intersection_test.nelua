@@ -1,0 +1,73 @@
+--[[ This Source Code Form is subject to the terms of the Mozilla Public
+     License, v. 2.0. If a copy of the MPL was not distributed with this
+     file, You can obtain one at https://mozilla.org/MPL/2.0/. ]]
+
+##[[
+  TICO = {
+    L = 'tinycoffee/build',
+    I = {
+      include = "tinycoffee/include",
+      external = "tinycoffee/external"
+    }
+  }
+]]
+
+require 'tico'
+require 'math'
+require 'vector'
+require 'rotor-quick'
+
+local Vec2 = tico.Vec2
+local Color = tico.Color
+local Rectf = tico.Rectf
+
+local Intersectable = RotorQuick.Components.Intersectable
+
+local quad: vector(Vec2) = { (@Vec2){0,0}, (@Vec2){32,0}, (@Vec2){32,32}, (@Vec2){0,32} }
+
+local a: Intersectable = {}
+a:init({}, {32,32}, quad.data)
+
+local b: Intersectable = {}
+b:init({}, {128,128}, quad.data)
+
+local function draw_rect(r: Rectf, color: Color)
+  tico.graphics_draw_rectangle(r.x, r.y, math.ifloor(r.w), math.ifloor(r.h), color)
+end
+
+local nelua_argc: cint <cimport, nodecl>
+local nelua_argv: *[0]cstring <cimport, nodecl>
+
+local config = tico.config_init('Intersection test', 640, 380, nelua_argc, nelua_argv)
+tico.init(config)
+
+while not tico.window_should_close() do -- main loop
+  tico.update() -- update inputs, timers, ...
+
+  local mx, my = 0_cint, 0_cint
+  tico.input_get_mouse_pos(&mx, &my)
+
+  a:set_global_rect({mx, my})
+
+  local intersection, is_intersecting = a:get_intersection(b)
+
+  -- [[ begin batch render [[
+  tico.begin_draw()
+  do
+    tico.graphics_clear(tico.BG) -- clear screen with color
+
+    local text = is_intersecting and 'is intersecting' or 'is not intersecting'
+    tico.graphics_draw_text(text, 0, 0, tico.WHITE)
+
+    draw_rect(a.global_rect, tico.WHITE)
+    draw_rect(b.global_rect, tico.WHITE)
+
+    if is_intersecting then
+      draw_rect(intersection, tico.RED)
+    end
+  end
+  tico.end_draw()
+  -- ]] finish batch render ]]
+end
+
+tico.terminate()

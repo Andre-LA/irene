@@ -1,8 +1,10 @@
-require 'raylib'
-require 'rotor'
+require 'math'
+require 'tico'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.intersections'
 require 'rotor-quick.components.painter'
+
+local Color = tico.Color
 
 local Intersections = RotorQuick.Components.Intersections
 local Intersection = RotorQuick.Components.Intersections.Intersection
@@ -18,6 +20,7 @@ local IntersectionsPainter = RotorQuick.Systems.IntersectionsPainter
 function IntersectionsPainter:run()
   ## if PROF then
     nprof:push(#[IntersectionsPainter.value.nickname]#)
+    defer nprof:pop() end
   ## end
 
   for _, components in self:iterate_components() do
@@ -32,18 +35,21 @@ function IntersectionsPainter:run()
       local intersection: *Intersection = intersections.intersections[i]
       local rect_color: Color = (do
         if intersection.cycles_live > 0 then
-          return RED
+          return tico.RED
         else
-          return GREEN
+          return tico.GREEN
         end
       end)
 
-      Raylib.DrawRectangleLinesEx(intersection.rect, 1, rect_color)
+      tico.graphics_draw_rectangle(
+        intersection.rect.x,
+        intersection.rect.y,
+        math.ifloor(intersection.rect.w),
+        math.ifloor(intersection.rect.h),
+        rect_color
+      )
     end
   end
 
-  ## if PROF then
-    nprof:pop()
-  ## end
 end
 

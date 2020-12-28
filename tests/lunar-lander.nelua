@@ -1,15 +1,25 @@
 -- [[ requires and imports [[
 
-##[[ if RAYLIB_STATIC then
-  cflags"-Ilibs -Llibs"
-end]]
+##[[
+  TICO = {
+    L = 'tinycoffee/build',
+    I = {
+      include = "tinycoffee/include",
+      external = "tinycoffee/external"
+    }
+  }
+]]
 
 require 'math'
 
-require 'raylib'
+require 'tico'
 require 'rotor'
 require 'rotor-quick'
 require 'rotor-quick.makers'
+
+local Vec2 = tico.Vec2
+local Sound = tico.Sound
+local Texture = tico.Texture
 
 local Position = RotorQuick.Components.Position
 local Shape = RotorQuick.Components.Shape
@@ -44,13 +54,13 @@ local screen_width: integer <comptime> = 800
 local screen_height: integer <comptime> = 608
 
 local LANDER_MAX_VELOCITY <comptime> = 10
-local Lander_Start_Position: Vector2 = {32, 32}
+local Lander_Start_Position: Vec2 = {32, 32}
 
--- TODO: enable this with a resizing feature
---Raylib.SetConfigFlags(ConfigFlag.FLAG_WINDOW_RESIZABLE)
-Raylib.InitWindow(screen_width, screen_height, "Lunar Lander test")
-Raylib.InitAudioDevice()
-Raylib.SetTargetFPS(60)
+local nelua_argc: cint <cimport, nodecl>
+local nelua_argv: *[0]cstring <cimport, nodecl>
+local config = tico.config_init('Lunar Lander test', screen_width, screen_height, nelua_argc, nelua_argv)
+
+tico.init(config)
 
 local GameLayers = @enum{
   Background = 0,
@@ -101,9 +111,9 @@ function LanderControllerSystem:run()
     local velocity: *Velocity = components.velocity
     local gravity: *Gravity = components.gravity
 
-    local is_right_down, is_up_down, is_left_down = Raylib.IsKeyDown(KeyboardKey.KEY_RIGHT),
-                                                    Raylib.IsKeyDown(KeyboardKey.KEY_UP),
-                                                    Raylib.IsKeyDown(KeyboardKey.KEY_LEFT)
+    local is_right_down, is_up_down, is_left_down = tico.input_key_down(tico.KEY.KEY_RIGHT),
+                                                    tico.input_key_down(tico.KEY.KEY_UP),
+                                                    tico.input_key_down(tico.KEY.KEY_LEFT)
 
     local prop_animations_opt = Animations.get_entry_from_id(lander_controller.prop_animations_id)
     if prop_animations_opt.filled then
@@ -112,7 +122,7 @@ function LanderControllerSystem:run()
     end
 
     if is_right_down or is_up_down or is_left_down then
-      local direction: Vector2 = {
+      local direction: Vec2 = {
         x = (do
           if is_right_down then
             return 1
@@ -217,14 +227,15 @@ local GameState = @record{
     position_hierarchy: PositionHierarchy,
     sprite_animation: SpriteAnimation,
   },
+  last_startmusic_time: float32,
   resources: record{
     textures: record{
-      sprites_tex: Texture2D,
+      sprites_tex: Texture,
     },
     audio: record{
       music: record{ -- using something similar to double buffering, since our music is not "loop-friendly"
-        music1: Music,
-        music2: Music,
+        music1: Sound,
+        music2: Sound,
       },
       sound_effects: record{
         propulsion: Sound,
@@ -236,39 +247,31 @@ local GameState = @record{
 }
 
 function GameState:unload()
-  Raylib.StopSoundMulti()
-  Raylib.UnloadSound(self.resources.audio.sound_effects.propulsion)
-  Raylib.UnloadSound(self.resources.audio.sound_effects.land)
-  Raylib.UnloadSound(self.resources.audio.sound_effects.hit)
+  tico.sound_stop(self.resources.audio.sound_effects.propulsion)
+  tico.sound_unload(self.resources.audio.sound_effects.propulsion)
 
-  Raylib.StopMusicStream(self.resources.audio.music.music1)
-  Raylib.StopMusicStream(self.resources.audio.music.music2)
+  tico.sound_stop(self.resources.audio.sound_effects.land)
+  tico.sound_unload(self.resources.audio.sound_effects.land)
 
-  Raylib.UnloadMusicStream(self.resources.audio.music.music1)
-  Raylib.UnloadMusicStream(self.resources.audio.music.music2)
+  tico.sound_stop(self.resources.audio.sound_effects.hit)
+  tico.sound_unload(self.resources.audio.sound_effects.hit)
+
+  tico.sound_stop(self.resources.audio.music.music1)
+  tico.sound_unload(self.resources.audio.music.music1)
+
+  tico.sound_stop(self.resources.audio.music.music2)
+  tico.sound_unload(self.resources.audio.music.music2)
 end
 
 function GameState:manage_music()
   local music_end_time: number <comptime> = 60 * 2 + 24.1 -- 2:24 is when the music ends and should loop
 
-  if (
-    Raylib.GetMusicTimePlayed(self.resources.audio.music.music1) >= music_end_time
-    and
-    not Raylib.IsMusicPlaying(self.resources.audio.music.music2)
-  )
-  then
-    Raylib.PlayMusicStream(self.resources.audio.music.music2)
-  elseif (
-    Raylib.GetMusicTimePlayed(self.resources.audio.music.music2) >= music_end_time
-    and
-    not Raylib.IsMusicPlaying(self.resources.audio.music.music1)
-  )
-  then
-    Raylib.PlayMusicStream(self.resources.audio.music.music1)
-  end
+  if tico.timer_get_time() - self.last_startmusic_time >= music_end_time then
+    self.last_startmusic_time = tico.timer_get_time()
 
-  Raylib.UpdateMusicStream(self.resources.audio.music.music1)
-  Raylib.UpdateMusicStream(self.resources.audio.music.music2)
+    local music2_is_playing = tico.sound_is_playing(self.resources.audio.music.music2)
+    tico.sound_play(music2_is_playing and self.resources.audio.music.music1 or self.resources.audio.music.music2)
+  end
 end
 
 function GameState:update_systems(entity: *Entity)
@@ -321,26 +324,23 @@ local Game_State: GameState = {
   },
   resources = {
     textures = {
-      sprites_tex = Raylib.LoadTexture("resources/lunarlander_sprites.png")
+      sprites_tex = tico.texture_load("resources/lunarlander_sprites.png")
     },
     audio = {
       music = {
-        music1 = Raylib.LoadMusicStream("resources/lunar-lander-music.ogg"),
-        music2 = Raylib.LoadMusicStream("resources/lunar-lander-music.ogg")
+        music1 = tico.sound_load("resources/lunar-lander-music.ogg", tico.AUDIO_USAGE.AUDIO_STREAM),
+        music2 = tico.sound_load("resources/lunar-lander-music.ogg", tico.AUDIO_USAGE.AUDIO_STREAM)
       },
       sound_effects = {
-        propulsion = Raylib.LoadSound("resources/propulsion.wav"),
-        land = Raylib.LoadSound("resources/land.wav"),
-        hit = Raylib.LoadSound("resources/hit.wav")
+        --propulsion = tico.sound_load("resources/propulsion.wav", tico.AUDIO_USAGE.AUDIO_STREAM),
+        land = tico.sound_load("resources/land.wav", tico.AUDIO_USAGE.AUDIO_STREAM),
+        hit = tico.sound_load("resources/hit.wav", tico.AUDIO_USAGE.AUDIO_STREAM)
       }
     },
   }
 }
 
-Game_State.resources.audio.music.music1.loopCount = 1
-Game_State.resources.audio.music.music2.loopCount = 1
-
-function GameState:create_safe_landing(pos: Vector2)
+function GameState:create_safe_landing(pos: Vec2)
   local safe_landing_shape: Shape = {
     category = Shape.ShapeCategory.Polygon,
     vertices = { {0, 0}, {16, 0}, {16, 16}, {0,16}, {0, 0} }
@@ -358,7 +358,7 @@ function GameState:create_safe_landing(pos: Vector2)
     position        = { local_position = pos },
     shape           = safe_landing_shape,
     sprite          = safe_landing_sprite,
-    painter         = { color = WHITE, active = true },
+    painter         = { color = tico.WHITE, active = true },
     intersectable   = {},
     is_safe_landing = {}
   }
@@ -369,7 +369,7 @@ function GameState:create_safe_landing(pos: Vector2)
   self:update_systems(safe_landing_entity)
 end
 
-function GameState:create_background(pos: Vector2)
+function GameState:create_background(pos: Vec2)
   local background_sprite: Sprite = {
     sprite_sheet = Game_State.resources.textures.sprites_tex,
     frame_index = 1,
@@ -381,13 +381,13 @@ function GameState:create_background(pos: Vector2)
   local background, background_entity = BackgroundEntity.new{
     position = { local_position = pos },
     sprite   = background_sprite,
-    painter  = { color = WHITE, active = true },
+    painter  = { color = tico.WHITE, active = true },
   }
 
   self:update_systems(background_entity)
 end
 
-function GameState:create_floor(pos: Vector2)
+function GameState:create_floor(pos: Vec2)
   local floor_shape: Shape = {
     category = Shape.ShapeCategory.Polygon,
     vertices = { {0, 0}, {16, 0}, {16, 16}, {0,16}, {0, 0} }
@@ -405,7 +405,7 @@ function GameState:create_floor(pos: Vector2)
     position      = { local_position = pos },
     shape         = floor_shape,
     sprite        = floor_sprite,
-    painter       = { color = WHITE, active = true },
+    painter       = { color = tico.WHITE, active = true },
     intersectable = {},
     is_floor      = {}
   }
@@ -417,16 +417,14 @@ function GameState:create_floor(pos: Vector2)
 end
 
 function GameState:create_camera_entity(): CameraEntity
+  local camera = tico.camera_create(Lander_Start_Position.x, Lander_Start_Position.y, 1, 1)
+  camera.size = { 4, 4 }
+  camera.offset = { screen_width / 2 - 32, screen_height / 2 - 32}
+
   local camera_entity, camera_entity_entity = CameraEntity.new{
     position         = {},
     scene_graph_node = {},
-    camera_holder    = {
-      camera = {
-        offset = { screen_width / 2, screen_height / 2  },
-        rotation = 0,
-        zoom = 3,
-      }
-    }
+    camera_holder    = { =camera }
   }
 
   local scene_graph_node = camera_entity:get_scene_graph_node()
@@ -460,7 +458,7 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
         frames = { {0, 0}, {1, 0.5} },
         looping = true,
         frame_callback = nilptr,
-        duration = 0.06,
+        duration = 0.05,
       },
     },
     last_change_time = os.clock()
@@ -471,7 +469,7 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
     scene_graph_node = {},
     sprite           = lander_propulstion_sprite,
     animations       = lander_propulstion_animations,
-    painter          = { color = WHITE, active = true }
+    painter          = { color = tico.WHITE, active = true }
   }
 
   local position = lander_propulsion:get_position()
@@ -521,13 +519,15 @@ local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *I
     local lander_controller = lander:get_lander_controller()
     lander_controller.state = LanderState.Landed
 
-    Raylib.PlaySoundMulti(Game_State.resources.audio.sound_effects.land)
+    tico.sound_stop(Game_State.resources.audio.sound_effects.land)
+    tico.sound_play(Game_State.resources.audio.sound_effects.land)
 
   elseif intersected_is_floor(other_intersectable) then
     local lander_controller = lander:get_lander_controller()
     lander_controller.state = LanderState.Crashed
 
-    Raylib.PlaySoundMulti(Game_State.resources.audio.sound_effects.hit)
+    tico.sound_stop(Game_State.resources.audio.sound_effects.hit)
+    tico.sound_play(Game_State.resources.audio.sound_effects.hit)
   end
 end
 
@@ -543,7 +543,7 @@ end
 
 -- [[ Game State extensions [[
 
-function GameState:create_lander(pos: Vector2): Lander
+function GameState:create_lander(pos: Vec2): Lander
   local gravity_acceleration: number = 0.1
 
   local lander_shape: Shape = {
@@ -579,7 +579,7 @@ function GameState:create_lander(pos: Vector2): Lander
     sprite           = lander_sprite,
     painter          = {
       active = true,
-      color = WHITE
+      color = tico.WHITE
     },
     velocity = {
       active = true,
@@ -709,18 +709,22 @@ end
 
 Game_State.lander = Game_State:create_lander(Lander_Start_Position)
 
-Raylib.PlayMusicStream(Game_State.resources.audio.music.music1)
+tico.sound_play(Game_State.resources.audio.music.music1)
 
+local default_font = tico.font_load_default()
 -- ]] Game Start ]]
 
 -- [[ Main Loop [[
 
-while not Raylib.WindowShouldClose() do
+
+while not tico.window_should_close() do
+  tico.update()
+
   Game_State:manage_music()
 
-  local show_dev_info = Raylib.IsKeyDown(KeyboardKey.KEY_I)
+  local show_dev_info = tico.input_key_down(tico.KEY.KEY_I)
 
-  if Raylib.IsKeyDown(KeyboardKey.KEY_R) then
+  if tico.input_key_down(tico.KEY.KEY_R) then
     Game_State:reset()
   end
 
@@ -761,15 +765,16 @@ while not Raylib.WindowShouldClose() do
     end
   end
 
-  Raylib.BeginDrawing()
+  tico.begin_draw()
   do
     ## if PROF then
       nprof:push'drawing systems' -- [[ nprof drawying systems [[
     ## end
 
-    Raylib.ClearBackground(BLACK)
+    tico.graphics_clear(tico.BLACK)
 
-    Raylib.BeginMode2D(camera_holder.camera)
+
+    tico.camera_attach(camera_holder.camera)
     do
       ## if PROF then
         nprof:push'painting systems'
@@ -784,7 +789,7 @@ while not Raylib.WindowShouldClose() do
         Game_State.systems.intersections_painter:run()
       end
     end
-    Raylib.EndMode2D()
+    tico.camera_detach()
 
     if not is_flying then
       local msg = (do
@@ -799,8 +804,16 @@ while not Raylib.WindowShouldClose() do
       end)
 
       local msg_fontsize <comptime> = 18
-      local msg_width = Raylib.MeasureText(msg, msg_fontsize)
-      Raylib.DrawText(msg, math.ifloor(screen_width / 2 - msg_width / 2), math.ifloor(screen_height / 2), msg_fontsize, WHITE)
+      local msg_width = tico.font_get_text_width(default_font, msg, #msg)
+      tico.graphics_draw_text(msg, math.ifloor(screen_width / 2 - msg_width / 2), math.ifloor(screen_height / 2), tico.WHITE)
+    end
+
+    if show_dev_info then
+      tico.graphics_draw_line(screen_width // 2, 0, screen_width // 2, screen_height, tico.RED)
+      tico.graphics_draw_line(0, screen_height // 2, screen_width, screen_height // 2, tico.RED)
+
+      local fps = tico.timer_get_fps()
+      tico.graphics_draw_text(tostring(fps), 8, 8, tico.RED)
     end
 
     ## if PROF then
@@ -810,12 +823,11 @@ while not Raylib.WindowShouldClose() do
       nprof:reset()
     ## end
   end
-  Raylib.EndDrawing()
+  tico.end_draw()
 end
 
 -- ]] Main Loop ]]
 
 Game_State:unload()
 
-Raylib.CloseAudioDevice()
-Raylib.CloseWindow()
+tico.terminate()

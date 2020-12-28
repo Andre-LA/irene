@@ -1,9 +1,24 @@
 -- minimal example of a box falling
 
-require 'raylib'
+##[[
+  TICO = {
+    L = 'tinycoffee/build',
+    I = {
+      include = "tinycoffee/include",
+      external = "tinycoffee/external"
+    }
+  }
+]]
+
+require 'tico'
 require 'rotor'
 require 'rotor-quick'
 require 'rotor-quick.makers'
+
+local nelua_argc: cint <cimport, nodecl>
+local nelua_argv: *[0]cstring <cimport, nodecl>
+
+local Config = tico.Config
 
 local Position = RotorQuick.Components.Position
 local Shape = RotorQuick.Components.Shape
@@ -18,6 +33,9 @@ local VelocityApplier = RotorQuick.Systems.VelocityApplier
 local gravity_applier = GravityApplier.new()
 local shape_painter = ShapePainter.new()
 local velocity_applier = VelocityApplier.new()
+
+local SCREEN_WIDTH: integer <comptime> = 800
+local SCREEN_HEIGHT: integer <comptime> = 450
 
 local FallingBox = @MakeEntity('falling_box',
   Position,
@@ -36,7 +54,7 @@ local falling_box, falling_box_entity = FallingBox.new{
     vertices = { {0, 0}, {16, 0}, {16, 16}, {0, 16} }
   },
   painter  = {
-    color = WHITE,
+    color = tico.WHITE,
     active = true
   },
   velocity = {
@@ -54,23 +72,21 @@ gravity_applier.system_data:update(falling_box_entity)
 shape_painter.system_data:update(falling_box_entity)
 velocity_applier.system_data:update(falling_box_entity)
 
-local screen_width: integer <comptime> = 800
-local screen_height: integer <comptime> = 450
+local config = tico.config_init("Basic Gravity test", 800, 450, nelua_argc, nelua_argv)
+tico.init(config)
 
-Raylib.InitWindow(screen_width, screen_height, "Basic Gravity test")
-Raylib.SetTargetFPS(60)
+while not tico.window_should_close() do
+  tico.update()
 
-while not Raylib.WindowShouldClose() do
   gravity_applier:run()
   velocity_applier:run()
 
-  Raylib.BeginDrawing()
+  tico.begin_draw()
   do
-    Raylib.ClearBackground(BLACK)
-
+    tico.graphics_clear(tico.BLACK)
     shape_painter:run()
   end
-  Raylib.EndDrawing()
+  tico.end_draw()
 end
 
-Raylib.CloseWindow()
+tico.terminate()

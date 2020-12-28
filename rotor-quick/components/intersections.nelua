@@ -1,13 +1,14 @@
 require 'vector'
-require 'raylib'
-require 'rotor'
+require 'tico'
 require 'rotor-quick.components.intersectable'
 require 'rotor-quick.makers'
+
+local Rectf = tico.Rectf
 
 local Intersectable = RotorQuick.Components.Intersectable
 
 local Intersection = @record{
-  rect: Rectangle,
+  rect: Rectf,
   entity_id: GenerationalIndex,
   cycles_live: uinteger
 }
@@ -36,7 +37,7 @@ function Intersections:update_no_intersection(entity_id: GenerationalIndex): boo
   return false
 end
 
-function Intersections:update_intersection(intersection: Rectangle, entity_id: GenerationalIndex): boolean
+function Intersections:update_intersection(intersection: Rectf, entity_id: GenerationalIndex): boolean
   for i = 0, < #self.intersections do
     local intersection_i: *Intersection = self.intersections[i]
 

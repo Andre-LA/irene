@@ -1,6 +1,3 @@
-require 'math'
-require 'raylib'
-require 'rotor'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.position'
 require 'rotor-quick.components.follower'

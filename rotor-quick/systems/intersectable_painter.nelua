@@ -1,5 +1,5 @@
-require 'raylib'
-require 'rotor'
+require 'math'
+require 'tico'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.intersectable'
 require 'rotor-quick.components.painter'
@@ -17,6 +17,7 @@ local IntersectablePainter = RotorQuick.Systems.IntersectablePainter
 function IntersectablePainter:run()
   ## if PROF then
     nprof:push(#[IntersectablePainter.value.nickname]#)
+    defer nprof:pop() end
   ## end
 
   for _, components in self:iterate_components() do
@@ -27,11 +28,13 @@ function IntersectablePainter:run()
       return
     end
 
-    Raylib.DrawRectangleLinesEx(intersectable.global_rect, 1, painter.color)
+    tico.graphics_draw_rectangle(
+      intersectable.global_rect.x,
+      intersectable.global_rect.y,
+      math.ifloor(intersectable.global_rect.w),
+      math.ifloor(intersectable.global_rect.h),
+      painter.color
+    )
   end
-
-  ## if PROF then
-    nprof:pop()
-  ## end
 end
 

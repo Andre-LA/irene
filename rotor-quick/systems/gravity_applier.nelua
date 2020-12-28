@@ -1,6 +1,3 @@
-require 'math'
-require 'raylib'
-require 'rotor'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.position'
 require 'rotor-quick.components.shape'
@@ -19,6 +16,7 @@ local GravityApplier = RotorQuick.Systems.GravityApplier
 function GravityApplier:run()
   ## if PROF then
     nprof:push(#[GravityApplier.value.nickname]#)
+    defer nprof:pop() end
   ## end
 
   for _, components in self:iterate_components() do
@@ -31,9 +29,5 @@ function GravityApplier:run()
 
     velocity:add_velocity(gravity.direction * gravity.acceleration)
   end
-
-  ## if PROF then
-    nprof:pop()
-  ## end
 end
 

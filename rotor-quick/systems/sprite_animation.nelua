@@ -1,7 +1,4 @@
 require 'os'
-require 'math'
-require 'raylib'
-require 'rotor'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.position'
 require 'rotor-quick.components.sprite'
@@ -24,7 +21,7 @@ local SpriteAnimation = RotorQuick.Systems.SpriteAnimation
 function SpriteAnimation:run()
   ## if PROF then
     nprof:push(#[SpriteAnimation.value.nickname]#)
-    --defer nprof:pop() end
+    defer nprof:pop() end
   ## end
 
   for _, components in self:iterate_components() do
@@ -72,9 +69,5 @@ function SpriteAnimation:run()
 
     sprite.frame_index = next_anim_frame.frame
   end
-
-  ## if PROF then
-    nprof:pop()
-  ## end
 end
 

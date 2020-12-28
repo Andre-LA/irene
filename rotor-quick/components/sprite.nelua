@@ -1,10 +1,15 @@
+require 'tico'
 require 'rotor-quick.makers'
 
+local Vec2 = tico.Vec2
+local Rectf = tico.Rectf
+local Texture = tico.Texture
+
 global RotorQuick.Components.Sprite = @record{
-  sprite_sheet: Texture2D,
+  sprite_sheet: Texture,
   frame_index: uinteger,
-  frame_rect: Rectangle,
-  offset: Vector2,
+  frame_rect: Rectf,
+  offset: Vec2,
   layer: usize,
 }
 

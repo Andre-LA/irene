@@ -1,5 +1,8 @@
-require 'rotor-quick.makers'
 require 'vector'
+require 'tico'
+require 'rotor-quick.makers'
+
+local Vec2 = tico.Vec2
 
 local ShapeCategory = @enum{
   Rectangle = 1,
@@ -10,7 +13,7 @@ local ShapeCategory = @enum{
 
 global RotorQuick.Components.Shape = @record{
   category: ShapeCategory,
-  vertices: vector(Vector2), -- TODO: rethink this type, can be optimized?
+  vertices: vector(Vec2), -- TODO: rethink this type, can be optimized?
 }
 
 local Shape = RotorQuick.Components.Shape

@@ -1,9 +1,11 @@
 require 'math'
-require 'raylib'
-require 'rotor'
+require 'tico'
 require 'rotor-quick.makers'
-require 'rotor-quick.components.intersections'
+require 'rotor-quick.components.position'
+require 'rotor-quick.components.sprite'
 require 'rotor-quick.components.painter'
+
+local Rectf = tico.Rectf
 
 local Position = RotorQuick.Components.Position
 local Sprite = RotorQuick.Components.Sprite
@@ -20,13 +22,16 @@ local function paint(position: *Position, painter: *Painter, sprite: *Sprite)
     return
   end
 
-  local img_unit_w: integer = math.ifloor(sprite.sprite_sheet.width / sprite.frame_rect.width)
-  local img_unit_h: integer = math.ifloor(sprite.sprite_sheet.height / sprite.frame_rect.height)
+  local img_unit_w: integer = math.ifloor(sprite.sprite_sheet.width / sprite.frame_rect.w)
+  local img_unit_h: integer = math.ifloor(sprite.sprite_sheet.height / sprite.frame_rect.h)
 
-  sprite.frame_rect.x = (sprite.frame_index % img_unit_w) * sprite.frame_rect.width
-  sprite.frame_rect.y = math.ifloor(sprite.frame_index / img_unit_w) * sprite.frame_rect.height
+  sprite.frame_rect.x = (sprite.frame_index % img_unit_w) * sprite.frame_rect.w
+  sprite.frame_rect.y = math.ifloor(sprite.frame_index / img_unit_w) * sprite.frame_rect.h
 
-  Raylib.DrawTextureRec(sprite.sprite_sheet, sprite.frame_rect, position:get_global_position() + sprite.offset, painter.color)
+  local drawpos = position:get_global_position() + sprite.offset
+
+  local dest: Rectf = { x = drawpos.x, drawpos.y, w = sprite.frame_rect.w, h = sprite.frame_rect.h }
+  tico.graphics_draw(sprite.sprite_sheet, dest, sprite.frame_rect, painter.color)
 end
 
 global RotorQuick.Systems.SpritePainter = @MakeSystem('SpritePainter', @record{

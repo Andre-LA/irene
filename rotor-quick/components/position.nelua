@@ -1,12 +1,15 @@
+require 'tico'
 require 'rotor.optional'
 require 'rotor-quick.makers'
 
+local Vec2 = tico.Vec2
+
 global RotorQuick.Components.Position = @record{
   -- local position relative to parent's position, should be modified through set_local_position method
-  local_position: Vector2,
+  local_position: Vec2,
 
   -- parent's position, should only be modified by a position hierarchy system
-  origin_position: Vector2,
+  origin_position: Vec2,
 
   -- flag for optimization (https://gameprogrammingpatterns.com/dirty-flag.html),
   -- is true when the local_position is modified on the current frame
@@ -18,15 +21,15 @@ global RotorQuick.Components.Position = @record{
 local Position = RotorQuick.Components.Position
 ## is_component(Position)
 
-function Position:get_global_position(): Vector2
+function Position:get_global_position(): Vec2
   return self.origin_position + self.local_position
 end
 
-function Position:set_local_position(pos: Vector2)
+function Position:set_local_position(pos: Vec2)
   self.local_position = pos
   self.is_dirty = true
 end
 
-function Position:set_local_from_other_origin(origin_pos: Vector2)
+function Position:set_local_from_other_origin(origin_pos: Vec2)
   self:set_local_position(origin_pos - self.origin_position)
 end

@@ -1,10 +1,13 @@
 require 'math'
-require 'raylib'
+require 'tico'
 require 'rotor'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.position'
 require 'rotor-quick.components.shape'
 require 'rotor-quick.components.painter'
+
+local Vec2 = tico.Vec2
+local Rectf = tico.Rectf
 
 local Position = RotorQuick.Components.Position
 local Painter = RotorQuick.Components.Painter
@@ -22,6 +25,7 @@ local ShapePainter = RotorQuick.Systems.ShapePainter
 function ShapePainter:run()
   ## if PROF then
     nprof:push(#[ShapePainter.value.nickname]#)
+    defer nprof:pop() end
   ## end
 
   for _, components in self:iterate_components() do
@@ -44,33 +48,44 @@ function ShapePainter:run()
 
     switch shape.category
     case ShapeCategory.Rectangle then
-      Raylib.DrawRectangleV(global_pos, {size_x, size_y}, painter.color)
+      tico.graphics_fill_rectangle(global_pos.x, global_pos.y, size_x, size_y, painter.color)
 
     case ShapeCategory.Circle then
-      Raylib.DrawCircleV(global_pos, math.max(size_x, size_y) / 2, painter.color)
+      tico.graphics_fill_circle(
+        math.ifloor(global_pos.x),
+        math.ifloor(global_pos.y),
+        math.max(size_x, size_y) / 2,
+        painter.color
+      )
 
     case ShapeCategory.Triangle then
-      local pos = global_pos
       local p1, p2, p3 = shape.vertices[0], shape.vertices[1], shape.vertices[2]
-      Raylib.DrawTriangle(pos + p1, pos + p2, pos + p3, painter.color)
+      tico.graphics_fill_triangle(
+        math.ifloor(global_pos.x + p1.x),
+        math.ifloor(global_pos.y + p1.y),
+
+        math.ifloor(global_pos.x + p2.x),
+        math.ifloor(global_pos.y + p2.y),
+
+        math.ifloor(global_pos.x + p3.x),
+        math.ifloor(global_pos.y + p3.y),
+
+        painter.color
+      )
 
     case ShapeCategory.Polygon then
-      local points: vector(Vector2)
-      points:reserve(#shape.vertices)
-      defer points:destroy() end
+      for i = 0, < #shape.vertices - 1 do
+        tico.graphics_draw_line(
+          math.ifloor(global_pos.x + shape.vertices[i].x),
+          math.ifloor(global_pos.y + shape.vertices[i].y),
 
-      for i = 0, < #shape.vertices do
-        points:push({ global_pos.x + shape.vertices[i].x, global_pos.y + shape.vertices[i].y })
+          math.ifloor(global_pos.x + shape.vertices[i+1].x),
+          math.ifloor(global_pos.y + shape.vertices[i+1].y),
+
+          painter.color
+        )
       end
-
-      points:push({ global_pos.x + shape.vertices[0].x, global_pos.y + shape.vertices[0].y })
-
-      Raylib.DrawLineStrip(&points.data[0], #points, painter.color)
     end
   end
-
-  ## if PROF then
-    nprof:pop()
-  ## end
 end
 
