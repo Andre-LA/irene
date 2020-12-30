@@ -1,4 +1,5 @@
 local tabler = require 'nelua.utils.tabler'
+local inspect = require 'nelua.thirdparty.inspect'
 
 local metalib = {}
 
@@ -77,6 +78,10 @@ function metalib.pascalcase_to_snakecase(s)
   end
 
   return table.concat(words, '_')
+end
+
+function metalib.ins(v, d)
+  return inspect(v, {depth = d or 1})
 end
 
 return metalib

@@ -12,8 +12,19 @@
 
 require 'tico'
 require 'rotor'
-require 'rotor-quick'
-require 'rotor-quick.makers'
+
+-- is possible to only require the used records by not requiring any init:
+-- however it may be better to just require everything once, in this case,
+-- check "lunar_lander.nelua" test, it just require "rotor-quick".
+require 'rotor-quick.core'
+require 'rotor-quick.components.position'
+require 'rotor-quick.components.shape'
+require 'rotor-quick.components.painter'
+require 'rotor-quick.components.velocity'
+require 'rotor-quick.components.gravity'
+require 'rotor-quick.systems.gravity_applier'
+require 'rotor-quick.systems.shape_painter'
+require 'rotor-quick.systems.velocity_applier'
 
 local nelua_argc: cint <cimport, nodecl>
 local nelua_argv: *[0]cstring <cimport, nodecl>

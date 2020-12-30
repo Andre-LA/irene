@@ -1,7 +1,7 @@
 ## local tabler = require 'nelua.utils.tabler'
 ## local metalib = require 'rotor-quick.metalib'
 
-require 'rotor-quick'
+require 'rotor-quick.core'
 
 ## if PROF then
   require 'nprof'
@@ -53,16 +53,6 @@ require 'rotor-quick'
 ]]
 
 -- [[ mark record as component [[
-
---##[[
---  local masks_count = 0
---
---  is_component = hygienize(function(T)
---    staticassert(is_record(T))
---    T.value.is_component = true
---    RQ_add_mask_and_storage(metalib.pascalcase_to_snakecase(T.name), T)
---  end)
---]]
 
 -- this macro auto-implements the is_component trait
 ## function impl_is_component(R)

@@ -15,7 +15,10 @@
 require 'tico'
 require 'math'
 require 'vector'
-require 'rotor-quick'
+
+-- is possible to only require the used records by not requiring any init:
+require 'rotor-quick.core'
+require 'rotor-quick.components.intersectable'
 
 local Vec2 = tico.Vec2
 local Color = tico.Color

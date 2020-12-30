@@ -1,5 +1,3 @@
-global RotorQuick.Systems = @record{}
-
 require 'rotor-quick.systems.gravity_applier'
 require 'rotor-quick.systems.shape_painter'
 require 'rotor-quick.systems.velocity_applier'
