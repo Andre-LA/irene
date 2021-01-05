@@ -262,7 +262,7 @@ global MakeEntity = #[make_entity]#
     local new_system: systemT = {}
 
     ## for _, name in ipairs(component_names) do
-      components:push(bitset_array.copy(RotorQuick.masks.#|name|#))
+      components:push(BitsetArray.copy(RotorQuick.masks.#|name|#))
     ## end
 
     new_system.system_data = SystemData.new(components)

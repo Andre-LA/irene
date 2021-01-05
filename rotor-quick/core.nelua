@@ -24,7 +24,7 @@ global RotorQuick.storages: record{} = {}
   -- ]] update types ]]
 
   -- [[ fill fields [[
-  RotorQuick.masks.#|compname|# = bitset_array.lshift(BITSETARRAY_OF_ONE, #[masks_count]#)
+  RotorQuick.masks.#|compname|# = BitsetArray.lshifted_one(#[masks_count]#)
   RotorQuick.storages.#|compname|# = storageT.new()
 
   global T.mask = RotorQuick.masks.#|compname|#
