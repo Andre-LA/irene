@@ -133,6 +133,15 @@ require 'rotor-quick.core'
   ## EntityT.value.is_entity = true
   ## EntityT.value.entity_metainfo = {name = entity_name}
 
+  function EntityT:get_entity(): *Entity
+    local entity_opt = RotorQuick.storages.entity:get_entry(self.entity_id)
+    check(
+      entity_opt.filled,
+      #["Could not get " .. entity_name .. "'s entity"]#
+    )
+    return entity_opt:get()
+  end
+
   local EntityInitValues = @record{
     -- more added below
   }
@@ -184,6 +193,13 @@ require 'rotor-quick.core'
 
     local ChildType: type = #[EntityT.value.fields[child_name].type]#
     ## EntityInitValues.value:add_field(child_name, ChildType.value)
+
+    function EntityT:#|'get_'..child_name|#(): (ChildType, *Entity)
+      local child_value = self.#|child_name|#
+      local child_entity = child_value:get_entity()
+
+      return child_value, child_entity
+    end
   ## end
 
   function EntityT.new(initial_values: EntityInitValues): (EntityT, *Entity)
