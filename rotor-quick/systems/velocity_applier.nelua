@@ -30,9 +30,8 @@ function VelocityApplier:run()
       velocity.final_velocity = Velocity.get_limited_velocity(velocity.final_velocity, velocity.max_velocity)
     end
 
-    -- TODO (discussion): Should Δt be used? (see: https://github.com/Andre-LA/rotor-quick/issues/1)
-    position.local_position.x = position.local_position.x + velocity.final_velocity.x
-    position.local_position.y = position.local_position.y + velocity.final_velocity.y
+    position.local_position.x = position.local_position.x + velocity.final_velocity.x * tico.timer_get_delta()
+    position.local_position.y = position.local_position.y + velocity.final_velocity.y * tico.timer_get_delta()
   end
 end
 
