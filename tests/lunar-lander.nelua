@@ -53,7 +53,7 @@ local SpriteAnimation = RotorQuick.Systems.SpriteAnimation
 local screen_width: integer <comptime> = 800
 local screen_height: integer <comptime> = 608
 
-local LANDER_MAX_VELOCITY <comptime> = 10
+local LANDER_MAX_VELOCITY <comptime> = 300
 local Lander_Start_Position: Vec2 = {32, 32}
 
 local nelua_argc: cint <cimport, nodecl>
@@ -544,7 +544,7 @@ end
 -- [[ Game State extensions [[
 
 function GameState:create_lander(pos: Vec2): Lander
-  local gravity_acceleration: number = 0.1
+  local gravity_acceleration: number <comptime> = 7
 
   local lander_shape: Shape = {
     category = Shape.ShapeCategory.Polygon,
