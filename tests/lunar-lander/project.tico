@@ -1,0 +1,56 @@
+{
+  "window": {
+    "width": 800,
+    "height": 604
+  },
+
+  "plugins": [
+    "lua",
+    "resources",
+    "editor"
+  ],
+
+  "resources": [
+    {
+      "type": "image",
+      "name": "lunarlander",
+      "path": "assets/figures/lunarlander.png"
+    },
+    {
+      "type": "image",
+      "name": "propulsion",
+      "path": "assets/figures/propulsion.png"
+    },
+    {
+      "type": "image",
+      "name": "floor",
+      "path": "assets/figures/floor.png"
+    },
+    {
+      "type": "image",
+      "name": "safe",
+      "path": "assets/figures/safe.png"
+    },
+    {
+      "type": "image",
+      "name": "bg",
+      "path": "assets/figures/background.png"
+    },
+
+    "assets/jsons/lander_sprite.json",
+    "assets/jsons/propulsion_sprite.json",
+
+    "assets/jsons/lander.json",
+    "assets/jsons/propulsion.json",
+
+    "assets/jsons/floorset.json",
+    "assets/jsons/safeset.json",
+    "assets/jsons/bgset.json",
+
+    "assets/jsons/floor_area.json",
+
+    "assets/jsons/floormap.json",
+    "assets/jsons/safemap.json",
+    "assets/jsons/bgmap.json"
+  ]
+}

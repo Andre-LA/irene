@@ -1,0 +1,16 @@
+{
+  "__header__": {
+    "type": "sprite",
+    "name": "lander"
+  },
+  "width": 16,
+  "height": 16,
+  "image": "image//lunarlander",
+  "animations": [
+    {
+      "name": "idle",
+      "from": 0,
+      "to": 0
+    }
+  ]
+}

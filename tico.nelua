@@ -1,5 +1,5 @@
-##[[
-  if not TICO.SHARED then
+ ##[[
+  if not TICO.shared then
     cflags('-L '..TICO.L)
 
     cflags('-I '..TICO.I.include)
@@ -20,52 +20,125 @@
   cinclude'<tico.h>'
 ]]
 
-local stbtt_fontinfo: type <cimport, nodecl> = @record{}
-local cJSON: type <cimport, nodecl> = @record{}
-local lua_State: type <cimport, nodecl> = @record{}
-local LuaFunction: type <cimport, nodecl> = @function(*lua_State): cint
-local map_base_t <cimport, nodecl> = @record{}
 local ma_decoder <cimport, nodecl> = @record{}
 local GLFWcursor <cimport, nodecl> = @record{}
-local GLFWwindow <cimport, nodecl> = @record{}
-local ImGuiWindowFlags_ <cimport, nodecl> = @record{}
-
-
-local map_fieldtype_t: type <cimport, nodecl> = @record{}
-local map_field_t: type <cimport, nodecl> = @record{}
-local map_anim_t: type <cimport, nodecl> = @record{}
-local map_plugin_t: type <cimport, nodecl> = @record{}
-local map_deps_t: type <cimport, nodecl> = @record{}
-local map_resource_t: type <cimport, nodecl> = @record{}
-local map_resref_t: type <cimport, nodecl> = @record{}
-local map_resplugin_t: type <cimport, nodecl> = @record{}
-local map_editorplugin_t: type <cimport, nodecl> = @record{}
-local map_editorwindow_t: type <cimport, nodecl> = @record{}
-local map_object_t: type <cimport, nodecl> = @record{}
-local map_void_t: type <cimport, nodecl> = @record{}
-local map_str_t: type <cimport, nodecl> = @record{}
-local map_int_t: type <cimport, nodecl> = @record{}
-local map_char_t: type <cimport, nodecl> = @record{}
-local map_float_t: type <cimport, nodecl> = @record{}
-local map_double_t: type <cimport, nodecl> = @record{}
-local vec_canvas_t: type <cimport, nodecl> = @record{}
-local vec_void_t: type <cimport, nodecl> = @record{}
-local vec_str_t: type <cimport, nodecl> = @record{}
-local vec_int_t: type <cimport, nodecl> = @record{}
-local vec_char_t: type <cimport, nodecl> = @record{}
-local vec_float_t: type <cimport, nodecl> = @record{}
-local vec_double_t: type <cimport, nodecl> = @record{}
-local list_resdep_t: type <cimport, nodecl> = @record{}
-local list_int_t: type <cimport, nodecl> = @record{}
-local list_char_t: type <cimport, nodecl> = @record{}
-local list_str_t: type <cimport, nodecl> = @record{}
-local list_float_t: type <cimport, nodecl> = @record{}
-local stack_canvas_t: type <cimport, nodecl> = @record{}
-local stack_shader_t: type <cimport, nodecl> = @record{}
-local stack_matrix_t: type <cimport, nodecl> = @record{}
+local lua_State <cimport, nodecl> = @record{}
 
 global tico = @record{}
 
+local map_node_t: type <cimport, nodecl, forwarddecl> = @record{}
+local map_base_t: type <cimport, nodecl> = @record{
+  buckets: **map_node_t,
+  nbuckets: cuint,
+  nnodes: cuint
+}
+local map_iter_t: type <cimport, nodecl> = @record{
+  bucketidx: cuint,
+  node: *map_node_t
+}
+local map_void_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *pointer,
+  tmp: pointer
+}
+local map_str_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *cstring,
+  tmp: cstring
+}
+local map_int_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *cint,
+  tmp: cint
+}
+local map_char_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: cstring,
+  tmp: cchar
+}
+local map_float_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *float32,
+  tmp: float32
+}
+local map_double_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *float64,
+  tmp: float64
+}
+local vec_void_t: type <cimport, nodecl> = @record{
+  data: *pointer,
+  length: cint,
+  capacity: cint
+}
+local vec_str_t: type <cimport, nodecl> = @record{
+  data: *cstring,
+  length: cint,
+  capacity: cint
+}
+local vec_int_t: type <cimport, nodecl> = @record{
+  data: *cint,
+  length: cint,
+  capacity: cint
+}
+local vec_char_t: type <cimport, nodecl> = @record{
+  data: cstring,
+  length: cint,
+  capacity: cint
+}
+local vec_float_t: type <cimport, nodecl> = @record{
+  data: *float32,
+  length: cint,
+  capacity: cint
+}
+local vec_double_t: type <cimport, nodecl> = @record{
+  data: *float64,
+  length: cint,
+  capacity: cint
+}
+local stack_node_t: type <cimport, nodecl, forwarddecl> = @record{}
+stack_node_t = @record{
+  data: pointer,
+  next: *stack_node_t
+}
+local stack_base_t: type <cimport, nodecl> = @record{
+  size: cint
+}
+local list_node_t: type <cimport, nodecl, forwarddecl> = @record{}
+list_node_t = @record{
+  data: pointer,
+  next: *list_node_t
+}
+local list_base_t: type <cimport, nodecl> = @record{
+  size: cint,
+  root: *list_node_t,
+  last: *list_node_t
+}
+local list_iter_t: type <cimport, nodecl> = @record{
+  node: *list_node_t,
+  index: cint,
+  data: pointer
+}
+local list_int_t: type <cimport, nodecl> = @record{
+  base: list_base_t,
+  ref: *cint,
+  tmp: cint
+}
+local list_char_t: type <cimport, nodecl> = @record{
+  base: list_base_t,
+  ref: cstring,
+  tmp: cchar
+}
+local list_str_t: type <cimport, nodecl> = @record{
+  base: list_base_t,
+  ref: *cstring,
+  tmp: cstring
+}
+local list_float_t: type <cimport, nodecl> = @record{
+  base: list_base_t,
+  ref: *float32,
+  tmp: float32
+}
 function tico.utils_generate_uuid(out: cstring, size: cint) <cimport'tico_utils_generate_uuid', nodecl> end
 function tico.utils_get_ratio(w0: float32, h0: float32, w1: float32, h1: float32): float32 <cimport'tico_utils_get_ratio', nodecl> end
 function tico.utils_hash(key: cstring): cint <cimport'tico_utils_hash', nodecl> end
@@ -76,6 +149,167 @@ function tico.utf8_decode(p: *cuchar): cint <cimport'tico_utf8_decode', nodecl> 
 function tico.write_buffer_header(name: cstring, text: cstring, size: clong) <cimport'tico_write_buffer_header', nodecl> end
 function tico.set_clipboard(text: cstring) <cimport'tico_set_clipboard', nodecl> end
 function tico.get_clipboard(): cstring <cimport'tico_get_clipboard', nodecl> end
+local stbtt__buf: type <cimport, nodecl> = @record{
+  data: *cuchar,
+  cursor: cint,
+  size: cint
+}
+local stbtt_bakedchar: type <cimport, nodecl> = @record{
+  x0: cushort,
+  y0: cushort,
+  x1: cushort,
+  y1: cushort,
+  xoff: float32,
+  yoff: float32,
+  xadvance: float32
+}
+local function stbtt_BakeFontBitmap(data: *cuchar, offset: cint, pixel_height: float32, pixels: *cuchar, pw: cint, ph: cint, first_char: cint, num_chars: cint, chardata: *stbtt_bakedchar): cint <cimport, nodecl> end
+local stbtt_aligned_quad: type <cimport, nodecl> = @record{
+  x0: float32,
+  y0: float32,
+  s0: float32,
+  t0: float32,
+  x1: float32,
+  y1: float32,
+  s1: float32,
+  t1: float32
+}
+local function stbtt_GetBakedQuad(chardata: *stbtt_bakedchar, pw: cint, ph: cint, char_index: cint, xpos: *float32, ypos: *float32, q: *stbtt_aligned_quad, opengl_fillrule: cint) <cimport, nodecl> end
+local function stbtt_GetScaledFontVMetrics(fontdata: *cuchar, index: cint, size: float32, ascent: *float32, descent: *float32, lineGap: *float32) <cimport, nodecl> end
+local stbtt_packedchar: type <cimport, nodecl> = @record{
+  x0: cushort,
+  y0: cushort,
+  x1: cushort,
+  y1: cushort,
+  xoff: float32,
+  yoff: float32,
+  xadvance: float32,
+  xoff2: float32,
+  yoff2: float32
+}
+local stbtt_pack_context: type <cimport, nodecl, forwarddecl> = @record{}
+local stbtt_fontinfo: type <cimport, nodecl, forwarddecl> = @record{}
+local stbrp_rect: type <cimport, nodecl, forwarddecl> = @record{}
+local function stbtt_PackBegin(spc: *stbtt_pack_context, pixels: *cuchar, width: cint, height: cint, stride_in_bytes: cint, padding: cint, alloc_context: pointer): cint <cimport, nodecl> end
+local function stbtt_PackEnd(spc: *stbtt_pack_context) <cimport, nodecl> end
+local function stbtt_PackFontRange(spc: *stbtt_pack_context, fontdata: *cuchar, font_index: cint, font_size: float32, first_unicode_char_in_range: cint, num_chars_in_range: cint, chardata_for_range: *stbtt_packedchar): cint <cimport, nodecl> end
+local stbtt_pack_range: type <cimport, nodecl> = @record{
+  font_size: float32,
+  first_unicode_codepoint_in_range: cint,
+  array_of_unicode_codepoints: *cint,
+  num_chars: cint,
+  chardata_for_range: *stbtt_packedchar,
+  h_oversample: cuchar,
+  v_oversample: cuchar
+}
+local function stbtt_PackFontRanges(spc: *stbtt_pack_context, fontdata: *cuchar, font_index: cint, ranges: *stbtt_pack_range, num_ranges: cint): cint <cimport, nodecl> end
+local function stbtt_PackSetOversampling(spc: *stbtt_pack_context, h_oversample: cuint, v_oversample: cuint) <cimport, nodecl> end
+local function stbtt_PackSetSkipMissingCodepoints(spc: *stbtt_pack_context, skip: cint) <cimport, nodecl> end
+local function stbtt_GetPackedQuad(chardata: *stbtt_packedchar, pw: cint, ph: cint, char_index: cint, xpos: *float32, ypos: *float32, q: *stbtt_aligned_quad, align_to_integer: cint) <cimport, nodecl> end
+local function stbtt_PackFontRangesGatherRects(spc: *stbtt_pack_context, info: *stbtt_fontinfo, ranges: *stbtt_pack_range, num_ranges: cint, rects: *stbrp_rect): cint <cimport, nodecl> end
+local function stbtt_PackFontRangesPackRects(spc: *stbtt_pack_context, rects: *stbrp_rect, num_rects: cint) <cimport, nodecl> end
+local function stbtt_PackFontRangesRenderIntoRects(spc: *stbtt_pack_context, info: *stbtt_fontinfo, ranges: *stbtt_pack_range, num_ranges: cint, rects: *stbrp_rect): cint <cimport, nodecl> end
+stbtt_pack_context = @record{
+  user_allocator_context: pointer,
+  pack_info: pointer,
+  width: cint,
+  height: cint,
+  stride_in_bytes: cint,
+  padding: cint,
+  skip_missing: cint,
+  h_oversample: cuint,
+  v_oversample: cuint,
+  pixels: *cuchar,
+  nodes: pointer
+}
+local function stbtt_GetNumberOfFonts(data: *cuchar): cint <cimport, nodecl> end
+local function stbtt_GetFontOffsetForIndex(data: *cuchar, index: cint): cint <cimport, nodecl> end
+stbtt_fontinfo = @record{
+  userdata: pointer,
+  data: *cuchar,
+  fontstart: cint,
+  numGlyphs: cint,
+  loca: cint,
+  head: cint,
+  glyf: cint,
+  hhea: cint,
+  hmtx: cint,
+  kern: cint,
+  gpos: cint,
+  svg: cint,
+  index_map: cint,
+  indexToLocFormat: cint,
+  cff: stbtt__buf,
+  charstrings: stbtt__buf,
+  gsubrs: stbtt__buf,
+  subrs: stbtt__buf,
+  fontdicts: stbtt__buf,
+  fdselect: stbtt__buf
+}
+local function stbtt_InitFont(info: *stbtt_fontinfo, data: *cuchar, offset: cint): cint <cimport, nodecl> end
+local function stbtt_FindGlyphIndex(info: *stbtt_fontinfo, unicode_codepoint: cint): cint <cimport, nodecl> end
+local function stbtt_ScaleForPixelHeight(info: *stbtt_fontinfo, pixels: float32): float32 <cimport, nodecl> end
+local function stbtt_ScaleForMappingEmToPixels(info: *stbtt_fontinfo, pixels: float32): float32 <cimport, nodecl> end
+local function stbtt_GetFontVMetrics(info: *stbtt_fontinfo, ascent: *cint, descent: *cint, lineGap: *cint) <cimport, nodecl> end
+local function stbtt_GetFontVMetricsOS2(info: *stbtt_fontinfo, typoAscent: *cint, typoDescent: *cint, typoLineGap: *cint): cint <cimport, nodecl> end
+local function stbtt_GetFontBoundingBox(info: *stbtt_fontinfo, x0: *cint, y0: *cint, x1: *cint, y1: *cint) <cimport, nodecl> end
+local function stbtt_GetCodepointHMetrics(info: *stbtt_fontinfo, codepoint: cint, advanceWidth: *cint, leftSideBearing: *cint) <cimport, nodecl> end
+local function stbtt_GetCodepointKernAdvance(info: *stbtt_fontinfo, ch1: cint, ch2: cint): cint <cimport, nodecl> end
+local function stbtt_GetCodepointBox(info: *stbtt_fontinfo, codepoint: cint, x0: *cint, y0: *cint, x1: *cint, y1: *cint): cint <cimport, nodecl> end
+local function stbtt_GetGlyphHMetrics(info: *stbtt_fontinfo, glyph_index: cint, advanceWidth: *cint, leftSideBearing: *cint) <cimport, nodecl> end
+local function stbtt_GetGlyphKernAdvance(info: *stbtt_fontinfo, glyph1: cint, glyph2: cint): cint <cimport, nodecl> end
+local function stbtt_GetGlyphBox(info: *stbtt_fontinfo, glyph_index: cint, x0: *cint, y0: *cint, x1: *cint, y1: *cint): cint <cimport, nodecl> end
+local stbtt_kerningentry: type <cimport, nodecl> = @record{
+  glyph1: cint,
+  glyph2: cint,
+  advance: cint
+}
+local function stbtt_GetKerningTableLength(info: *stbtt_fontinfo): cint <cimport, nodecl> end
+local function stbtt_GetKerningTable(info: *stbtt_fontinfo, table: *stbtt_kerningentry, table_length: cint): cint <cimport, nodecl> end
+local stbtt_vertex: type <cimport, nodecl> = @record{
+  x: cshort,
+  y: cshort,
+  cx: cshort,
+  cy: cshort,
+  cx1: cshort,
+  cy1: cshort,
+  type: cuchar,
+  padding: cuchar
+}
+local function stbtt_IsGlyphEmpty(info: *stbtt_fontinfo, glyph_index: cint): cint <cimport, nodecl> end
+local function stbtt_GetCodepointShape(info: *stbtt_fontinfo, unicode_codepoint: cint, vertices: **stbtt_vertex): cint <cimport, nodecl> end
+local function stbtt_GetGlyphShape(info: *stbtt_fontinfo, glyph_index: cint, vertices: **stbtt_vertex): cint <cimport, nodecl> end
+local function stbtt_FreeShape(info: *stbtt_fontinfo, vertices: *stbtt_vertex) <cimport, nodecl> end
+local function stbtt_GetCodepointSVG(info: *stbtt_fontinfo, unicode_codepoint: cint, svg: *cstring): cint <cimport, nodecl> end
+local function stbtt_GetGlyphSVG(info: *stbtt_fontinfo, gl: cint, svg: *cstring): cint <cimport, nodecl> end
+local function stbtt_FreeBitmap(bitmap: *cuchar, userdata: pointer) <cimport, nodecl> end
+local function stbtt_GetCodepointBitmap(info: *stbtt_fontinfo, scale_x: float32, scale_y: float32, codepoint: cint, width: *cint, height: *cint, xoff: *cint, yoff: *cint): *cuchar <cimport, nodecl> end
+local function stbtt_GetCodepointBitmapSubpixel(info: *stbtt_fontinfo, scale_x: float32, scale_y: float32, shift_x: float32, shift_y: float32, codepoint: cint, width: *cint, height: *cint, xoff: *cint, yoff: *cint): *cuchar <cimport, nodecl> end
+local function stbtt_MakeCodepointBitmap(info: *stbtt_fontinfo, output: *cuchar, out_w: cint, out_h: cint, out_stride: cint, scale_x: float32, scale_y: float32, codepoint: cint) <cimport, nodecl> end
+local function stbtt_MakeCodepointBitmapSubpixel(info: *stbtt_fontinfo, output: *cuchar, out_w: cint, out_h: cint, out_stride: cint, scale_x: float32, scale_y: float32, shift_x: float32, shift_y: float32, codepoint: cint) <cimport, nodecl> end
+local function stbtt_MakeCodepointBitmapSubpixelPrefilter(info: *stbtt_fontinfo, output: *cuchar, out_w: cint, out_h: cint, out_stride: cint, scale_x: float32, scale_y: float32, shift_x: float32, shift_y: float32, oversample_x: cint, oversample_y: cint, sub_x: *float32, sub_y: *float32, codepoint: cint) <cimport, nodecl> end
+local function stbtt_GetCodepointBitmapBox(font: *stbtt_fontinfo, codepoint: cint, scale_x: float32, scale_y: float32, ix0: *cint, iy0: *cint, ix1: *cint, iy1: *cint) <cimport, nodecl> end
+local function stbtt_GetCodepointBitmapBoxSubpixel(font: *stbtt_fontinfo, codepoint: cint, scale_x: float32, scale_y: float32, shift_x: float32, shift_y: float32, ix0: *cint, iy0: *cint, ix1: *cint, iy1: *cint) <cimport, nodecl> end
+local function stbtt_GetGlyphBitmap(info: *stbtt_fontinfo, scale_x: float32, scale_y: float32, glyph: cint, width: *cint, height: *cint, xoff: *cint, yoff: *cint): *cuchar <cimport, nodecl> end
+local function stbtt_GetGlyphBitmapSubpixel(info: *stbtt_fontinfo, scale_x: float32, scale_y: float32, shift_x: float32, shift_y: float32, glyph: cint, width: *cint, height: *cint, xoff: *cint, yoff: *cint): *cuchar <cimport, nodecl> end
+local function stbtt_MakeGlyphBitmap(info: *stbtt_fontinfo, output: *cuchar, out_w: cint, out_h: cint, out_stride: cint, scale_x: float32, scale_y: float32, glyph: cint) <cimport, nodecl> end
+local function stbtt_MakeGlyphBitmapSubpixel(info: *stbtt_fontinfo, output: *cuchar, out_w: cint, out_h: cint, out_stride: cint, scale_x: float32, scale_y: float32, shift_x: float32, shift_y: float32, glyph: cint) <cimport, nodecl> end
+local function stbtt_MakeGlyphBitmapSubpixelPrefilter(info: *stbtt_fontinfo, output: *cuchar, out_w: cint, out_h: cint, out_stride: cint, scale_x: float32, scale_y: float32, shift_x: float32, shift_y: float32, oversample_x: cint, oversample_y: cint, sub_x: *float32, sub_y: *float32, glyph: cint) <cimport, nodecl> end
+local function stbtt_GetGlyphBitmapBox(font: *stbtt_fontinfo, glyph: cint, scale_x: float32, scale_y: float32, ix0: *cint, iy0: *cint, ix1: *cint, iy1: *cint) <cimport, nodecl> end
+local function stbtt_GetGlyphBitmapBoxSubpixel(font: *stbtt_fontinfo, glyph: cint, scale_x: float32, scale_y: float32, shift_x: float32, shift_y: float32, ix0: *cint, iy0: *cint, ix1: *cint, iy1: *cint) <cimport, nodecl> end
+local stbtt__bitmap: type <cimport, nodecl> = @record{
+  w: cint,
+  h: cint,
+  stride: cint,
+  pixels: *cuchar
+}
+local function stbtt_Rasterize(result: *stbtt__bitmap, flatness_in_pixels: float32, vertices: *stbtt_vertex, num_verts: cint, scale_x: float32, scale_y: float32, shift_x: float32, shift_y: float32, x_off: cint, y_off: cint, invert: cint, userdata: pointer) <cimport, nodecl> end
+local function stbtt_FreeSDF(bitmap: *cuchar, userdata: pointer) <cimport, nodecl> end
+local function stbtt_GetGlyphSDF(info: *stbtt_fontinfo, scale: float32, glyph: cint, padding: cint, onedge_value: cuchar, pixel_dist_scale: float32, width: *cint, height: *cint, xoff: *cint, yoff: *cint): *cuchar <cimport, nodecl> end
+local function stbtt_GetCodepointSDF(info: *stbtt_fontinfo, scale: float32, codepoint: cint, padding: cint, onedge_value: cuchar, pixel_dist_scale: float32, width: *cint, height: *cint, xoff: *cint, yoff: *cint): *cuchar <cimport, nodecl> end
+local function stbtt_FindMatchingFont(fontdata: *cuchar, name: cstring, flags: cint): cint <cimport, nodecl> end
+local function stbtt_CompareUTF8toUTF16_bigendian(s1: cstring, len1: cint, s2: cstring, len2: cint): cint <cimport, nodecl> end
+local function stbtt_GetFontNameString(font: *stbtt_fontinfo, length: *cint, platformID: cint, encodingID: cint, languageID: cint, nameID: cint): cstring <cimport, nodecl> end
 local tc_Rect: type <cimport, nodecl> = @record{
   x: cint,
   y: cint,
@@ -288,6 +522,17 @@ tc_Filesystem = @record{
   packed: cint
 }
 function tico.filesystem_init(fs: *tc_Filesystem): cint <cimport'tico_filesystem_init', nodecl> end
+local cJSON: type <cimport, nodecl, forwarddecl> = @record{}
+cJSON = @record{
+  next: *cJSON,
+  prev: *cJSON,
+  child: *cJSON,
+  type: cint,
+  valuestring: cstring,
+  valueint: cint,
+  valuedouble: float64,
+  string: cstring
+}
 function tico.json_is_valid(filename: cstring): boolean <cimport'tico_json_is_valid', nodecl> end
 function tico.json_open(filename: cstring): *cJSON <cimport'tico_json_open', nodecl> end
 function tico.json_parse(jsonStr: cstring): *cJSON <cimport'tico_json_parse', nodecl> end
@@ -399,6 +644,11 @@ local tc_FieldType: type <cimport, nodecl> = @record{
   draw: function(*tc_Field, tc_Vec2, float32): void --[[drawField]],
   imgui: function(): void --[[imguiField]]
 }
+local map_fieldtype_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *tc_FieldType,
+  tmp: tc_FieldType
+}
 local tc_Serialization: type <cimport, nodecl> = @record{
   types: map_fieldtype_t
 }
@@ -420,6 +670,11 @@ tc_Field = @record{
   next: *tc_Field,
   parent: *tc_Field,
   child: *tc_Field
+}
+local map_field_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: **tc_Field,
+  tmp: *tc_Field
 }
 tc_Meta = @record{
   fields: map_field_t
@@ -572,6 +827,11 @@ local tc_Animation: type <cimport, nodecl> = @record{
   from: cint,
   to: cint
 }
+local map_anim_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *tc_Animation,
+  tmp: tc_Animation
+}
 local tc_Sprite: type <cimport, nodecl> = @record{
   animation: [64]cchar,
   frame: cint,
@@ -655,6 +915,11 @@ local tc_Plugin: type <cimport, nodecl> = @record{
   post_draw: function(pointer): cint --[[PluginPostDraw]],
   terminate: function(pointer): cint --[[PluginTerminate]]
 }
+local map_plugin_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *tc_Plugin,
+  tmp: tc_Plugin
+}
 local tc_PluginModule: type <cimport, nodecl> = @record{
   plugins: map_plugin_t,
   active_plugins: vec_str_t
@@ -670,6 +935,7 @@ function tico.plugin_update(plugin: *tc_Plugin) <cimport'tico_plugin_update', no
 function tico.plugin_begin_draw(plugin: *tc_Plugin) <cimport'tico_plugin_begin_draw', nodecl> end
 function tico.plugin_draw(plugin: *tc_Plugin) <cimport'tico_plugin_draw', nodecl> end
 function tico.plugin_end_draw(plugin: *tc_Plugin) <cimport'tico_plugin_end_draw', nodecl> end
+local LuaFunction: type <cimport, nodecl> = @function(*lua_State): cint
 local tc_Lua: type <cimport, nodecl> = @record{
   L: *lua_State
 }
@@ -686,6 +952,16 @@ tc_ResourceDep = @record{
   name: [256]cchar,
   res_key: [256]cchar,
   res: *tc_Resource
+}
+local map_deps_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *tc_ResourceDep,
+  tmp: tc_ResourceDep
+}
+local list_resdep_t: type <cimport, nodecl> = @record{
+  base: list_base_t,
+  ref: *tc_ResourceDep,
+  tmp: tc_ResourceDep
 }
 local TIC_RESOURCE_ERROR: cint <comptime> = 1
 local TIC_RESOURCE_LOADED: cint <comptime> = 2
@@ -724,6 +1000,21 @@ function tico.plugin_resource_tilemap_store(manager: *tc_ResourceManager, res: *
 function tico.plugin_resource_object(): tc_ResourcePlugin <cimport'tico_plugin_resource_object', nodecl> end
 function tico.plugin_resource_object_loader(manager: *tc_ResourceManager, res: *tc_Resource, json: *cJSON): tc_Resource <cimport'tico_plugin_resource_object_loader', nodecl> end
 function tico.plugin_resource_object_store(manager: *tc_ResourceManager, res: *tc_Resource): *cJSON <cimport'tico_plugin_resource_object_store', nodecl> end
+local map_resource_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *tc_Resource,
+  tmp: tc_Resource
+}
+local map_resref_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: **tc_Resource,
+  tmp: *tc_Resource
+}
+local map_resplugin_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *tc_ResourcePlugin,
+  tmp: tc_ResourcePlugin
+}
 tc_ResourceManager = @record{
   path: [256]cchar,
   resources: map_resource_t,
@@ -791,6 +1082,11 @@ function tico.widget_grid_draw(widget: *tc_GridWidget, panel: *tc_PanelWidget): 
 local tc_Object: type <cimport, nodecl> = @record{
   data: *tc_Field
 }
+local map_object_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *tc_Object,
+  tmp: tc_Object
+}
 local tc_ObjectWidget: type <cimport, nodecl> = @record{
   selected: *tc_Object,
   uuid: [8]cchar,
@@ -848,6 +1144,16 @@ tc_EditorWindow = @record{
   editor: pointer,
   flags: cint,
   plugin: tc_EditorPlugin
+}
+local map_editorplugin_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *tc_EditorPlugin,
+  tmp: tc_EditorPlugin
+}
+local map_editorwindow_t: type <cimport, nodecl> = @record{
+  base: map_base_t,
+  ref: *tc_EditorWindow,
+  tmp: tc_EditorWindow
 }
 local tc_Editor: type <cimport, nodecl> = @record{
   size: cint,
@@ -1042,6 +1348,26 @@ function tico.batch_is_empty(batch: tc_Batch): boolean <cimport'tico_batch_is_em
 function tico.batch_is_full(batch: tc_Batch, vertices: cint): boolean <cimport'tico_batch_is_full', nodecl> end
 function tico.batch_draw_reset(batch: *tc_Batch) <cimport'tico_batch_draw_reset', nodecl> end
 function tico.batch_reset_if_full(batch: *tc_Batch, vertex: cint) <cimport'tico_batch_reset_if_full', nodecl> end
+local stack_canvas_t: type <cimport, nodecl> = @record{
+  data: [32]tc_Canvas,
+  top: cint,
+  size: cint
+}
+local stack_shader_t: type <cimport, nodecl> = @record{
+  data: [32]tc_Shader,
+  top: cint,
+  size: cint
+}
+local stack_matrix_t: type <cimport, nodecl> = @record{
+  data: [32]tc_Matrix,
+  top: cint,
+  size: cint
+}
+local vec_canvas_t: type <cimport, nodecl> = @record{
+  data: *tc_Canvas,
+  length: cint,
+  capacity: cint
+}
 local tc_Graphics: type <cimport, nodecl> = @record{
   default_font: tc_Font,
   canvas_stack: stack_canvas_t,
@@ -1541,6 +1867,8 @@ function tico.plugin_module_draw() <cimport'tico_plugin_module_draw', nodecl> en
 function tico.plugin_module_end_draw() <cimport'tico_plugin_module_end_draw', nodecl> end
 
 -- export records
+global tico.cJSON: type = @cJSON
+
 global tico.Tileset: type = @tc_Tileset
 global tico.Tilemap: type = @tc_Tilemap
 global tico.Camera: type = @tc_Camera

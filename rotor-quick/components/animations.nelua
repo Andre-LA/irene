@@ -1,39 +1,9 @@
 require 'os'
 require 'rotor-quick.makers'
 
-local AnimationFrame = @record{
-  frame: usize,
-  point_in_time: number, -- this value must be on interval [0%, 100%]
-}
-
-local AnimationUnit = @record{
-  duration: number,
-  frames: vector(AnimationFrame),
-  looping: boolean,
-
-  -- called when Animations opens a new frame, use this to add callbacks on specific frames (like playing steps sound effects)
-  frame_callback: function(self: *AnimationUnit, current_frame: usize),
-}
-
 global RotorQuick.Components.Animations = @record{
-  animations: vector(AnimationUnit),
-  current_animation: usize,
-  current_frame: usize,
-  last_change_time: number,
-  paused: boolean,
+  data: byte, -- unnecessary, but empty records causes problems on storages
 }
 
 local Animations = RotorQuick.Components.Animations
 ## is_component(Animations)
-
-function Animations:change_animation(next_anim: usize)
-  if next_anim ~= self.current_animation then
-    check(next_anim < #self.animations, 'change_animation: trying to switch to an inexistent animation')
-    self.current_animation = next_anim
-    self.current_frame = 0
-    self.last_change_time = os.clock()
-  end
-end
-
-global Animations.AnimationUnit = AnimationUnit
-global Animations.AnimationFrame = AnimationFrame

@@ -1,0 +1,21 @@
+{
+  "__header__": {
+    "type": "object",
+    "name": "floor"
+  },
+
+  "__meta__": {
+    "position": {
+      "type": "vec2",
+      "__color__": [0, 0, 0, 1]
+    },
+    "intersectable":	{
+			"__type__":	"rect",
+			"__color__":	[1, 0, 0, 1],
+			"show": false
+		}
+  },
+
+  "position": [0, 0],
+  "intersectable": [0, 0, 16, 16]
+}

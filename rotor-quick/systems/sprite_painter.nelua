@@ -17,23 +17,6 @@ local EachRunIds = @record{
   sprite_id: GenerationalIndex,
 }
 
-local function paint(position: *Position, painter: *Painter, sprite: *Sprite)
-  if not painter.active then
-    return
-  end
-
-  local img_unit_w: integer = math.ifloor(sprite.sprite_sheet.width / sprite.frame_rect.w)
-  local img_unit_h: integer = math.ifloor(sprite.sprite_sheet.height / sprite.frame_rect.h)
-
-  sprite.frame_rect.x = (sprite.frame_index % img_unit_w) * sprite.frame_rect.w
-  sprite.frame_rect.y = math.ifloor(sprite.frame_index / img_unit_w) * sprite.frame_rect.h
-
-  local drawpos = position:get_global_position() + sprite.offset
-
-  local dest: Rectf = { x = drawpos.x, drawpos.y, w = sprite.frame_rect.w, h = sprite.frame_rect.h }
-  tico.graphics_draw(sprite.sprite_sheet, dest, sprite.frame_rect, painter.color)
-end
-
 global RotorQuick.Systems.SpritePainter = @MakeSystem('SpritePainter', @record{
   position: Position,
   painter: Painter,
@@ -73,13 +56,17 @@ function SpritePainter:run()
       local sprite_opt = RotorQuick.storages.sprite:get_entry(sprite_id)
 
       if position_opt.filled and painter_opt.filled and sprite_opt.filled then
-        local sprite: *Sprite = sprite_opt:get()
+        local painter: *Painter = painter_opt:get()
 
-        if #self.draw_order <= sprite.layer then
-          self.draw_order:resize(sprite.layer + 1)
+        if painter.active then
+          local sprite: *Sprite = sprite_opt:get()
+
+          if #self.draw_order <= sprite.layer then
+            self.draw_order:resize(sprite.layer + 1)
+          end
+
+          self.draw_order[sprite.layer]:push({ position_id, painter_id, sprite_id })
         end
-
-        self.draw_order[sprite.layer]:push({ position_id, painter_id, sprite_id })
       else
         self.system_data:mark_available(i)
       end
@@ -94,7 +81,12 @@ function SpritePainter:run()
       local painter_opt = RotorQuick.storages.painter:get_entry(current_layer[j].painter_id)
       local sprite_opt = RotorQuick.storages.sprite:get_entry(current_layer[j].sprite_id)
 
-      paint(position_opt:get(), painter_opt:get(), sprite_opt:get())
+      local position: *Position = position_opt:get()
+      local painter: *Painter = painter_opt:get()
+      local sprite: *Sprite = sprite_opt:get()
+
+      local drawpos = position:get_global_position() + sprite.offset
+      tico.sprite_draw(sprite.sprite, drawpos.x, drawpos.y, painter.color)
     end
   end
 end

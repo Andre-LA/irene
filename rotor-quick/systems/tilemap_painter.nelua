@@ -1,0 +1,32 @@
+require 'tico'
+require 'rotor-quick.makers'
+require 'rotor-quick.components.position'
+require 'rotor-quick.components.painter'
+
+local Tilemap = RotorQuick.Components.Tilemap
+local Painter = RotorQuick.Components.Painter
+
+global RotorQuick.Systems.TilemapPainter = @MakeSystem('TilemapPainter', @record{
+  tilemap: Tilemap,
+  painter: Painter,
+})
+
+local TilemapPainter = RotorQuick.Systems.TilemapPainter
+
+function TilemapPainter:run()
+  ## if PROF then
+    nprof:push(#[TilemapPainter.value.nickname]#)
+    defer nprof:pop() end
+  ## end
+
+  for _, components in self:iterate_components() do
+    local tilemap: *Tilemap = components.tilemap
+    local painter: *Painter = components.painter
+
+    if not painter.active then
+      return
+    end
+
+    tico.tilemap_draw(tilemap.tilemap)
+  end
+end

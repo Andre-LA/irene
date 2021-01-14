@@ -1,0 +1,21 @@
+{
+  "__header__": {
+    "type": "sprite",
+    "name": "propulsion"
+  },
+  "width": 16,
+  "height": 16,
+  "image": "image//propulsion",
+  "animations": [
+    {
+      "name": "active",
+      "from": 0,
+      "to": 1
+    },
+    {
+      "name": "inactive",
+      "from": 2,
+      "to": 2
+    }
+  ]
+}

@@ -1,17 +1,13 @@
 require 'os'
 require 'rotor-quick.makers'
-require 'rotor-quick.components.position'
 require 'rotor-quick.components.sprite'
 require 'rotor-quick.components.animations'
 
 local Position = RotorQuick.Components.Position
 local Sprite = RotorQuick.Components.Sprite
 local Animations = RotorQuick.Components.Animations
-local AnimationUnit = Animations.AnimationUnit
-local AnimationFrame = Animations.AnimationFrame
 
 global RotorQuick.Systems.SpriteAnimation = @MakeSystem('SpriteAnimation', @record{
-  position: Position,
   sprite: Sprite,
   animations: Animations
 })
@@ -25,49 +21,8 @@ function SpriteAnimation:run()
   ## end
 
   for _, components in self:iterate_components() do
-    local position: *Position = components.position
     local sprite: *Sprite = components.sprite
-    local animations: *Animations = components.animations
-
-    if animations.paused then
-      return
-    end
-
-    local current_time = os.clock()
-    local diff_time = current_time - animations.last_change_time
-
-    local current_anim_unit: *AnimationUnit = animations.animations[animations.current_animation]
-    local current_point_in_time = diff_time / current_anim_unit.duration
-
-    local current_anim_frame: *AnimationFrame = current_anim_unit.frames[animations.current_frame]
-
-    local next_frame_idx = (animations.current_frame + 1) % #current_anim_unit.frames
-    local next_anim_frame: *AnimationFrame = current_anim_unit.frames[next_frame_idx]
-
-    local next_is_1st_frame = next_frame_idx == 0
-    local animation_is_done = current_point_in_time >= 1.0
-
-    local should_change_frame = (do
-      if next_is_1st_frame then
-        return animation_is_done and current_anim_unit.looping
-      else
-        return next_anim_frame.point_in_time < current_point_in_time
-      end
-    end)
-
-    if should_change_frame then
-      if next_is_1st_frame then
-        animations.last_change_time = current_time
-      end
-
-      animations.current_frame = next_frame_idx
-
-      if current_anim_unit.frame_callback ~= nilptr then
-        current_anim_unit.frame_callback(current_anim_unit, animations.current_frame)
-      end
-    end
-
-    sprite.frame_index = next_anim_frame.frame
+    tico.sprite_update(sprite.sprite)
   end
 end
 

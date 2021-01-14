@@ -1,0 +1,9 @@
+require 'tico'
+require 'rotor-quick.makers'
+
+global RotorQuick.Components.Tilemap = @record{
+  tilemap: tico.Tilemap
+}
+
+local Tilemap = RotorQuick.Components.Tilemap
+## is_component(Tilemap)
