@@ -31,6 +31,9 @@ local nelua_argc: cint <cimport, nodecl>
 local nelua_argv: *[0]cstring <cimport, nodecl>
 local config = tico.config_load('project.tico', nelua_argc, nelua_argv)
 
+local game_res_json = tico.json_load'assets/jsons/game_resources'
+defer tico.json_delete(game_res_field) end
+
 tico.init(config)
 
 local GameLayers = @enum{
@@ -175,13 +178,16 @@ local BackgroundEntity = @MakeEntity('background_entity',
 -- [[ Game State [[
 
 local GameState = @record{
+  -- entities
   lander: Lander,
   lunarmaps: record{
     floormap: LunarMap,
     safemap: LunarMap,
     bgmap: LunarMap,
   },
+  -- internal tico state
   editor: *tico.Editor,
+  -- systems
   systems: record{
     lander_ctrl_system: LanderControllerSystem,
     gravity_applier: RotorQuick.Systems.GravityApplier,
@@ -198,18 +204,17 @@ local GameState = @record{
     sprite_animation: RotorQuick.Systems.SpriteAnimation,
     tilemap_painter: RotorQuick.Systems.TilemapPainter
   },
+  -- useful data
   last_startmusic_time: float32,
+  -- resources
   resources: record{
+    game_resources_field: *tico.Field,
     maps: record{
       floormap: tico.Tilemap,
       safemap: tico.Tilemap,
       bgmap: tico.Tilemap,
     },
-    jsons: record{
-      lander: *tico.cJSON,
-      propulsion: *tico.cJSON,
-    },
-    textures: record{
+    Images: record{
       lander_img: tico.Image,
       propulsion_img: tico.Image,
     },
@@ -277,7 +282,9 @@ local Game_State: GameState = {
   editor = $(@*tico.Editor)(tico.plugin_get('editor').data),
   systems = { --[[initialized later]] },
   resources = {
-    maps = {},
+    jsons = tico.field_from_json(game_res_json, nilptr),
+
+    maps = { --[[initialized later]] },
     textures = {
       lander_img = $((@*tico.Image)(tico.plugin_resources_get('image', 'lunarlander').data)),
       propulsion_img = $((@*tico.Image)(tico.plugin_resources_get('image', 'propulsion').data))
