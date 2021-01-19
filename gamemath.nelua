@@ -1,0 +1,63 @@
+require 'math'
+
+global GameMath = @record{}
+
+global GameMath.Vec2 = @record{
+  x: number,
+  y: number
+}
+
+function GameMath.Vec2.__len(v: GameMath.Vec2): number
+  return math.sqrt( (v.x * v.x) + (v.y * v.y) )
+end
+
+function GameMath.Vec2.__add(l: GameMath.Vec2, r: GameMath.Vec2): GameMath.Vec2
+  return (@GameMath.Vec2){ x = l.x + r.x, y = l.y + r.y }
+end
+
+function GameMath.Vec2.__sub(l: GameMath.Vec2, r: GameMath.Vec2): GameMath.Vec2
+  return (@GameMath.Vec2){ x = l.x - r.x, y = l.y - r.y }
+end
+
+function GameMath.Vec2.__mul(l: GameMath.Vec2, r: overload(GameMath.Vec2, number)): GameMath.Vec2
+  ## if r.type.is_arithmetic then
+    return (@GameMath.Vec2){ x = l.x * r, y = l.y * r }
+  ## else
+    return (@GameMath.Vec2){ x = l.x * r.x, y = l.y * r.y }
+  ## end
+end
+
+function GameMath.Vec2.__div(l: GameMath.Vec2, r: GameMath.Vec2): GameMath.Vec2
+  return (@GameMath.Vec2){ x = l.x / r.x, y = l.y / r.y }
+end
+
+## local decl_rect = function(name, T)
+  ## staticassert(T.value.is_arithmetic, 'T is not arithmetic')
+
+  local T = #[T]#
+
+  global GameMath.#|name|# = @record{
+    x: T,
+    y: T,
+    w: T,
+    h: T
+  }
+
+## end
+
+## decl_rect('Rectf', number)
+## decl_rect('Rect', integer)
+
+function GameMath.Rectf:to_rect(): GameMath.Rect
+  return (@GameMath.Rect){
+    x = math.ifloor(self.x), y = math.ifloor(self.y),
+    w = math.ifloor(self.w), h = math.ifloor(self.h)
+  }
+end
+
+function GameMath.Rect:to_rectf(): GameMath.Rectf
+  return (@GameMath.Rectf){
+    x = self.x, y = self.y,
+    w = self.w, h = self.h
+  }
+end

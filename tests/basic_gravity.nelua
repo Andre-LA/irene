@@ -1,16 +1,5 @@
 -- minimal example of a box falling
 
-##[[
-  TICO = {
-    L = 'tinycoffee/build',
-    I = {
-      include = "tinycoffee/include",
-      external = "tinycoffee/external"
-    }
-  }
-]]
-
-require 'tico'
 require 'rotor'
 
 -- is possible to only require the used records by not requiring any init:
@@ -28,8 +17,6 @@ require 'rotor-quick.systems.velocity_applier'
 
 local nelua_argc: cint <cimport, nodecl>
 local nelua_argv: *[0]cstring <cimport, nodecl>
-
-local Config = tico.Config
 
 local Position = RotorQuick.Components.Position
 local Shape = RotorQuick.Components.Shape
@@ -65,15 +52,15 @@ local falling_box, falling_box_entity = FallingBox.new{
     vertices = { {0, 0}, {16, 0}, {16, 16}, {0, 16} }
   },
   painter  = {
-    color = tico.WHITE,
+    color = QuickGame.PALLETE.WHITE,
     active = true
   },
   velocity = {
     active = true,
-    max_velocity = 10,
+    max_velocity = 1,
   },
   gravity  = {
-    acceleration = 0.1,
+    acceleration = 0.005,
     direction = {0,1},
     active = true
   }
@@ -83,21 +70,24 @@ gravity_applier.system_data:update(falling_box_entity)
 shape_painter.system_data:update(falling_box_entity)
 velocity_applier.system_data:update(falling_box_entity)
 
-local config = tico.config_init("Basic Gravity test", 800, 450, nelua_argc, nelua_argv)
-tico.init(config)
+local ok, err_msg, core_state = QuickGame.init("Basic Gravity test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 450, SDL_WINDOW_SHOWN)
+check(ok, err_msg)
 
-while not tico.window_should_close() do
-  tico.update()
+while not core_state.quit do
+  core_state:pool_events{
+    on_quit_event = nilptr,
+    on_key_event = nilptr,
+    on_mousemotion_event = nilptr
+  }
 
   gravity_applier:run()
   velocity_applier:run()
 
-  tico.begin_draw()
+  core_state:render_clear(QuickGame.PALLETE.BG)
   do
-    tico.graphics_clear(tico.BLACK)
-    shape_painter:run()
+    shape_painter:run(core_state)
   end
-  tico.end_draw()
+  core_state:render_present()
 end
 
-tico.terminate()
+core_state:terminate()

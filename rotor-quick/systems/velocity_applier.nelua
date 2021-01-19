@@ -2,12 +2,11 @@ require 'rotor-quick.makers'
 require 'rotor-quick.components.velocity'
 require 'rotor-quick.components.position'
 
-local Velocity = RotorQuick.Components.Velocity
-local Position = RotorQuick.Components.Position
+local RQ_Comps = RotorQuick.Components
 
 global RotorQuick.Systems.VelocityApplier = @MakeSystem('VelocityApplier', @record{
-  velocity: Velocity,
-  position: Position,
+  velocity: RQ_Comps.Velocity,
+  position: RQ_Comps.Position,
 })
 
 local VelocityApplier = RotorQuick.Systems.VelocityApplier
@@ -19,19 +18,19 @@ function VelocityApplier:run()
   ## end
 
   for _, components in self:iterate_components() do
-    local velocity: *Velocity = components.velocity
-    local position: *Position = components.position
+    local velocity: *RQ_Comps.Velocity = components.velocity
+    local position: *RQ_Comps.Position = components.position
 
     if not velocity.active then
       return
     end
 
     if velocity.velocity_is_limited then
-      velocity.final_velocity = Velocity.get_limited_velocity(velocity.final_velocity, velocity.max_velocity)
+      velocity.final_velocity = RQ_Comps.Velocity.get_limited_velocity(velocity.final_velocity, velocity.max_velocity)
     end
 
-    position.local_position.x = position.local_position.x + velocity.final_velocity.x * tico.timer_get_delta()
-    position.local_position.y = position.local_position.y + velocity.final_velocity.y * tico.timer_get_delta()
+    position.local_position.x = position.local_position.x + velocity.final_velocity.x -- * tico.timer_get_delta()
+    position.local_position.y = position.local_position.y + velocity.final_velocity.y -- * tico.timer_get_delta()
   end
 end
 

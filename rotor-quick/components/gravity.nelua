@@ -1,11 +1,9 @@
-require 'tico'
+require 'gamemath'
 require 'rotor-quick.makers'
-
-local Vec2 = tico.Vec2
 
 global RotorQuick.Components.Gravity = @record{
   acceleration: number,
-  direction: Vec2,
+  direction: GameMath.Vec2,
   active: boolean
 }
 

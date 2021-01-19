@@ -1,37 +1,30 @@
 require 'math'
-require 'tico'
+require 'gamemath'
+require 'quickgamelib'
 require 'rotor'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.position'
 require 'rotor-quick.components.shape'
 require 'rotor-quick.components.painter'
 
-local Vec2 = tico.Vec2
-local Rectf = tico.Rectf
-
-local Position = RotorQuick.Components.Position
-local Painter = RotorQuick.Components.Painter
-local Shape = RotorQuick.Components.Shape
-local ShapeCategory = Shape.ShapeCategory
+local RQ_Comps = RotorQuick.Components
 
 global RotorQuick.Systems.ShapePainter = @MakeSystem('ShapePainter', @record{
-  position: Position,
-  shape: Shape,
-  painter: Painter,
+  position: RQ_Comps.Position,
+  shape: RQ_Comps.Shape,
+  painter: RQ_Comps.Painter
 })
 
-local ShapePainter = RotorQuick.Systems.ShapePainter
-
-function ShapePainter:run()
+function RotorQuick.Systems.ShapePainter:run(core_state: *QuickGame.CoreState)
   ## if PROF then
     nprof:push(#[ShapePainter.value.nickname]#)
     defer nprof:pop() end
   ## end
 
   for _, components in self:iterate_components() do
-    local position: *Position = components.position
-    local shape: *Shape = components.shape
-    local painter: *Painter = components.painter
+    local position: *RQ_Comps.Position = components.position
+    local shape: *RQ_Comps.Shape = components.shape
+    local painter: *RQ_Comps.Painter = components.painter
 
     if not painter.active then
       return
@@ -46,44 +39,47 @@ function ShapePainter:run()
 
     local global_pos = position:get_global_position()
 
+    local ShapeCategory = RQ_Comps.Shape.ShapeCategory
+
     switch shape.category
     case ShapeCategory.Rectangle then
-      tico.graphics_fill_rectangle(global_pos.x, global_pos.y, size_x, size_y, painter.color)
+      local rectf: GameMath.Rectf = { global_pos.x, global_pos.y, size_x, size_y }
+      core_state:render_draw_rect(rectf:to_rect(), true, painter.color)
 
     case ShapeCategory.Circle then
-      tico.graphics_fill_circle(
-        math.ifloor(global_pos.x),
-        math.ifloor(global_pos.y),
-        math.max(size_x, size_y) / 2,
-        painter.color
-      )
+      --tico.graphics_fill_circle(
+      --  math.ifloor(global_pos.x),
+      --  math.ifloor(global_pos.y),
+      --  math.max(size_x, size_y) / 2,
+      --  painter.color
+      --)
 
     case ShapeCategory.Triangle then
       local p1, p2, p3 = shape.vertices[0], shape.vertices[1], shape.vertices[2]
-      tico.graphics_fill_triangle(
-        math.ifloor(global_pos.x + p1.x),
-        math.ifloor(global_pos.y + p1.y),
-
-        math.ifloor(global_pos.x + p2.x),
-        math.ifloor(global_pos.y + p2.y),
-
-        math.ifloor(global_pos.x + p3.x),
-        math.ifloor(global_pos.y + p3.y),
-
-        painter.color
-      )
+      --tico.graphics_fill_triangle(
+      --  math.ifloor(global_pos.x + p1.x),
+      --  math.ifloor(global_pos.y + p1.y),
+--
+      --  math.ifloor(global_pos.x + p2.x),
+      --  math.ifloor(global_pos.y + p2.y),
+--
+      --  math.ifloor(global_pos.x + p3.x),
+      --  math.ifloor(global_pos.y + p3.y),
+--
+      --  painter.color
+      --)
 
     case ShapeCategory.Polygon then
       for i = 0, < #shape.vertices - 1 do
-        tico.graphics_draw_line(
-          math.ifloor(global_pos.x + shape.vertices[i].x),
-          math.ifloor(global_pos.y + shape.vertices[i].y),
-
-          math.ifloor(global_pos.x + shape.vertices[i+1].x),
-          math.ifloor(global_pos.y + shape.vertices[i+1].y),
-
-          painter.color
-        )
+        --tico.graphics_draw_line(
+        --  math.ifloor(global_pos.x + shape.vertices[i].x),
+        --  math.ifloor(global_pos.y + shape.vertices[i].y),
+--
+        --  math.ifloor(global_pos.x + shape.vertices[i+1].x),
+        --  math.ifloor(global_pos.y + shape.vertices[i+1].y),
+--
+        --  painter.color
+        --)
       end
     end
   end

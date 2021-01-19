@@ -1,13 +1,11 @@
 require 'math'
 require 'vector'
-require 'tico'
+require 'gamemath'
 require 'rotor-quick.makers'
-
-local Vec2 = tico.Vec2
 
 global RotorQuick.Components.Velocity = @record{
   active: boolean,
-  final_velocity: Vec2,
+  final_velocity: GameMath.Vec2,
   max_velocity: uinteger,
   velocity_is_limited: boolean
 }
@@ -15,7 +13,7 @@ global RotorQuick.Components.Velocity = @record{
 local Velocity = RotorQuick.Components.Velocity
 ## is_component(Velocity)
 
-function Velocity:add_velocity(velocity: Vec2)
+function Velocity:add_velocity(velocity: GameMath.Vec2)
   self.final_velocity = self.final_velocity + velocity
 end
 
@@ -23,7 +21,7 @@ function Velocity:reset_velocity()
   self.final_velocity = { 0, 0 }
 end
 
-function Velocity.get_limited_velocity(velocity: Vec2, limit: number): Vec2
+function Velocity.get_limited_velocity(velocity: GameMath.Vec2, limit: number): GameMath.Vec2
   local velocity_len = #velocity
 
   if velocity_len > limit then

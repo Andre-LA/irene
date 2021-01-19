@@ -1,9 +1,8 @@
+require 'quicktypes'
 require 'rotor-quick.makers'
 
-local Color = tico.Color
-
 global RotorQuick.Components.Painter = @record{
-  color: Color,
+  color: QuickTypes.Color,
   active: boolean,
 }
 

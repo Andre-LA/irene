@@ -2,75 +2,65 @@
      License, v. 2.0. If a copy of the MPL was not distributed with this
      file, You can obtain one at https://mozilla.org/MPL/2.0/. ]]
 
-##[[
-  TICO = {
-    L = 'tinycoffee/build',
-    I = {
-      include = "tinycoffee/include",
-      external = "tinycoffee/external"
-    }
-  }
-]]
-
-require 'tico'
 require 'math'
+require 'gamemath'
+require 'quicktypes'
+require 'quickgamelib'
 require 'vector'
 
 -- is possible to only require the used records by not requiring any init:
 require 'rotor-quick.core'
 require 'rotor-quick.components.intersectable'
 
-local Vec2 = tico.Vec2
-local Color = tico.Color
-local Rectf = tico.Rectf
+local RQ_Comps = RotorQuick.Components
 
-local Intersectable = RotorQuick.Components.Intersectable
+local quad: vector(GameMath.Vec2) = {
+  (@GameMath.Vec2){ 0,  0},
+  (@GameMath.Vec2){32,  0},
+  (@GameMath.Vec2){32, 32},
+  (@GameMath.Vec2){ 0, 32}
+}
 
-local quad: vector(Vec2) = { (@Vec2){0,0}, (@Vec2){32,0}, (@Vec2){32,32}, (@Vec2){0,32} }
-
-local a: Intersectable = {}
+local a: RQ_Comps.Intersectable = {}
 a:init({}, {32,32}, quad.data)
 
-local b: Intersectable = {}
+local b: RQ_Comps.Intersectable = {}
 b:init({}, {128,128}, quad.data)
 
-local function draw_rect(r: Rectf, color: Color)
-  tico.graphics_draw_rectangle(r.x, r.y, math.ifloor(r.w), math.ifloor(r.h), color)
-end
+-- main:
+local ok, err_msg, core_state = QuickGame.init("Intersection test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 380, SDL_WINDOW_SHOWN)
+check(ok, err_msg)
 
-local nelua_argc: cint <cimport, nodecl>
-local nelua_argv: *[0]cstring <cimport, nodecl>
+local mx: integer, my: integer;
 
-local config = tico.config_init('Intersection test', 640, 380, nelua_argc, nelua_argv)
-tico.init(config)
-
-while not tico.window_should_close() do -- main loop
-  tico.update() -- update inputs, timers, ...
-
-  local mx, my = 0_cint, 0_cint
-  tico.input_get_mouse_pos(&mx, &my)
+while not core_state.quit do -- main loop
+  core_state:pool_events{
+    on_quit_event = nilptr,
+    on_key_event = nilptr,
+    on_mousemotion_event = function(mousemotion_evt: SDL_MouseMotionEvent)
+      mx = mousemotion_evt.x
+      my = mousemotion_evt.y
+    end
+  }
 
   a:set_global_rect({mx, my})
 
   local intersection, is_intersecting = a:get_intersection(b)
 
-  -- [[ begin batch render [[
-  tico.begin_draw()
+  core_state:render_clear(QuickGame.PALLETE.BG) -- clear screen with color
   do
-    tico.graphics_clear(tico.BG) -- clear screen with color
-
     local text = is_intersecting and 'is intersecting' or 'is not intersecting'
-    tico.graphics_draw_text(text, 0, 0, tico.WHITE)
 
-    draw_rect(a.global_rect, tico.WHITE)
-    draw_rect(b.global_rect, tico.WHITE)
+    --tico.graphics_draw_text(text, 0, 0, tico.WHITE)
+
+    core_state:render_draw_rect(a.global_rect:to_rect(), false, QuickGame.PALLETE.WHITE)
+    core_state:render_draw_rect(b.global_rect:to_rect(), false, QuickGame.PALLETE.WHITE)
 
     if is_intersecting then
-      draw_rect(intersection, tico.RED)
+      core_state:render_draw_rect(intersection:to_rect(), false, QuickGame.PALLETE.RED)
     end
   end
-  tico.end_draw()
-  -- ]] finish batch render ]]
+  core_state:render_present()
 end
 
-tico.terminate()
+core_state:terminate()
