@@ -1,38 +1,36 @@
 require 'math'
-require 'tico'
+require 'nene'
+require 'rotor-quick.core'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.intersectable'
 require 'rotor-quick.components.painter'
 
-local Intersectable = RotorQuick.Components.Intersectable
-local Painter = RotorQuick.Components.Painter
+local RQ_Comps = RotorQuick.Components
 
 global RotorQuick.Systems.IntersectablePainter = @MakeSystem('IntersectablePainter', @record{
-  intersectable: Intersectable,
-  painter: Painter
+  intersectable: RQ_Comps.Intersectable,
+  painter: RQ_Comps.Painter
 })
 
 local IntersectablePainter = RotorQuick.Systems.IntersectablePainter
 
-function IntersectablePainter:run()
+function IntersectablePainter:run(core_state: *Nene.CoreState)
   ## if PROF then
     nprof:push(#[IntersectablePainter.value.nickname]#)
     defer nprof:pop() end
   ## end
 
   for _, components in self:iterate_components() do
-    local intersectable: *Intersectable = components.intersectable
-    local painter: *Painter = components.painter
+    local intersectable: *RQ_Comps.Intersectable = components.intersectable
+    local painter: *RQ_Comps.Painter = components.painter
 
     if not painter.active then
       return
     end
 
-    tico.graphics_draw_rectangle(
-      intersectable.global_rect.x,
-      intersectable.global_rect.y,
-      math.ifloor(intersectable.global_rect.w),
-      math.ifloor(intersectable.global_rect.h),
+    core_state:render_draw_rect(
+      intersectable.global_rect:to_rect(),
+      painter.use_lines,
       painter.color
     )
   end

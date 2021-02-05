@@ -1,53 +1,42 @@
 require 'math'
-require 'tico'
+require 'nene'
+require 'rotor-quick.core'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.intersections'
 require 'rotor-quick.components.painter'
 
-local Color = tico.Color
-
-local Intersections = RotorQuick.Components.Intersections
-local Intersection = RotorQuick.Components.Intersections.Intersection
-local Painter = RotorQuick.Components.Painter
+local RQ_Comps = RotorQuick.Components
 
 global RotorQuick.Systems.IntersectionsPainter = @MakeSystem('IntersectionsPainter', @record{
-  intersections: Intersections,
-  painter: Painter
+  intersections: RQ_Comps.Intersections,
+  painter: RQ_Comps.Painter
 })
 
 local IntersectionsPainter = RotorQuick.Systems.IntersectionsPainter
 
-function IntersectionsPainter:run()
+function IntersectionsPainter:run(core_state: *Nene.CoreState)
   ## if PROF then
     nprof:push(#[IntersectionsPainter.value.nickname]#)
     defer nprof:pop() end
   ## end
 
   for _, components in self:iterate_components() do
-    local intersections: *Intersections = components.intersections
-    local painter: *Painter = components.painter
+    local intersections: *RQ_Comps.Intersections = components.intersections
+    local painter: *RQ_Comps.Painter = components.painter
 
     if not painter.active then
       return
     end
 
     for i = 0, < #intersections.intersections do
-      local intersection: *Intersection = intersections.intersections[i]
-      local rect_color: Color = (do
-        if intersection.cycles_live > 0 then
-          return tico.RED
-        else
-          return tico.GREEN
-        end
-      end)
+      local intersection: *RQ_Comps.Intersections.Intersection = intersections.intersections[i]
 
-      tico.graphics_draw_rectangle(
-        intersection.rect.x,
-        intersection.rect.y,
-        math.ifloor(intersection.rect.w),
-        math.ifloor(intersection.rect.h),
-        rect_color
+      local rect_color: Nene.Color = (
+        intersection.cycles_live > 0
+          and Nene.Palette.RED or Nene.Palette.GREEN
       )
+
+      core_state:render_draw_rect(intersection.rect:to_rect(), painter.use_lines, rect_color)
     end
   end
 

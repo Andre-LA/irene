@@ -1,15 +1,14 @@
-require 'os'
+require 'nene'
+require 'rotor-quick.core'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.sprite'
-require 'rotor-quick.components.animations'
+require 'rotor-quick.components.animation_player'
 
-local Position = RotorQuick.Components.Position
-local Sprite = RotorQuick.Components.Sprite
-local Animations = RotorQuick.Components.Animations
+local RQ_Comps = RotorQuick.Components
 
 global RotorQuick.Systems.SpriteAnimation = @MakeSystem('SpriteAnimation', @record{
-  sprite: Sprite,
-  animations: Animations
+  sprite: RQ_Comps.Sprite,
+  animation_player: RQ_Comps.AnimationPlayer
 })
 
 local SpriteAnimation = RotorQuick.Systems.SpriteAnimation
@@ -21,8 +20,34 @@ function SpriteAnimation:run()
   ## end
 
   for _, components in self:iterate_components() do
-    local sprite: *Sprite = components.sprite
-    tico.sprite_update(sprite.sprite)
+    local sprite: *RQ_Comps.Sprite = components.sprite
+    local anim_player: *RQ_Comps.AnimationPlayer = components.animation_player
+
+    if anim_player.paused then
+      return
+    end
+
+    local current_time = Nene.get_ms_time()
+    local diff_time = current_time - anim_player.last_change_time
+
+    local is_last_frame = sprite.current_frame >= anim_player.current_animation.to
+    local frame_is_done = diff_time * anim_player.speed > 1000 / anim_player.current_animation.fps
+
+    local should_change_frame = (do
+      if frame_is_done then
+        if is_last_frame then
+          return anim_player.looping
+        else
+          return true
+        end
+      end
+      return false
+    end)
+
+    if should_change_frame then
+      sprite.current_frame = is_last_frame and anim_player.current_animation.from or sprite.current_frame + 1
+      anim_player.last_change_time = current_time
+    end
   end
 end
 

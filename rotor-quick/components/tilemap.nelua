@@ -1,8 +1,9 @@
-require 'tico'
+require 'nene'
+require 'rotor-quick.core'
 require 'rotor-quick.makers'
 
 global RotorQuick.Components.Tilemap = @record{
-  tilemap: tico.Tilemap
+  tilemap: *Nene.Tilemap
 }
 
 local Tilemap = RotorQuick.Components.Tilemap

@@ -1,6 +1,6 @@
 require 'math'
 require 'gamemath'
-require 'quickgamelib'
+require 'nene'
 require 'rotor'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.position'
@@ -15,7 +15,7 @@ global RotorQuick.Systems.ShapePainter = @MakeSystem('ShapePainter', @record{
   painter: RQ_Comps.Painter
 })
 
-function RotorQuick.Systems.ShapePainter:run(core_state: *QuickGame.CoreState)
+function RotorQuick.Systems.ShapePainter:run(core_state: *Nene.CoreState)
   ## if PROF then
     nprof:push(#[ShapePainter.value.nickname]#)
     defer nprof:pop() end
@@ -44,7 +44,7 @@ function RotorQuick.Systems.ShapePainter:run(core_state: *QuickGame.CoreState)
     switch shape.category
     case ShapeCategory.Rectangle then
       local rectf: GameMath.Rectf = { global_pos.x, global_pos.y, size_x, size_y }
-      core_state:render_draw_rect(rectf:to_rect(), true, painter.color)
+      core_state:render_draw_rect(rectf:to_rect(), painter.use_lines, painter.color)
 
     case ShapeCategory.Circle then
       --tico.graphics_fill_circle(

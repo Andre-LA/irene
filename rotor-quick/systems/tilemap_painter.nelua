@@ -1,32 +1,35 @@
-require 'tico'
+require 'nene'
+require 'rotor-quick.core'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.position'
 require 'rotor-quick.components.painter'
 
-local Tilemap = RotorQuick.Components.Tilemap
-local Painter = RotorQuick.Components.Painter
+local RQ_Comps = RotorQuick.Components
 
 global RotorQuick.Systems.TilemapPainter = @MakeSystem('TilemapPainter', @record{
-  tilemap: Tilemap,
-  painter: Painter,
+  position: RQ_Comps.Position,
+  tilemap: RQ_Comps.Tilemap,
+  painter: RQ_Comps.Painter,
 })
 
 local TilemapPainter = RotorQuick.Systems.TilemapPainter
 
-function TilemapPainter:run()
+function TilemapPainter:run(core_state: *Nene.CoreState)
   ## if PROF then
     nprof:push(#[TilemapPainter.value.nickname]#)
     defer nprof:pop() end
   ## end
 
   for _, components in self:iterate_components() do
-    local tilemap: *Tilemap = components.tilemap
-    local painter: *Painter = components.painter
+    local position: *RQ_Comps.Position = components.position
+    local tilemap: *RQ_Comps.Tilemap = components.tilemap
+    local painter: *RQ_Comps.Painter = components.painter
 
     if not painter.active then
       return
     end
 
-    tico.tilemap_draw(tilemap.tilemap)
+    local drawpos = position:get_global_position()
+    core_state:render_draw_tilemap(tilemap.tilemap, drawpos, painter.color)
   end
 end

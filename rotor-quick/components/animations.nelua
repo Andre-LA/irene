@@ -1,9 +1,0 @@
-require 'os'
-require 'rotor-quick.makers'
-
-global RotorQuick.Components.Animations = @record{
-  data: byte, -- unnecessary, but empty records causes problems on storages
-}
-
-local Animations = RotorQuick.Components.Animations
-## is_component(Animations)

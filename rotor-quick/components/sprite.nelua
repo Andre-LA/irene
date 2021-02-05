@@ -1,9 +1,12 @@
-require 'tico'
+require 'gamemath'
+require 'nene'
+require 'rotor-quick.core'
 require 'rotor-quick.makers'
 
 global RotorQuick.Components.Sprite = @record{
-  sprite: tico.Sprite,
-  offset: tico.Vec2,
+  spritesheet: *Nene.SpriteSheet,
+  current_frame: uinteger,
+  offset: GameMath.Vec2,
   layer: usize,
 }
 

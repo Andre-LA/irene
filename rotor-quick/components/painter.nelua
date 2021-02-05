@@ -1,9 +1,9 @@
-require 'quicktypes'
 require 'rotor-quick.makers'
 
 global RotorQuick.Components.Painter = @record{
-  color: QuickTypes.Color,
+  color: Nene.Color,
   active: boolean,
+  use_lines: boolean,
 }
 
 local Painter = RotorQuick.Components.Painter
