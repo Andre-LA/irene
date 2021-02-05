@@ -4,8 +4,7 @@
 
 require 'math'
 require 'gamemath'
-require 'quicktypes'
-require 'quickgamelib'
+require 'nene'
 require 'vector'
 
 -- is possible to only require the used records by not requiring any init:
@@ -14,7 +13,7 @@ require 'rotor-quick.components.intersectable'
 
 local RQ_Comps = RotorQuick.Components
 
-local quad: vector(GameMath.Vec2) = {
+local quads: vector(GameMath.Vec2) = {
   (@GameMath.Vec2){ 0,  0},
   (@GameMath.Vec2){32,  0},
   (@GameMath.Vec2){32, 32},
@@ -22,42 +21,45 @@ local quad: vector(GameMath.Vec2) = {
 }
 
 local a: RQ_Comps.Intersectable = {}
-a:init({}, {32,32}, quad.data)
+a:init({}, {32,32}, quads.data)
 
 local b: RQ_Comps.Intersectable = {}
-b:init({}, {128,128}, quad.data)
+b:init({}, {100,100}, quads.data)
 
 -- main:
-local ok, err_msg, core_state = QuickGame.init("Intersection test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 380, SDL_WINDOW_SHOWN)
+local ok, err_msg, core_state = Nene.init(
+  "Intersection test",
+  SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+  300, 300,
+  SDL_WINDOW_SHOWN
+)
 check(ok, err_msg)
 
 local mx: integer, my: integer;
 
 while not core_state.quit do -- main loop
-  core_state:pool_events{
-    on_quit_event = nilptr,
-    on_key_event = nilptr,
-    on_mousemotion_event = function(mousemotion_evt: SDL_MouseMotionEvent)
-      mx = mousemotion_evt.x
-      my = mousemotion_evt.y
+  core_state:pool_events((@Nene.Callbacks){
+    motion_cb = function(motion: SDL_MouseMotionEvent)
+      mx = motion.x
+      my = motion.y
     end
-  }
+  })
 
   a:set_global_rect({mx, my})
 
   local intersection, is_intersecting = a:get_intersection(b)
 
-  core_state:render_clear(QuickGame.PALLETE.BG) -- clear screen with color
+  core_state:render_clear(Nene.Palette.BG) -- clear screen with color
   do
     local text = is_intersecting and 'is intersecting' or 'is not intersecting'
 
     --tico.graphics_draw_text(text, 0, 0, tico.WHITE)
 
-    core_state:render_draw_rect(a.global_rect:to_rect(), false, QuickGame.PALLETE.WHITE)
-    core_state:render_draw_rect(b.global_rect:to_rect(), false, QuickGame.PALLETE.WHITE)
+    core_state:render_draw_rect(a.global_rect:to_rect(), false, Nene.Palette.WHITE)
+    core_state:render_draw_rect(b.global_rect:to_rect(), false, Nene.Palette.WHITE)
 
     if is_intersecting then
-      core_state:render_draw_rect(intersection:to_rect(), false, QuickGame.PALLETE.RED)
+      core_state:render_draw_rect(intersection:to_rect(), false, Nene.Palette.GREEN)
     end
   end
   core_state:render_present()

@@ -1,6 +1,7 @@
 -- minimal example of a box falling
 
 require 'rotor'
+require 'nene'
 
 -- is possible to only require the used records by not requiring any init:
 -- however it may be better to just require everything once, in this case,
@@ -15,32 +16,22 @@ require 'rotor-quick.systems.gravity_applier'
 require 'rotor-quick.systems.shape_painter'
 require 'rotor-quick.systems.velocity_applier'
 
-local nelua_argc: cint <cimport, nodecl>
-local nelua_argv: *[0]cstring <cimport, nodecl>
+local RQ_Comps = RotorQuick.Components
+local RQ_Sys = RotorQuick.Systems
 
-local Position = RotorQuick.Components.Position
-local Shape = RotorQuick.Components.Shape
-local Painter = RotorQuick.Components.Painter
-local Velocity = RotorQuick.Components.Velocity
-local Gravity = RotorQuick.Components.Gravity
-
-local GravityApplier = RotorQuick.Systems.GravityApplier
-local ShapePainter = RotorQuick.Systems.ShapePainter
-local VelocityApplier = RotorQuick.Systems.VelocityApplier
-
-local gravity_applier = GravityApplier.new()
-local shape_painter = ShapePainter.new()
-local velocity_applier = VelocityApplier.new()
+local gravity_applier = RQ_Sys.GravityApplier.new()
+local shape_painter = RQ_Sys.ShapePainter.new()
+local velocity_applier = RQ_Sys.VelocityApplier.new()
 
 local SCREEN_WIDTH: integer <comptime> = 800
 local SCREEN_HEIGHT: integer <comptime> = 450
 
 local FallingBox = @MakeEntity('falling_box',
-  Position,
-  Shape,
-  Painter,
-  Velocity,
-  Gravity
+  RQ_Comps.Position,
+  RQ_Comps.Shape,
+  RQ_Comps.Painter,
+  RQ_Comps.Velocity,
+  RQ_Comps.Gravity
 )
 
 local falling_box, falling_box_entity = FallingBox.new{
@@ -48,11 +39,11 @@ local falling_box, falling_box_entity = FallingBox.new{
     origin_position = {32, 32},
   },
   shape    = {
-    category = Shape.ShapeCategory.Rectangle,
+    category = RQ_Comps.Shape.ShapeCategory.Rectangle,
     vertices = { {0, 0}, {16, 0}, {16, 16}, {0, 16} }
   },
   painter  = {
-    color = QuickGame.PALLETE.WHITE,
+    color = Nene.Palette.YELLOW,
     active = true
   },
   velocity = {
@@ -70,20 +61,16 @@ gravity_applier.system_data:update(falling_box_entity)
 shape_painter.system_data:update(falling_box_entity)
 velocity_applier.system_data:update(falling_box_entity)
 
-local ok, err_msg, core_state = QuickGame.init("Basic Gravity test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 450, SDL_WINDOW_SHOWN)
+local ok, err_msg, core_state = Nene.init("Basic Gravity test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 450, SDL_WINDOW_SHOWN)
 check(ok, err_msg)
 
 while not core_state.quit do
-  core_state:pool_events{
-    on_quit_event = nilptr,
-    on_key_event = nilptr,
-    on_mousemotion_event = nilptr
-  }
+  core_state:pool_events()
 
   gravity_applier:run()
   velocity_applier:run()
 
-  core_state:render_clear(QuickGame.PALLETE.BG)
+  core_state:render_clear(Nene.Palette.BG)
   do
     shape_painter:run(core_state)
   end
