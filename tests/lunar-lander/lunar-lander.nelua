@@ -1,40 +1,38 @@
+--[[ TODO
+-- texto
+-- camera
+--]]
+
 -- [[ requires and imports [[
-
-##[[
-  TICO = {
-    L = '../../tinycoffee/build',
-    I = {
-      include = "../../tinycoffee/include",
-      external = "../../tinycoffee/external"
-    },
-  }
-]]
-
-local editor = false
 
 require 'math'
 
-require 'tico'
+require 'gamemath'
+require 'nene'
+
 require 'rotor'
 require 'rotor-quick'
 require 'rotor-quick.makers'
 
-local RQComponents = RotorQuick.Components
+local RQ_Comps = RotorQuick.Components
+local RQ_Sys = RotorQuick.Systems
 
 -- ]] requires and imports ]]
 
 -- Main Game records and general variables
-local Lander_Start_Position: tico.Vec2 = {}
+local Lander_Start_Position: GameMath.Vec2 = {}
 local LANDER_MAX_VELOCITY <comptime> = 300
 
-local nelua_argc: cint <cimport, nodecl>
-local nelua_argv: *[0]cstring <cimport, nodecl>
-local config = tico.config_load('project.tico', nelua_argc, nelua_argv)
+local SCREEN_WIDTH <comptime> = 800
+local SCREEN_HEIGHT <comptime> = 624
 
-local game_res_json = tico.json_load'assets/jsons/game_resources'
-defer tico.json_delete(game_res_field) end
-
-tico.init(config)
+local ok, err_msg, core_state = Nene.init(
+  "Lunar lander test",
+  SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+  SCREEN_WIDTH, SCREEN_HEIGHT,
+  SDL_WINDOW_SHOWN
+)
+check(ok, err_msg)
 
 local GameLayers = @enum{
   Background = 0,
@@ -59,6 +57,7 @@ local LanderState = @enum {
 
 local LanderController = @record{
   prop_sprite_id: GenerationalIndex,
+  prop_anim_pl_id: GenerationalIndex,
   propulsion_force: number,
   state: LanderState
 }
@@ -70,29 +69,38 @@ local LanderController = @record{
 
 local LanderControllerSystem = @MakeSystem('LanderController', @record{
   lander_controller: LanderController,
-  velocity: RQComponents.Velocity,
-  gravity: RQComponents.Gravity,
+  velocity: RQ_Comps.Velocity,
+  gravity: RQ_Comps.Gravity,
 })
 
-function LanderControllerSystem:run()
+function LanderControllerSystem:run(core_state: *Nene.CoreState)
   for _, components in self:iterate_components() do
     local lander_controller: *LanderController = components.lander_controller
-    local velocity: *RQComponents.Velocity = components.velocity
-    local gravity: *RQComponents.Gravity = components.gravity
+    local velocity: *RQ_Comps.Velocity = components.velocity
+    local gravity: *RQ_Comps.Gravity = components.gravity
 
-    local is_right_down, is_up_down, is_left_down = tico.input_key_down(tico.KEY.KEY_RIGHT),
-                                                    tico.input_key_down(tico.KEY.KEY_UP),
-                                                    tico.input_key_down(tico.KEY.KEY_LEFT)
+    local is_right_down, is_up_down, is_left_down = core_state:get_key(SDL_Scancode.SDL_SCANCODE_RIGHT),
+                                                    core_state:get_key(SDL_Scancode.SDL_SCANCODE_UP),
+                                                    core_state:get_key(SDL_Scancode.SDL_SCANCODE_LEFT)
 
-    local prop_sprite_opt =  RQComponents.Sprite.get_entry_from_id(lander_controller.prop_sprite_id)
+    local prop_sprite_opt = RQ_Comps.Sprite.get_entry_from_id(lander_controller.prop_sprite_id)
+    local prop_anim_pl_opt = RQ_Comps.AnimationPlayer.get_entry_from_id(lander_controller.prop_anim_pl_id)
 
-    if prop_sprite_opt.filled then
+    check(prop_sprite_opt.filled, 'prop_sprite_opt is not filled')
+    check(prop_anim_pl_opt.filled, 'prop_anim_pl_opt is not filled')
+
+    if prop_sprite_opt.filled and prop_anim_pl_opt.filled then
       local prop_sprite = prop_sprite_opt:get()
-      tico.sprite_play(prop_sprite.sprite, is_up_down and 'active' or 'inactive')
+      local prop_anim_pl = prop_anim_pl_opt:get()
+
+      local ok, anim_range = prop_sprite.spritesheet:get_named_animation_range(is_up_down and 'prop_active' or 'prop_inactive')
+      check(ok, 'animation range not found')
+
+      prop_anim_pl:change_animation(prop_sprite, anim_range)
     end
 
     if is_right_down or is_up_down or is_left_down then
-      local direction: tico.Vec2 = {
+      local direction: GameMath.Vec2 = {
         x = (do
           if is_right_down then
             return 1
@@ -116,77 +124,76 @@ end
 -- [[ entities [[
 
 local SafeLanding = @MakeEntity('safe_landing',
-  RQComponents.Position,
-  RQComponents.Shape,
-  RQComponents.Sprite,
-  RQComponents.Painter,
-  RQComponents.Intersectable,
+  RQ_Comps.Position,
+  RQ_Comps.Shape,
+  RQ_Comps.Sprite,
+  RQ_Comps.Painter,
+  RQ_Comps.Intersectable,
   IsSafeLanding
 )
 
 local FloorArea = @MakeEntity('floor_area',
-  RQComponents.Position,
-  RQComponents.Shape,
-  RQComponents.Intersectable,
-  IsFloor
+  RQ_Comps.Position,
+  RQ_Comps.Shape,
+  RQ_Comps.Intersectable,
+  IsFloor,
+  RQ_Comps.Painter
 )
 
 local Lander = @MakeEntity('lander',
-  RQComponents.Position,
-  RQComponents.SceneGraphNode,
-  RQComponents.Shape,
-  RQComponents.Sprite,
-  RQComponents.Painter,
-  RQComponents.Velocity,
-  RQComponents.Gravity,
-  RQComponents.Intersectable,
-  RQComponents.Intersections,
+  RQ_Comps.Position,
+  RQ_Comps.SceneGraphNode,
+  RQ_Comps.Shape,
+  RQ_Comps.Sprite,
+  RQ_Comps.Painter,
+  RQ_Comps.Velocity,
+  RQ_Comps.Gravity,
+  RQ_Comps.Intersectable,
+  RQ_Comps.Intersections,
 
   LanderController,
 
   @MakeEntity('lander_propulsion',
-    RQComponents.Position,
-    RQComponents.SceneGraphNode,
-    RQComponents.Sprite,
-    RQComponents.Animations,
-    RQComponents.Painter
+    RQ_Comps.Position,
+    RQ_Comps.SceneGraphNode,
+    RQ_Comps.Sprite,
+    RQ_Comps.AnimationPlayer,
+    RQ_Comps.Painter
   ),
 
   @MakeEntity('camera',
-    RQComponents.Position,
-    RQComponents.SceneGraphNode,
-    RQComponents.CameraHolder
+    RQ_Comps.Position,
+    RQ_Comps.SceneGraphNode,
+    RQ_Comps.CameraHolder
   )
-)
-
-local LunarMap = @MakeEntity('lunar_map',
-  RotorQuick.Components.Tilemap,
-  RQComponents.Painter
 )
 
 local LanderPropulsionEntity: type = #[Lander.value.fields.lander_propulsion.type]#
 local CameraEntity: type = #[Lander.value.fields.camera.type]#
 
+local LunarMap = @MakeEntity('lunar_map',
+  RQ_Comps.Position,
+  RQ_Comps.Tilemap,
+  RQ_Comps.Painter
+)
+
+
 local BackgroundEntity = @MakeEntity('background_entity',
-  RQComponents.Position,
-  RQComponents.Sprite,
-  RQComponents.Painter
+  RQ_Comps.Position,
+  RQ_Comps.Sprite,
+  RQ_Comps.Painter
 )
 
 -- ]] entities ]]
 
 -- [[ Game State [[
-
 local GameState = @record{
   -- entities
   lander: Lander,
   lunarmaps: record{
-    floormap: LunarMap,
-    safemap: LunarMap,
+    map: LunarMap,
     bgmap: LunarMap,
   },
-  -- internal tico state
-  editor: *tico.Editor,
   -- systems
   systems: record{
     lander_ctrl_system: LanderControllerSystem,
@@ -208,52 +215,37 @@ local GameState = @record{
   last_startmusic_time: float32,
   -- resources
   resources: record{
-    game_resources_field: *tico.Field,
-    maps: record{
-      floormap: tico.Tilemap,
-      safemap: tico.Tilemap,
-      bgmap: tico.Tilemap,
+    textures: record{
+      sprites: Nene.Texture,
     },
-    Images: record{
-      lander_img: tico.Image,
-      propulsion_img: tico.Image,
+    atlases: record{
+      player: Nene.TextureAtlas,
+      map: Nene.TextureAtlas,
+      bg: Nene.TextureAtlas,
+    },
+    spritesheets: record{
+      player: Nene.SpriteSheet,
+    },
+    maps: record{
+      map: Nene.Tilemap,
+      bgmap: Nene.Tilemap,
     },
     audio: record{
-      music: record{ -- using something similar to double buffering, since our music is not "loop-friendly"
-        music1: tico.Sound,
-        music2: tico.Sound,
-      },
+      music: Nene.Music,
       sound_effects: record{
-        land: tico.Sound,
-        hit: tico.Sound
+        land: Nene.Sound,
+        hit: Nene.Sound
       }
     },
   }
 }
 
 function GameState:unload()
-  tico.sound_stop(self.resources.audio.sound_effects.land)
-  tico.sound_unload(self.resources.audio.sound_effects.land)
+  self.resources.audio.sound_effects.land:stop_and_free()
+  self.resources.audio.sound_effects.hit:stop_and_free()
 
-  tico.sound_stop(self.resources.audio.sound_effects.hit)
-  tico.sound_unload(self.resources.audio.sound_effects.hit)
-
-  tico.sound_stop(self.resources.audio.music.music1)
-  tico.sound_unload(self.resources.audio.music.music1)
-
-  tico.sound_stop(self.resources.audio.music.music2)
-  tico.sound_unload(self.resources.audio.music.music2)
-end
-
-function GameState:manage_music()
-  local music_end_time: number <comptime> = 60 * 2 + 24.1 -- 2:24 is when the music ends and should loop
-
-  if tico.timer_get_time() - self.last_startmusic_time >= music_end_time then
-    self.last_startmusic_time = tico.timer_get_time()
-
-    local music2_is_playing = tico.sound_is_playing(self.resources.audio.music.music2)
-    tico.sound_play(music2_is_playing and self.resources.audio.music.music1 or self.resources.audio.music.music2)
-  end
+  core_state:stop_music()
+  self.resources.audio.music:free()
 end
 
 function GameState:update_systems(entity: *Entity)
@@ -276,45 +268,167 @@ function GameState:reset()
   intersectable:set_global_rect(position:get_global_position())
 end
 
-local Game_State: GameState = {
-  lander = {},
-  lunarmaps = {},
-  editor = $(@*tico.Editor)(tico.plugin_get('editor').data),
-  systems = { --[[initialized later]] },
-  resources = {
-    jsons = tico.field_from_json(game_res_json, nilptr),
-
-    maps = { --[[initialized later]] },
-    textures = {
-      lander_img = $((@*tico.Image)(tico.plugin_resources_get('image', 'lunarlander').data)),
-      propulsion_img = $((@*tico.Image)(tico.plugin_resources_get('image', 'propulsion').data))
-    },
-    audio = {
-      music = {
-        music1 = tico.sound_load("assets/lunar-lander-music.ogg", tico.AUDIO_USAGE.AUDIO_STREAM),
-        music2 = tico.sound_load("assets/lunar-lander-music.ogg", tico.AUDIO_USAGE.AUDIO_STREAM)
-      },
-      sound_effects = {
-        land = tico.sound_load("assets/land.wav", tico.AUDIO_USAGE.AUDIO_STREAM),
-        hit = tico.sound_load("assets/hit.wav", tico.AUDIO_USAGE.AUDIO_STREAM)
-      }
-    },
-  }
-}
+local Game_State: GameState = { --[[initialized below]] }
 
 -- Game_State remaining init:
 do
-  do
-    ## for _, mapres_v in ipairs(GameState.value.fields.resources.type.fields.maps.type.fields) do
-      local tilemap_res = tico.plugin_resources_get('tilemap', #[mapres_v.name]#)
-      local tilemap_json: *tico.cJSON = (@*tico.cJSON)(tilemap_res.data)
-      tico.tilemap_from_json(Game_State.resources.maps.#|mapres_v.name|#, tilemap_json)
-    ## end
+  do -- audio
+    local ok, errmsg, music = core_state:load_music'tests/lunar-lander/assets/lunar-lander-music.ogg'
+    check(ok, errmsg)
+    Game_State.resources.audio.music = music
 
-    ## for _, objres_v in ipairs(GameState.value.fields.resources.type.fields.jsons.type.fields) do
-      local json_res = tico.plugin_resources_get('object', #[objres_v.name]#)
-      Game_State.resources.jsons.#|objres_v.name|# = (@*tico.cJSON)(json_res.data)
-    ## end
+    local ok, errmsg, land = core_state:load_sound'tests/lunar-lander/assets/land.wav'
+    check(ok, errmsg)
+    Game_State.resources.audio.sound_effects.land = land
+
+    local ok, errmsg, hit = core_state:load_sound'tests/lunar-lander/assets/hit.wav'
+    check(ok, errmsg)
+    Game_State.resources.audio.sound_effects.hit = hit
+  end
+
+  do -- texture sprites
+    local ok, err_msg, texture = core_state:load_texture'tests/lunar-lander/assets/figures/sprites.png'
+    check(ok, err_msg)
+    Game_State.resources.textures.sprites = texture
+  end
+
+  do -- atlases
+    Game_State.resources.atlases.player = {
+      texture = Game_State.resources.textures.sprites,
+      unit_width = 16,
+      unit_height = 16
+    }
+
+    Game_State.resources.atlases.map = {
+      texture = Game_State.resources.textures.sprites,
+      unit_width = 16,
+      unit_height = 16
+    }
+
+    Game_State.resources.atlases.bg = {
+      texture = Game_State.resources.textures.sprites,
+      unit_width = 32,
+      unit_height = 32
+    }
+  end
+
+  do -- spritesheets
+    Game_State.resources.spritesheets.player = {
+      atlas = Game_State.resources.atlases.player,
+      animations = {
+        {
+          name = 'lander_idle', fps = 1,
+          from = 9, to = 9,
+        }, {
+          name = 'prop_active', fps = 12,
+          from = 0, to = 1,
+        }, {
+          name = 'prop_inactive', fps = 1,
+          from = 4, to = 4,
+        }
+      },
+    }
+  end
+
+  do --maps
+    local _map: vector(isize) = {}
+
+    ##[[
+      for i_line, line in ipairs{
+        'ffffffffffffffffffffffffffffffffffffffffffffffffff',
+        'f                                                f',
+        'f L                                              f',
+        'f                                                f',
+        'f                                                f',
+        'f                                                f',
+        'f               fffffffffffffffffffffffffff      f',
+        'f               f                         f      f',
+        'f               f                         f      f',
+        'fffffffffffffffff                         f      f',
+        'f                                         f      f',
+        'f                                         f      f',
+        'f                              f          f      f',
+        'f                              f          f      f',
+        'f         fffffff              f          f      f',
+        'f         f f   f              f          f      f',
+        'f         f f   f              f                 f',
+        'f         f f   ffffffffffffffff                 f',
+        'f         f f                  f                 f',
+        'f         f f                  f                 f',
+        'f         f f                  f                 f',
+        'f         f f       f          f                 f',
+        'f         f f       f          f                 f',
+        'f         f f       f          f                 f',
+        'f     fffffff     fff          fffffffffffffffffff',
+        'f     ff            f                            f',
+        'f     f             f                            f',
+        'f     f             f                            f',
+        'f     f       ffffffffffffffffffffffffff         f',
+        'f     f             f                            f',
+        'f     f             f                            f',
+        'f     f             f                            f',
+        'f     f             f                            f',
+        'f     fffffff       f       ffffffffffffffffffffff',
+        'f                   f                            f',
+        'f                   f                            f',
+        'f                   f                            f',
+        'f                   f                            f',
+        'fffffffffffffffffffffffffffffffffsssssssssssffffff'
+      } do
+        for c = 1, #line do
+          local chartile = line:sub(c, c)
+          local charframe = -1
+
+          if chartile == 'f' then
+            charframe = 5
+          elseif chartile == 's' then
+            charframe = 6
+          end
+    ]]
+          _map:push(#[charframe]#)
+
+          ## if chartile == 'L' then
+            ## local pos_x, pos_y = (c-1) * 16, (i_line - 1) * 16
+            Lander_Start_Position = { #[pos_x]#, #[pos_y]# }
+          ## end
+    ##[[
+        end
+      end
+    ]]
+
+    Game_State.resources.maps.map = {
+      atlas = Game_State.resources.atlases.map,
+      width = 50,
+      height = 38,
+      map = _map,
+    }
+
+    Game_State.resources.maps.bgmap = {
+      atlas = Game_State.resources.atlases.bg,
+      width = 25,
+      height = 19,
+      map = {
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+      }
+    }
   end
 
   ## for _, sys_v in ipairs(GameState.value.fields.systems.type.fields) do
@@ -323,38 +437,28 @@ do
 end
 
 function GameState:create_camera_entity(): CameraEntity
-  local camera = tico.camera_create(Lander_Start_Position.x, Lander_Start_Position.y, 1, 1)
-  camera.size = { 4, 4 }
-  camera.offset = { tico.window_get_width() / 2 - 32, tico.window_get_height() / 2 - 32}
+  --local camera = tico.camera_create(Lander_Start_Position.x, Lander_Start_Position.y, 1, 1)
+  --camera.size = { 4, 4 }
+  --camera.offset = { SCREEN_WIDTH / 2 - 32, SCREEN_HEIGHT / 2 - 32}
 
   local camera_entity, camera_entity_entity = CameraEntity.new{
     position         = {},
     scene_graph_node = {},
-    camera_holder    = { =camera }
+    camera_holder    = {} -- =camera }
   }
 
-  local scene_graph_node = camera_entity:get_scene_graph_node()
-  scene_graph_node:init(camera_entity.entity_id, camera_entity.scene_graph_node_id)
-
-  self:update_systems(camera_entity_entity)
-
+  --local scene_graph_node = camera_entity:get_scene_graph_node()
+  --scene_graph_node:init(camera_entity.entity_id, camera_entity.scene_graph_node_id)
+--
+  --self:update_systems(camera_entity_entity)
+--
   return camera_entity
 end
 
 function GameState:create_lander_propulsion(): LanderPropulsionEntity
-  local sprite: tico.Sprite = {}
-  do
-    local sprite_restyname = tico.json_get_string(Game_State.resources.jsons.propulsion, 'sprite', 0)
-    local sprite_resname = stringview.subview(sprite_restyname, #[#('sprite//') + 1]#)
-    local sprite_res = tico.plugin_resources_get('sprite', sprite_resname)
-    local sprite_json = (@*tico.cJSON)(sprite_res.data)
-
-    tico.sprite_from_json(sprite, sprite_json)
-  end
-  tico.sprite_play(sprite, 'inactive')
-
-  local lander_propulstion_sprite: RQComponents.Sprite = {
-    sprite = sprite,
+  local lander_propulstion_sprite: RQ_Comps.Sprite = {
+    spritesheet = self.resources.spritesheets.player,
+    current_frame = 4,
     offset = { 0, 0 },
     layer = GameLayers.Propulsion,
   }
@@ -363,8 +467,11 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
     position         = {},
     scene_graph_node = {},
     sprite           = lander_propulstion_sprite,
-    animations       = {},
-    painter          = { color = tico.WHITE, active = true }
+    animation_player = {
+      speed = 1,
+      looping = true,
+    },
+    painter          = { color = Nene.Palette.WHITE, active = true }
   }
 
   local position = lander_propulsion:get_position()
@@ -383,7 +490,7 @@ end
 -- [[ callbacks [[
 
 -- helper function to know if some intersectable is owned by a floor entity
-local function intersected_is_floor(other_intersectable: *RQComponents.Intersectable)
+local function intersected_is_floor(other_intersectable: *RQ_Comps.Intersectable)
   local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
 
   if opt_other_entity.filled then
@@ -396,7 +503,7 @@ local function intersected_is_floor(other_intersectable: *RQComponents.Intersect
 end
 
 -- helper function to know if some intersectable is owned by a safe landing entity
-local function intersected_is_safe_landing(other_intersectable: *RQComponents.Intersectable)
+local function intersected_is_safe_landing(other_intersectable: *RQ_Comps.Intersectable)
 local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectable.entity_id)
 
   if opt_other_entity.filled then
@@ -409,25 +516,20 @@ local opt_other_entity = RotorQuick.storages.entity:get_entry(other_intersectabl
 end
 
 -- callback when lander intersects other intersectable
-local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *RQComponents.Intersectable, self_intersections: *RQComponents.Intersections, other_intersectable: *RQComponents.Intersectable)
+local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *RQ_Comps.Intersectable, self_intersections: *RQ_Comps.Intersections, other_intersectable: *RQ_Comps.Intersectable)
+  local lander_controller = lander:get_lander_controller()
+
   if intersected_is_safe_landing(other_intersectable) then
-    local lander_controller = lander:get_lander_controller()
     lander_controller.state = LanderState.Landed
-
-    tico.sound_stop(Game_State.resources.audio.sound_effects.land)
-    tico.sound_play(Game_State.resources.audio.sound_effects.land)
-
+    Game_State.resources.audio.sound_effects.land:play()
   elseif intersected_is_floor(other_intersectable) then
-    local lander_controller = lander:get_lander_controller()
     lander_controller.state = LanderState.Crashed
-
-    tico.sound_stop(Game_State.resources.audio.sound_effects.hit)
-    tico.sound_play(Game_State.resources.audio.sound_effects.hit)
+    Game_State.resources.audio.sound_effects.hit:play()
   end
 end
 
 -- callback when lander exit the intersection with other intersectable
-local function on_lander_intersect_exit(lander: *Lander, self_intersectable: *RQComponents.Intersectable, self_intersections: *RQComponents.Intersections, other_intersectable: *RQComponents.Intersectable)
+local function on_lander_intersect_exit(lander: *Lander, self_intersectable: *RQ_Comps.Intersectable, self_intersections: *RQ_Comps.Intersections, other_intersectable: *RQ_Comps.Intersectable)
   if intersected_is_safe_landing(other_intersectable) then
     local lander_controller = lander:get_lander_controller()
     lander_controller.state = LanderState.Flying
@@ -438,22 +540,11 @@ end
 
 -- [[ Game State extensions [[
 
-function GameState:create_lander(pos: tico.Vec2): Lander
-  local sprite: tico.Sprite = {}
-  do
-    local sprite_restyname = tico.json_get_string(Game_State.resources.jsons.lander, 'sprite', 0)
-    local sprite_resname = stringview.subview(sprite_restyname, #[#('sprite//') + 1]#)
-    local sprite_res = tico.plugin_resources_get('sprite', sprite_resname)
-    local sprite_json = (@*tico.cJSON)(sprite_res.data)
+function GameState:create_lander(pos: GameMath.Vec2): Lander
+  local gravity_acceleration: number <comptime> = 0.05
 
-    tico.sprite_from_json(sprite, sprite_json)
-  end
-  tico.sprite_play(sprite, 'idle')
-
-  local gravity_acceleration: number <comptime> = 7
-
-  local lander_shape: RQComponents.Shape = {
-    category = RQComponents.Shape.ShapeCategory.Polygon,
+  local lander_shape: RQ_Comps.Shape = {
+    category = RQ_Comps.Shape.ShapeCategory.Polygon,
 
     -- create 8 elements with no actual used values, the numbers here are just for code clarity about the indexes
     vertices = { {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} }
@@ -472,53 +563,68 @@ function GameState:create_lander(pos: tico.Vec2): Lander
     lander_shape.vertices[ #[i]# ] = { #[cos*radius + radius]#, #[sin*radius + radius]# }
   ## end
 
-  local lander_sprite: RQComponents.Sprite = {
-    sprite = sprite,
+  local lander_sprite: RQ_Comps.Sprite = {
+    spritesheet = self.resources.spritesheets.player,
+    current_frame = 9,
     offset = { 0, 0 },
     layer = GameLayers.Lander
   }
 
   local lander, lander_entity = Lander.new{
-    position         = { local_position = pos },
+    position = { local_position = pos },
+
     scene_graph_node = { },
-    shape            = lander_shape,
-    sprite           = lander_sprite,
-    painter          = {
+
+    shape = lander_shape,
+
+    sprite = lander_sprite,
+
+    painter = {
       active = true,
-      color = tico.WHITE
+      use_lines = true,
+      color = Nene.Palette.WHITE
     },
+
     velocity = {
       active = true,
       final_velocity = {0,0},
       max_velocity = LANDER_MAX_VELOCITY,
       velocity_is_limited = true
     },
+
     gravity = {
       active = true,
       acceleration = gravity_acceleration,
       direction = {0.0, 1.0}
     },
+
     intersectable = { },
+
     intersections = {
       intersections = {},
-      on_enter_callback = function(self_intersectable: *RQComponents.Intersectable, self_intersections: *RQComponents.Intersections, other_intersectable: *RQComponents.Intersectable)
+      on_enter_callback = function(self_intersectable: *RQ_Comps.Intersectable, self_intersections: *RQ_Comps.Intersections, other_intersectable: *RQ_Comps.Intersectable)
         on_lander_intersect_enter(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
       end,
-      on_exit_callback =  function (self_intersectable: *RQComponents.Intersectable, self_intersections: *RQComponents.Intersections, other_intersectable: *RQComponents.Intersectable)
+      on_exit_callback =  function (self_intersectable: *RQ_Comps.Intersectable, self_intersections: *RQ_Comps.Intersections, other_intersectable: *RQ_Comps.Intersectable)
         on_lander_intersect_exit(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
       end
     },
+
     lander_controller = {
       prop_sprite_id = {0, 0},
       propulsion_force = gravity_acceleration * 2.5,
       state = LanderState.Flying
     },
+
     lander_propulsion = lprop,
-    camera            = self:create_camera_entity()
+
+    camera = self:create_camera_entity()
   }
 
   local lander_controller = lander:get_lander_controller()
+
   lander_controller.prop_sprite_id = lander.lander_propulsion.sprite_id
+  lander_controller.prop_anim_pl_id = lander.lander_propulsion.animation_player_id
 
   local intersectable = lander:get_intersectable()
   intersectable:init(lander.entity_id, pos, lander_shape.vertices.data)
@@ -534,12 +640,16 @@ function GameState:create_lander(pos: tico.Vec2): Lander
   return lander
 end
 
-function GameState:create_tilemap(tilemap: tico.Tilemap): LunarMap
+function GameState:create_tilemap(tilemap: *Nene.Tilemap, pos: GameMath.Vec2): LunarMap
   local lunarmap, lunarmap_entity = LunarMap.new{
+    position = { local_position = pos },
+
     tilemap = { tilemap = tilemap },
 
     painter = {
       active = true,
+      color = Nene.Palette.WHITE,
+      use_lines = true,
     }
   }
 
@@ -548,17 +658,26 @@ function GameState:create_tilemap(tilemap: tico.Tilemap): LunarMap
   return lunarmap
 end
 
-function GameState:create_floorarea(pos: tico.Vec2, size: tico.Vec2): FloorArea
-  local floorarea_shape: RQComponents.Shape = {
-    category = RQComponents.Shape.ShapeCategory.Rectangle,
+function GameState:create_floorarea(pos: GameMath.Vec2, size: GameMath.Vec2): FloorArea
+  local floorarea_shape: RQ_Comps.Shape = {
+    category = RQ_Comps.Shape.ShapeCategory.Rectangle,
     vertices = { {0, 0}, {size.x, 0}, {size.x, size.y}, {0, size.y} }
   }
 
   local floorarea, floorarea_entity = FloorArea.new{
     position = {local_position = pos},
+
     shape = floorarea_shape,
+
     intersectable = {},
-    is_floor = {}
+
+    is_floor = {},
+
+    painter = {
+      active = true,
+      use_lines = true,
+      color = Nene.Palette.WHITE,
+    }
   }
 
   local intersectable = floorarea:get_intersectable()
@@ -572,59 +691,41 @@ end
 -- ]] Game State extensions ]]
 
 -- [[ Game Start [[
-
-Game_State.lunarmaps.bgmap = Game_State:create_tilemap(Game_State.resources.maps.bgmap)
-Game_State.lunarmaps.floormap = Game_State:create_tilemap(Game_State.resources.maps.floormap)
-Game_State.lunarmaps.safemap = Game_State:create_tilemap(Game_State.resources.maps.safemap)
+Game_State.lunarmaps.bgmap = Game_State:create_tilemap(Game_State.resources.maps.bgmap, {0,16})
+Game_State.lunarmaps.map = Game_State:create_tilemap(Game_State.resources.maps.map, {0,0})
 
 do
-  local floormap_res = tico.plugin_resources_get('tilemap', 'floormap')
-  local floormap_json = (@*tico.cJSON)(floormap_res.data)
-  local floormap_field = tico.field_from_json(floormap_json, nilptr)
-  local floormap_objects_field = tico.field_get(floormap_field, 'objects')
+  local map_tilemap = Game_State.lunarmaps.map:get_tilemap()
 
-  local cur_obj = floormap_objects_field.child
-  while cur_obj ~= nilptr do
-    local obj_type = tico.field_get_string(cur_obj, 'type')
-
-    if obj_type ~= nil then
-      if obj_type == 'lander' then
-        local lander_pos = tico.field_get_vec2(cur_obj, 'position')
-        local lander_size = tico.field_get_vec2(cur_obj, 'size')
-
-        Game_State.lander = Game_State:create_lander(lander_pos)
-      elseif obj_type == 'floor_area' then
-        local floorarea_pos = tico.field_get_vec2(cur_obj, 'position')
-        local floorarea_size = tico.field_get_vec2(cur_obj, 'size')
-
-        Game_State:create_floorarea(floorarea_pos, floorarea_size)
-      end
+  for i, v in ipairs(map_tilemap.tilemap.map) do
+    if v == 5 then
+      local tilepos = map_tilemap.tilemap:get_position_from_index(i)
+      Game_State:create_floorarea(tilepos, {16, 16})
     end
-
-    cur_obj = cur_obj.next
   end
 end
 
+Game_State.lander = Game_State:create_lander(Lander_Start_Position)
 
-tico.sound_play(Game_State.resources.audio.music.music1)
+core_state:play_music(Game_State.resources.audio.music, true)
 
-local default_font = tico.font_load_default()
+--local default_font = tico.font_load_default()
 -- ]] Game Start ]]
 
 -- [[ Main Loop [[
 
-while not tico.window_should_close() do
-  tico.update()
+while not core_state.quit do
+  core_state:pool_events()
 
-  if tico.input_key_pressed(tico.KEY.KEY_SEMICOLON) then
-    editor = not editor
+  local show_dev_info = core_state:get_key(SDL_Scancode.SDL_SCANCODE_I)
+
+  if core_state:get_key(SDL_Scancode.SDL_SCANCODE_X) then
+    for i = 12, 22 do
+      Game_State.resources.maps.bgmap.map[i] = -1
+    end
   end
 
-  Game_State:manage_music()
-
-  local show_dev_info = tico.input_key_down(tico.KEY.KEY_I)
-
-  if tico.input_key_down(tico.KEY.KEY_R) then
+  if core_state:get_key(SDL_Scancode.SDL_SCANCODE_R) then
     Game_State:reset()
   end
 
@@ -643,14 +744,14 @@ while not tico.window_should_close() do
       defer nprof:pop() end
     ## end
 
-    if is_flying and Game_State.editor.paused ~= 1 then
+    if is_flying then
       ## if PROF then
         nprof:push'is flying system'
         defer nprof:pop() end
       ## end
 
       Game_State.systems.gravity_applier:run()
-      Game_State.systems.lander_ctrl_system:run()
+      Game_State.systems.lander_ctrl_system:run(core_state)
       Game_State.systems.velocity_applier:run()
 
       Game_State.systems.follower_system:run()
@@ -666,61 +767,55 @@ while not tico.window_should_close() do
     end
   end
 
-  tico.begin_draw()
+  core_state:render_clear(Nene.Palette.BLACK)
   do
-    if editor then
-      tico.canvas_attach(Game_State.editor.game_canvas)
-    end
-
-    tico.graphics_clear(tico.BLACK)
-
     ## if PROF then
       nprof:push'drawing systems' -- [[ nprof drawying systems [[
     ## end
 
-    tico.camera_attach(camera_holder.camera)
+    --tico.camera_attach(camera_holder.camera)
     do
       ## if PROF then
         nprof:push'painting systems'
         defer nprof:pop() end
       ## end
 
-      Game_State.systems.tilemap_painter:run()
-      Game_State.systems.sprite_painter:run()
+      Game_State.systems.tilemap_painter:run(core_state)
+      Game_State.systems.sprite_painter:run(core_state)
 
       if show_dev_info then
-        Game_State.systems.shape_painter:run()
-        Game_State.systems.intersectable_painter:run()
-        Game_State.systems.intersections_painter:run()
+        Game_State.systems.shape_painter:run(core_state)
+        Game_State.systems.intersectable_painter:run(core_state)
+        Game_State.systems.intersections_painter:run(core_state)
       end
     end
-    tico.camera_detach()
 
-    if not is_flying then
-      local msg = (do
-        switch lander_controller.state
-        case LanderState.Landed then
-          return "You're Landed"
-        case LanderState.Crashed then
-          return "You Crashed"
-        else
-          return ""
-        end
-      end)
+    --tico.camera_detach()
 
-      local msg_fontsize <comptime> = 18
-      local msg_width = tico.font_get_text_width(default_font, msg, #msg)
-      tico.graphics_draw_text(msg, math.ifloor(tico.window_get_width() / 2 - msg_width / 2), math.ifloor(tico.window_get_height() / 2), tico.WHITE)
-    end
+    --if not is_flying then
+    --  local msg = (do
+    --    switch lander_controller.state
+    --    case LanderState.Landed then
+    --      return "You're Landed"
+    --    case LanderState.Crashed then
+    --      return "You Crashed"
+    --    else
+    --      return ""
+    --    end
+    --  end)
+--
+    --  local msg_fontsize <comptime> = 18
+    --  local msg_width = tico.font_get_text_width(default_font, msg, #msg)
+    --  tico.graphics_draw_text(msg, math.ifloor(tico.window_get_width() / 2 - msg_width / 2), math.ifloor(tico.window_get_height() / 2), Nene.Palette.WHITE)
+    --end
 
-    if show_dev_info then
-      tico.graphics_draw_line(tico.window_get_width() // 2, 0, tico.window_get_width() // 2, tico.window_get_height(), tico.RED)
-      tico.graphics_draw_line(0, tico.window_get_height() // 2, tico.window_get_width(), tico.window_get_height() // 2, tico.RED)
-
-      local fps = tico.timer_get_fps()
-      tico.graphics_draw_text(tostring(fps), 8, 8, tico.RED)
-    end
-
+    --if show_dev_info then
+    --  tico.graphics_draw_line(tico.window_get_width() // 2, 0, tico.window_get_width() // 2, tico.window_get_height(), tico.RED)
+    --  tico.graphics_draw_line(0, tico.window_get_height() // 2, tico.window_get_width(), tico.window_get_height() // 2, tico.RED)
+--
+    --  local fps = tico.timer_get_fps()
+    --  tico.graphics_draw_text(tostring(fps), 8, 8, tico.RED)
+    --end
 
     ## if PROF then
       nprof:pop() -- ]] nprof drawying systems ]]
@@ -730,16 +825,10 @@ while not tico.window_should_close() do
     ## end
   end
 
-  if editor then
-    tico.canvas_detach()
-    tico.plugin_module_draw()
-  end
-
-  tico.end_draw()
+  core_state:render_present()
 end
-
 -- ]] Main Loop ]]
 
 Game_State:unload()
 
-tico.terminate()
+core_state:terminate()
