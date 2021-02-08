@@ -4,6 +4,3 @@
 [submodule "nprof"]
 	path = nprof
 	url = https://github.com/Andre-LA/nprof.git
-[submodule "Rotor-nelua"]
-	path = Rotor-nelua
-	url = https://github.com/Andre-LA/Rotor-nelua.git
