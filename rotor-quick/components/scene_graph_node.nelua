@@ -57,7 +57,7 @@ function SceneGraphNode:iter_children(): (
     return can_iter, ctrl_var, child_node, child_node_id
   end
 
-  return iterator, self.children_ids, -1
+  return iterator, &self.children_ids, -1
 end
 
 function SceneGraphNode:attach_child(child_node_id: GenerationalIndex)

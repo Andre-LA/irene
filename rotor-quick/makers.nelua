@@ -344,7 +344,7 @@ global MakeEntity = #[make_entity]#
     end
 
     local ids_iterator, ids_vec, index = self.system_data:iterate_ids()
-    return iterator, (@IterState){ system_data = self.system_data, =ids_iterator, =ids_vec, =index }, -1
+    return iterator, (@IterState){ system_data = &self.system_data, =ids_iterator, =ids_vec, =index }, -1
   end
 
   ## return systemT

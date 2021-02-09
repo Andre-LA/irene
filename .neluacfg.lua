@@ -1,6 +1,6 @@
 return {
   add_path = {
-    './Rotor-nelua/',
+    './rotor-nelua/',
     './nene/',
     './nprof/',
   }

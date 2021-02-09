@@ -21,9 +21,9 @@ function TilemapPainter:run(core_state: *Nene.CoreState)
   ## end
 
   for _, components in self:iterate_components() do
-    local position: *RQ_Comps.Position = components.position
-    local tilemap: *RQ_Comps.Tilemap = components.tilemap
-    local painter: *RQ_Comps.Painter = components.painter
+    local position = components.position
+    local tilemap = components.tilemap
+    local painter = components.painter
 
     if not painter.active then
       return

@@ -20,8 +20,8 @@ function SpriteAnimation:run()
   ## end
 
   for _, components in self:iterate_components() do
-    local sprite: *RQ_Comps.Sprite = components.sprite
-    local anim_player: *RQ_Comps.AnimationPlayer = components.animation_player
+    local sprite = components.sprite
+    local anim_player = components.animation_player
 
     if anim_player.paused then
       return

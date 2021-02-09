@@ -55,10 +55,10 @@ function SpritePainter:run(core_state: *Nene.CoreState)
       local sprite_opt = RotorQuick.storages.sprite:get_entry(sprite_id)
 
       if position_opt.filled and painter_opt.filled and sprite_opt.filled then
-        local painter: *RQ_Comps.Painter = painter_opt:get()
+        local painter = painter_opt:get()
 
         if painter.active then
-          local sprite: *RQ_Comps.Sprite = sprite_opt:get()
+          local sprite = sprite_opt:get()
 
           if #self.draw_order <= sprite.layer then
             self.draw_order:resize(sprite.layer + 1)
@@ -80,9 +80,9 @@ function SpritePainter:run(core_state: *Nene.CoreState)
       local painter_opt = RotorQuick.storages.painter:get_entry(current_layer[j].painter_id)
       local sprite_opt = RotorQuick.storages.sprite:get_entry(current_layer[j].sprite_id)
 
-      local position: *RQ_Comps.Position = position_opt:get()
-      local painter: *RQ_Comps.Painter = painter_opt:get()
-      local sprite: *RQ_Comps.Sprite = sprite_opt:get()
+      local position = position_opt:get()
+      local painter = painter_opt:get()
+      local sprite = sprite_opt:get()
 
       local drawpos = position:get_global_position() + sprite.offset
       local spritesheet = $sprite.spritesheet

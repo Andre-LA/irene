@@ -24,7 +24,7 @@ global RotorQuick.Components.Intersections.Intersection = @Intersection
 
 function Intersections:update_no_intersection(entity_id: GenerationalIndex): boolean
   for i = 0, < #self.intersections do
-    local intersection_i: *Intersection = self.intersections[i]
+    local intersection_i = &self.intersections[i]
 
     if intersection_i.entity_id == entity_id then
       self.intersections:remove(i)
@@ -37,7 +37,7 @@ end
 
 function Intersections:update_intersection(intersection: GameMath.Rectf, entity_id: GenerationalIndex): boolean
   for i = 0, < #self.intersections do
-    local intersection_i: *Intersection = self.intersections[i]
+    local intersection_i = &self.intersections[i]
 
     if intersection_i.entity_id == entity_id then
       intersection_i.rect = intersection

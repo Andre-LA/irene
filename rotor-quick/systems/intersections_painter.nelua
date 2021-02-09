@@ -21,21 +21,16 @@ function IntersectionsPainter:run(core_state: *Nene.CoreState)
   ## end
 
   for _, components in self:iterate_components() do
-    local intersections: *RQ_Comps.Intersections = components.intersections
-    local painter: *RQ_Comps.Painter = components.painter
+    local intersections = components.intersections
+    local painter = components.painter
 
     if not painter.active then
       return
     end
 
     for i = 0, < #intersections.intersections do
-      local intersection: *RQ_Comps.Intersections.Intersection = intersections.intersections[i]
-
-      local rect_color: Nene.Color = (
-        intersection.cycles_live > 0
-          and Nene.Palette.RED or Nene.Palette.GREEN
-      )
-
+      local intersection = intersections.intersections[i]
+      local rect_color: Nene.Color = intersection.cycles_live > 0 and Nene.Palette.RED or Nene.Palette.GREEN
       core_state:render_draw_rect(intersection.rect:to_rect(), painter.use_lines, rect_color)
     end
   end

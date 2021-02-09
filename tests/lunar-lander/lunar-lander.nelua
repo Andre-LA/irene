@@ -294,19 +294,19 @@ do
 
   do -- atlases
     Game_State.resources.atlases.player = {
-      texture = Game_State.resources.textures.sprites,
+      texture = &Game_State.resources.textures.sprites,
       unit_width = 16,
       unit_height = 16
     }
 
     Game_State.resources.atlases.map = {
-      texture = Game_State.resources.textures.sprites,
+      texture = &Game_State.resources.textures.sprites,
       unit_width = 16,
       unit_height = 16
     }
 
     Game_State.resources.atlases.bg = {
-      texture = Game_State.resources.textures.sprites,
+      texture = &Game_State.resources.textures.sprites,
       unit_width = 32,
       unit_height = 32
     }
@@ -314,7 +314,7 @@ do
 
   do -- spritesheets
     Game_State.resources.spritesheets.player = {
-      atlas = Game_State.resources.atlases.player,
+      atlas = &Game_State.resources.atlases.player,
       animations = {
         {
           name = 'lander_idle', fps = 1,
@@ -397,14 +397,14 @@ do
     ]]
 
     Game_State.resources.maps.map = {
-      atlas = Game_State.resources.atlases.map,
+      atlas = &Game_State.resources.atlases.map,
       width = 50,
       height = 38,
       map = _map,
     }
 
     Game_State.resources.maps.bgmap = {
-      atlas = Game_State.resources.atlases.bg,
+      atlas = &Game_State.resources.atlases.bg,
       width = 25,
       height = 19,
       map = {
@@ -457,7 +457,7 @@ end
 
 function GameState:create_lander_propulsion(): LanderPropulsionEntity
   local lander_propulstion_sprite: RQ_Comps.Sprite = {
-    spritesheet = self.resources.spritesheets.player,
+    spritesheet = &self.resources.spritesheets.player,
     current_frame = 4,
     offset = { 0, 0 },
     layer = GameLayers.Propulsion,
@@ -564,7 +564,7 @@ function GameState:create_lander(pos: GameMath.Vec2): Lander
   ## end
 
   local lander_sprite: RQ_Comps.Sprite = {
-    spritesheet = self.resources.spritesheets.player,
+    spritesheet = &self.resources.spritesheets.player,
     current_frame = 9,
     offset = { 0, 0 },
     layer = GameLayers.Lander

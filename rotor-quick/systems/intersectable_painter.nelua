@@ -21,8 +21,8 @@ function IntersectablePainter:run(core_state: *Nene.CoreState)
   ## end
 
   for _, components in self:iterate_components() do
-    local intersectable: *RQ_Comps.Intersectable = components.intersectable
-    local painter: *RQ_Comps.Painter = components.painter
+    local intersectable = components.intersectable
+    local painter = components.painter
 
     if not painter.active then
       return

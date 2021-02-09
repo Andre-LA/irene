@@ -18,8 +18,8 @@ function VelocityApplier:run()
   ## end
 
   for _, components in self:iterate_components() do
-    local velocity: *RQ_Comps.Velocity = components.velocity
-    local position: *RQ_Comps.Position = components.position
+    local velocity = components.velocity
+    local position = components.position
 
     if not velocity.active then
       return

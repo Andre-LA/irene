@@ -24,7 +24,7 @@ function IntersectionsDetector:run()
 
     for i = 0, < #RotorQuick.storages.intersectable.generations do
       if RotorQuick.storages.intersectable.generations[i].filled then
-        local intersectable_i: *Intersectable = RotorQuick.storages.intersectable.entries[i]
+        local intersectable_i = &RotorQuick.storages.intersectable.entries[i]
 
         if intersectable.entity_id ~= intersectable_i.entity_id then
           if intersectable:is_intersecting(intersectable_i) then
