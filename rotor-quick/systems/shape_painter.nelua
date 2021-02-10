@@ -1,5 +1,4 @@
 require 'math'
-require 'gamemath'
 require 'nene'
 require 'rotor'
 require 'rotor-quick.makers'
@@ -43,7 +42,7 @@ function RotorQuick.Systems.ShapePainter:run(core_state: *Nene.CoreState)
 
     switch shape.category
     case ShapeCategory.Rectangle then
-      local rectf: GameMath.Rectf = { global_pos.x, global_pos.y, size_x, size_y }
+      local rectf: Nene.Math.Rectf = { global_pos.x, global_pos.y, size_x, size_y }
       core_state:render_draw_rect(rectf:to_rect(), painter.use_lines, painter.color)
 
     case ShapeCategory.Circle then

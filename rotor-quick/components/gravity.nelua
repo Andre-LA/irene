@@ -1,9 +1,9 @@
-require 'gamemath'
+require 'nene.math'
 require 'rotor-quick.makers'
 
 global RotorQuick.Components.Gravity = @record{
   acceleration: number,
-  direction: GameMath.Vec2,
+  direction: Nene.Math.Vec2,
   active: boolean
 }
 

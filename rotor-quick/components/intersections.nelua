@@ -1,12 +1,12 @@
 require 'vector'
-require 'gamemath'
+require 'nene.math'
 require 'rotor-quick.components.intersectable'
 require 'rotor-quick.makers'
 
 local Intersectable = RotorQuick.Components.Intersectable
 
 local Intersection = @record{
-  rect: GameMath.Rectf,
+  rect: Nene.Math.Rectf,
   entity_id: GenerationalIndex,
   cycles_live: uinteger
 }
@@ -35,7 +35,7 @@ function Intersections:update_no_intersection(entity_id: GenerationalIndex): boo
   return false
 end
 
-function Intersections:update_intersection(intersection: GameMath.Rectf, entity_id: GenerationalIndex): boolean
+function Intersections:update_intersection(intersection: Nene.Math.Rectf, entity_id: GenerationalIndex): boolean
   for i = 0, < #self.intersections do
     local intersection_i = &self.intersections[i]
 

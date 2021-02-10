@@ -1,5 +1,4 @@
 -- minimal example of a box falling
-
 require 'rotor'
 require 'nene'
 
@@ -43,7 +42,7 @@ local falling_box, falling_box_entity = FallingBox.new{
     vertices = { {0, 0}, {16, 0}, {16, 16}, {0, 16} }
   },
   painter  = {
-    color = Nene.Palette.YELLOW,
+    color = Nene.Palette.yellow,
     active = true
   },
   velocity = {
@@ -61,7 +60,7 @@ gravity_applier.system_data:update(falling_box_entity)
 shape_painter.system_data:update(falling_box_entity)
 velocity_applier.system_data:update(falling_box_entity)
 
-local ok, err_msg, core_state = Nene.init("Basic Gravity test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 450, SDL_WINDOW_SHOWN)
+local ok, err_msg, core_state = Nene.init("Basic Gravity test", 800, 450)
 check(ok, err_msg)
 
 while not core_state.quit do
@@ -70,7 +69,7 @@ while not core_state.quit do
   gravity_applier:run()
   velocity_applier:run()
 
-  core_state:render_clear(Nene.Palette.BG)
+  core_state:render_clear(Nene.Palette.bg)
   do
     shape_painter:run(core_state)
   end

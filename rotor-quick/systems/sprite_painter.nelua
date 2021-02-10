@@ -1,6 +1,4 @@
 require 'nene'
-require 'gamemath'
-
 require 'math'
 
 require 'rotor-quick.makers'

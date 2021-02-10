@@ -3,7 +3,6 @@
      file, You can obtain one at https://mozilla.org/MPL/2.0/. ]]
 
 require 'math'
-require 'gamemath'
 require 'nene'
 require 'vector'
 
@@ -13,11 +12,11 @@ require 'rotor-quick.components.intersectable'
 
 local RQ_Comps = RotorQuick.Components
 
-local quads: vector(GameMath.Vec2) = {
-  (@GameMath.Vec2){ 0,  0},
-  (@GameMath.Vec2){32,  0},
-  (@GameMath.Vec2){32, 32},
-  (@GameMath.Vec2){ 0, 32}
+local quads: vector(Nene.Math.Vec2) = {
+  (@Nene.Math.Vec2){ 0,  0},
+  (@Nene.Math.Vec2){32,  0},
+  (@Nene.Math.Vec2){32, 32},
+  (@Nene.Math.Vec2){ 0, 32}
 }
 
 local a: RQ_Comps.Intersectable = {}
@@ -27,12 +26,7 @@ local b: RQ_Comps.Intersectable = {}
 b:init({}, {100,100}, quads.data)
 
 -- main:
-local ok, err_msg, core_state = Nene.init(
-  "Intersection test",
-  SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-  300, 300,
-  SDL_WINDOW_SHOWN
-)
+local ok, err_msg, core_state = Nene.init("Intersection test", 300, 300)
 check(ok, err_msg)
 
 local mx: integer, my: integer;
@@ -49,17 +43,17 @@ while not core_state.quit do -- main loop
 
   local intersection, is_intersecting = a:get_intersection(b)
 
-  core_state:render_clear(Nene.Palette.BG) -- clear screen with color
+  core_state:render_clear(Nene.Palette.bg) -- clear screen with color
   do
     local text = is_intersecting and 'is intersecting' or 'is not intersecting'
 
     --tico.graphics_draw_text(text, 0, 0, tico.WHITE)
 
-    core_state:render_draw_rect(a.global_rect:to_rect(), false, Nene.Palette.WHITE)
-    core_state:render_draw_rect(b.global_rect:to_rect(), false, Nene.Palette.WHITE)
+    core_state:render_draw_rect(a.global_rect:to_rect(), false, Nene.Palette.white)
+    core_state:render_draw_rect(b.global_rect:to_rect(), false, Nene.Palette.white)
 
     if is_intersecting then
-      core_state:render_draw_rect(intersection:to_rect(), false, Nene.Palette.GREEN)
+      core_state:render_draw_rect(intersection:to_rect(), false, Nene.Palette.green)
     end
   end
   core_state:render_present()

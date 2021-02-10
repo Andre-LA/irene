@@ -1,13 +1,9 @@
---[[ TODO
--- texto
+-- TODO:
+-- text
 -- camera
---]]
 
 -- [[ requires and imports [[
-
 require 'math'
-
-require 'gamemath'
 require 'nene'
 
 require 'rotor'
@@ -20,18 +16,13 @@ local RQ_Sys = RotorQuick.Systems
 -- ]] requires and imports ]]
 
 -- Main Game records and general variables
-local Lander_Start_Position: GameMath.Vec2 = {}
+local Lander_Start_Position: Nene.Math.Vec2 = {}
 local LANDER_MAX_VELOCITY <comptime> = 300
 
 local SCREEN_WIDTH <comptime> = 800
 local SCREEN_HEIGHT <comptime> = 624
 
-local ok, err_msg, core_state = Nene.init(
-  "Lunar lander test",
-  SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-  SCREEN_WIDTH, SCREEN_HEIGHT,
-  SDL_WINDOW_SHOWN
-)
+local ok, err_msg, core_state = Nene.init("Lunar lander test", SCREEN_WIDTH, SCREEN_HEIGHT)
 check(ok, err_msg)
 
 local GameLayers = @enum{
@@ -96,11 +87,11 @@ function LanderControllerSystem:run(core_state: *Nene.CoreState)
       local ok, anim_range = prop_sprite.spritesheet:get_named_animation_range(is_up_down and 'prop_active' or 'prop_inactive')
       check(ok, 'animation range not found')
 
-      prop_anim_pl:change_animation(prop_sprite, anim_range)
+      prop_anim_pl:change_animation(prop_sprite, anim_range, core_state:get_ms_time())
     end
 
     if is_right_down or is_up_down or is_left_down then
-      local direction: GameMath.Vec2 = {
+      local direction: Nene.Math.Vec2 = {
         x = (do
           if is_right_down then
             return 1
@@ -471,7 +462,7 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
       speed = 1,
       looping = true,
     },
-    painter          = { color = Nene.Palette.WHITE, active = true }
+    painter          = { color = Nene.Palette.white, active = true }
   }
 
   local position = lander_propulsion:get_position()
@@ -540,7 +531,7 @@ end
 
 -- [[ Game State extensions [[
 
-function GameState:create_lander(pos: GameMath.Vec2): Lander
+function GameState:create_lander(pos: Nene.Math.Vec2): Lander
   local gravity_acceleration: number <comptime> = 0.05
 
   local lander_shape: RQ_Comps.Shape = {
@@ -582,7 +573,7 @@ function GameState:create_lander(pos: GameMath.Vec2): Lander
     painter = {
       active = true,
       use_lines = true,
-      color = Nene.Palette.WHITE
+      color = Nene.Palette.white
     },
 
     velocity = {
@@ -640,7 +631,7 @@ function GameState:create_lander(pos: GameMath.Vec2): Lander
   return lander
 end
 
-function GameState:create_tilemap(tilemap: *Nene.Tilemap, pos: GameMath.Vec2): LunarMap
+function GameState:create_tilemap(tilemap: *Nene.Tilemap, pos: Nene.Math.Vec2): LunarMap
   local lunarmap, lunarmap_entity = LunarMap.new{
     position = { local_position = pos },
 
@@ -648,7 +639,7 @@ function GameState:create_tilemap(tilemap: *Nene.Tilemap, pos: GameMath.Vec2): L
 
     painter = {
       active = true,
-      color = Nene.Palette.WHITE,
+      color = Nene.Palette.white,
       use_lines = true,
     }
   }
@@ -658,7 +649,7 @@ function GameState:create_tilemap(tilemap: *Nene.Tilemap, pos: GameMath.Vec2): L
   return lunarmap
 end
 
-function GameState:create_floorarea(pos: GameMath.Vec2, size: GameMath.Vec2): FloorArea
+function GameState:create_floorarea(pos: Nene.Math.Vec2, size: Nene.Math.Vec2): FloorArea
   local floorarea_shape: RQ_Comps.Shape = {
     category = RQ_Comps.Shape.ShapeCategory.Rectangle,
     vertices = { {0, 0}, {size.x, 0}, {size.x, size.y}, {0, size.y} }
@@ -676,7 +667,7 @@ function GameState:create_floorarea(pos: GameMath.Vec2, size: GameMath.Vec2): Fl
     painter = {
       active = true,
       use_lines = true,
-      color = Nene.Palette.WHITE,
+      color = Nene.Palette.white,
     }
   }
 
@@ -763,11 +754,11 @@ while not core_state.quit do
       Game_State.systems.intersectable_update:run()
       Game_State.systems.intersections_detector:run()
 
-      Game_State.systems.sprite_animation:run()
+      Game_State.systems.sprite_animation:run(core_state)
     end
   end
 
-  core_state:render_clear(Nene.Palette.BLACK)
+  core_state:render_clear(Nene.Palette.black)
   do
     ## if PROF then
       nprof:push'drawing systems' -- [[ nprof drawying systems [[
@@ -806,7 +797,7 @@ while not core_state.quit do
 --
     --  local msg_fontsize <comptime> = 18
     --  local msg_width = tico.font_get_text_width(default_font, msg, #msg)
-    --  tico.graphics_draw_text(msg, math.ifloor(tico.window_get_width() / 2 - msg_width / 2), math.ifloor(tico.window_get_height() / 2), Nene.Palette.WHITE)
+    --  tico.graphics_draw_text(msg, math.ifloor(tico.window_get_width() / 2 - msg_width / 2), math.ifloor(tico.window_get_height() / 2), Nene.Palette.white)
     --end
 
     --if show_dev_info then

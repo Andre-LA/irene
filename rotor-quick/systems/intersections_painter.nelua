@@ -30,7 +30,7 @@ function IntersectionsPainter:run(core_state: *Nene.CoreState)
 
     for i = 0, < #intersections.intersections do
       local intersection = intersections.intersections[i]
-      local rect_color: Nene.Color = intersection.cycles_live > 0 and Nene.Palette.RED or Nene.Palette.GREEN
+      local rect_color: Nene.Color = intersection.cycles_live > 0 and Nene.Palette.red or Nene.Palette.green
       core_state:render_draw_rect(intersection.rect:to_rect(), painter.use_lines, rect_color)
     end
   end
