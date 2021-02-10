@@ -1,6 +1,7 @@
 [submodule "nene"]
 	path = nene
 	url = https://github.com/Andre-LA/nene.git
+	branch = main
 [submodule "nprof"]
 	path = nprof
 	url = https://github.com/Andre-LA/nprof.git
