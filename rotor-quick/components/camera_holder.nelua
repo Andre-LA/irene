@@ -3,7 +3,8 @@ require 'rotor.optional'
 require 'rotor-quick.makers'
 
 global RotorQuick.Components.CameraHolder = @record{
-  camera: Nene.Camera
+  camera: Nene.Camera,
+  offset: Nene.Math.Vec2
 }
 
 local CameraHolder = RotorQuick.Components.CameraHolder
@@ -11,8 +12,5 @@ local CameraHolder = RotorQuick.Components.CameraHolder
 ## is_component(CameraHolder)
 
 function CameraHolder:set_target(target: Nene.Math.Vec2)
-  target.x = -target.x
-  target.y = -target.y
-
-  --tico.camera_set_pos(self.camera, target)
+  self.camera.pos = target + self.offset
 end

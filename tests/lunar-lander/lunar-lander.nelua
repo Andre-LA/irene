@@ -19,8 +19,8 @@ local RQ_Sys = RotorQuick.Systems
 local Lander_Start_Position: Nene.Math.Vec2 = {}
 local LANDER_MAX_VELOCITY <comptime> = 300
 
-local SCREEN_WIDTH <comptime> = 800
-local SCREEN_HEIGHT <comptime> = 624
+local SCREEN_WIDTH <comptime> = 800//4
+local SCREEN_HEIGHT <comptime> = 624//4
 
 local ok, err_msg, core_state = Nene.init("Lunar lander test", SCREEN_WIDTH, SCREEN_HEIGHT)
 check(ok, err_msg)
@@ -428,21 +428,14 @@ do
 end
 
 function GameState:create_camera_entity(): CameraEntity
-  --local camera = tico.camera_create(Lander_Start_Position.x, Lander_Start_Position.y, 1, 1)
-  --camera.size = { 4, 4 }
-  --camera.offset = { SCREEN_WIDTH / 2 - 32, SCREEN_HEIGHT / 2 - 32}
-
   local camera_entity, camera_entity_entity = CameraEntity.new{
     position         = {},
     scene_graph_node = {},
-    camera_holder    = {} -- =camera }
+    camera_holder    = { offset = { 8, 8 } }
   }
 
-  --local scene_graph_node = camera_entity:get_scene_graph_node()
-  --scene_graph_node:init(camera_entity.entity_id, camera_entity.scene_graph_node_id)
---
-  --self:update_systems(camera_entity_entity)
---
+  self:update_systems(camera_entity_entity)
+
   return camera_entity
 end
 
@@ -676,7 +669,6 @@ do
 end
 
 Game_State.lander = Game_State:create_lander(Lander_Start_Position)
-
 core_state:play_music(Game_State.resources.audio.music, true)
 
 --local default_font = tico.font_load_default()
@@ -707,6 +699,8 @@ while not core_state.quit do
   ## if PROF then
     nprof:push'systems' -- [[ nprof systems [[
   ## end
+
+  core_state.camera = camera_holder.camera
 
   do
     ## if PROF then
