@@ -71,13 +71,10 @@ require 'rotor-quick.core'
 
   local R: type = #[R]#
 
-  ## if not R.value.metafields.get_entry_from_id then
   function R.get_entry_from_id(id: GenerationalIndex): optional(*R)
     return RotorQuick.storages.#|R_snakecased_name|#:get_entry(id)
   end
-  ## end
 
-  ## if not R.value.metafields.get_entry_from_entity_id then
   function R.get_entry_from_entity_id(id: GenerationalIndex): optional(*R)
     local result: optional(*R) = {}
 
@@ -100,7 +97,6 @@ require 'rotor-quick.core'
 
     return result
   end
-  ## end
 ## end
 
 -- temporary alias
