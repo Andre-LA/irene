@@ -5,12 +5,11 @@ require 'rotor-quick.makers'
 
 global RotorQuick.Components.Intersectable = @record{
   local_rect: Nene.Math.Rectf,
-  global_rect: Nene.Math.Rectf,
-  entity_id: GenerationalIndex,
+  global_rect: Nene.Math.Rectf
 }
 
 local Intersectable = RotorQuick.Components.Intersectable
-## is_component(Intersectable)
+## is_component(Intersectable, true)
 
 function Intersectable.rect_from_vertices(vertices: *span(Nene.Math.Vec2)): Nene.Math.Rectf
   local min_x, min_y, max_x, max_y = 0.0, 0.0, 0.0, 0.0
@@ -66,7 +65,6 @@ function Intersectable:get_intersection(other_intersectable: *Intersectable): (N
   return intersection, is_intersecting
 end
 
-function Intersectable:init(entity_id: GenerationalIndex, pos: Nene.Math.Vec2, vertices: *span(Nene.Math.Vec2))
-  self.entity_id = entity_id
+function Intersectable:init(pos: Nene.Math.Vec2, vertices: *span(Nene.Math.Vec2))
   self:set_rects(pos, vertices)
 end

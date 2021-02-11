@@ -468,8 +468,6 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
   local position = lander_propulsion:get_position()
   position:set_local_position({ 0, 16 })
 
-  lander_propulsion:get_scene_graph_node():init(lander_propulsion.entity_id, lander_propulsion.scene_graph_node_id)
-
   self:update_systems(lander_propulsion_entity)
 
   return lander_propulsion
@@ -602,11 +600,9 @@ function GameState:create_lander(pos: Nene.Math.Vec2): Lander
   lander_controller.prop_sprite_id = lander.lander_propulsion.sprite_id
   lander_controller.prop_anim_pl_id = lander.lander_propulsion.animation_player_id
 
-  lander:get_intersectable():init(lander.entity_id, pos, lander_shape.vertices.data)
+  lander:get_intersectable():init(pos, lander_shape.vertices.data)
 
   local scene_graph_node = lander:get_scene_graph_node()
-  scene_graph_node:init(lander.entity_id, lander.scene_graph_node_id)
-
   scene_graph_node:attach_child(lander.camera.scene_graph_node_id)
   scene_graph_node:attach_child(lander.lander_propulsion.scene_graph_node_id)
 
@@ -655,7 +651,7 @@ function GameState:create_floorarea(pos: Nene.Math.Vec2, size: Nene.Math.Vec2): 
     }
   }
 
-  floorarea:get_intersectable():init(floorarea.entity_id, pos, floorarea_shape.vertices.data)
+  floorarea:get_intersectable():init(pos, floorarea_shape.vertices.data)
 
   self:update_systems(floorarea_entity)
 

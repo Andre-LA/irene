@@ -55,19 +55,29 @@ require 'rotor-quick.core'
 -- [[ mark record as component [[
 
 -- this macro auto-implements the is_component trait
-## function impl_is_component(R)
+## function impl_is_component(R, use_self_ids)
   -- ensure that a record is passed
   ## staticassert(is_record(R))
 
   -- mark the is_component trait
   ## local R_snakecased_name = metalib.pascalcase_to_snakecase(R.name)
 
+  -- mark the is_component trait
   ## R.value.is_component = true
+  -- mark component-specific trait
   ## R.value["is_"..R_snakecased_name] = true
-  ## R.value.component_metainfo = {snakecase_name = R_snakecased_name}
-
+  -- add a `component_metainfo` table
+  ## R.value.component_metainfo = {snakecase_name = R_snakecased_name, use_self_ids = use_self_ids}
   -- macro do add the mask and the storage of this component
   ## RQ_add_mask_and_storage(R_snakecased_name, R)
+
+  -- if use_self_ids is true, add self_id and entity_id fields, of type GenerationalIndex
+  ##[[
+  if use_self_ids then
+    R.value:add_field('self_id', GenerationalIndex.value)
+    R.value:add_field('entity_id', GenerationalIndex.value)
+  end
+  ]]
 
   local R: type = #[R]#
 
@@ -106,6 +116,7 @@ require 'rotor-quick.core'
 
 -- [[ Entity maker [[
 ## local n = {'st', 'nd', 'rd'}
+## local function nth(i) return i < 4 and i..n[i] or i..'th' end
 
 ## local make_entity = generalize(function(entity_name, ...)
   ##[[
@@ -138,15 +149,13 @@ require 'rotor-quick.core'
     return entity_opt:get()
   end
 
-  local EntityInitValues = @record{
-    -- more added below
-  }
+  local EntityInitValues = @record{--[[ more added below ]]}
 
   ##[[
     -- collect entities and components
     for i = 1, #entity_shape do
       -- ensures that there are only components or entities in entity_shape
-      local msg_nth = 'error on '..(i < 4 and i..n[i] or i..'th')..'parameter: '
+      local msg_nth = 'error on '..nth(i)..' parameter: '
       staticassert(entity_shape[i].is_component or entity_shape[i].is_entity, msg_nth..'is neither component or entity')
 
       if entity_shape[i].is_component then
@@ -207,11 +216,15 @@ require 'rotor-quick.core'
     -- create and associate each component
     ## for i, comp in ipairs(components) do
       ## local comp_scname = comp.component_metainfo.snakecase_name
-
       ## local c_id = comp_scname..'_id'
 
       local #|c_id|#, #|comp_scname|# = RotorQuick.storages.#|comp_scname|#:new_entry(initial_values.#|comp_scname|#)
       entity:associate(#|c_id|#, RotorQuick.masks.#|comp_scname|#)
+
+      ## if comp.component_metainfo.use_self_ids then
+        #|comp_scname|#.self_id = #|c_id|#
+        #|comp_scname|#.entity_id = entity_id
+      ## end
 
       result.#|c_id|# = #|c_id|#
     ## end
