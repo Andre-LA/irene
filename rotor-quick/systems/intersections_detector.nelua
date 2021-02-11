@@ -19,8 +19,8 @@ function IntersectionsDetector:run()
   ## end
 
   for _, components in self:iterate_components() do
-    local intersectable: *Intersectable = components.intersectable
-    local intersections: *Intersections = components.intersections
+    local intersectable = components.intersectable
+    local intersections = components.intersections
 
     for i = 0, < #RotorQuick.storages.intersectable.generations do
       if RotorQuick.storages.intersectable.generations[i].filled then
