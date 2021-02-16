@@ -19,10 +19,10 @@ local RQ_Sys = RotorQuick.Systems
 local Lander_Start_Position: Nene.Math.Vec2 = {}
 local LANDER_MAX_VELOCITY <comptime> = 300
 
-local SCREEN_WIDTH <comptime> = 800//4
-local SCREEN_HEIGHT <comptime> = 624//4
+local SCREEN_WIDTH <comptime> = 800
+local SCREEN_HEIGHT <comptime> = 624
 
-local ok, err_msg, core_state = Nene.init("Lunar lander test", SCREEN_WIDTH, SCREEN_HEIGHT)
+local ok, err_msg, core_state = Nene.init("Lunar lander test", SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_WIDTH // 4, SCREEN_HEIGHT // 4)
 check(ok, err_msg)
 
 local GameLayers = @enum{
