@@ -70,9 +70,9 @@ function LanderControllerSystem:run(core_state: *Nene.CoreState)
     local velocity: *RQ_Comps.Velocity = components.velocity
     local gravity: *RQ_Comps.Gravity = components.gravity
 
-    local is_right_down, is_up_down, is_left_down = core_state:get_key(SDL_Scancode.SDL_SCANCODE_RIGHT),
-                                                    core_state:get_key(SDL_Scancode.SDL_SCANCODE_UP),
-                                                    core_state:get_key(SDL_Scancode.SDL_SCANCODE_LEFT)
+    local is_right_down, is_up_down, is_left_down = core_state:get_scancode(SDL_Scancode.SDL_SCANCODE_RIGHT),
+                                                    core_state:get_scancode(SDL_Scancode.SDL_SCANCODE_UP),
+                                                    core_state:get_scancode(SDL_Scancode.SDL_SCANCODE_LEFT)
 
     local prop_sprite_opt = RQ_Comps.Sprite.get_entry_from_id(lander_controller.prop_sprite_id)
     local prop_anim_pl_opt = RQ_Comps.AnimationPlayer.get_entry_from_id(lander_controller.prop_anim_pl_id)
@@ -679,15 +679,15 @@ core_state:play_music(Game_State.resources.audio.music, true)
 while not core_state.quit do
   core_state:pool_events()
 
-  local show_dev_info = core_state:get_key(SDL_Scancode.SDL_SCANCODE_I)
+  local show_dev_info = core_state:get_scancode(SDL_Scancode.SDL_SCANCODE_I)
 
-  if core_state:get_key(SDL_Scancode.SDL_SCANCODE_X) then
+  if core_state:get_scancode(SDL_Scancode.SDL_SCANCODE_X) then
     for i = 12, 22 do
       Game_State.resources.maps.bgmap.map[i] = -1
     end
   end
 
-  if core_state:get_key(SDL_Scancode.SDL_SCANCODE_R) then
+  if core_state:get_scancode(SDL_Scancode.SDL_SCANCODE_R) then
     Game_State:reset()
   end
 
