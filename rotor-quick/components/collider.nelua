@@ -1,0 +1,9 @@
+require 'rotor-quick.makers'
+
+global RotorQuick.Components.Collider = @record{
+  tolerance: integer,
+  mask: uint32,
+}
+
+local Collider = RotorQuick.Components.Collider
+## is_component(Collider)

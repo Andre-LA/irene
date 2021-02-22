@@ -5,7 +5,8 @@ require 'rotor-quick.makers'
 
 global RotorQuick.Components.Intersectable = @record{
   local_rect: Nene.Math.Rectf,
-  global_rect: Nene.Math.Rectf
+  global_rect: Nene.Math.Rectf,
+  mask: uint32,
 }
 
 local Intersectable = RotorQuick.Components.Intersectable
