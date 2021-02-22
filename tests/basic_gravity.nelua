@@ -60,7 +60,7 @@ gravity_applier.system_data:update(falling_box_entity)
 shape_painter.system_data:update(falling_box_entity)
 velocity_applier.system_data:update(falling_box_entity)
 
-local ok, err_msg, core_state = Nene.init("Basic Gravity test", 800, 450)
+local ok, err_msg, core_state = Nene.init("Basic Gravity test", 800, 450, 'nene/resources/monogram_extended.ttf', 16)
 check(ok, err_msg)
 
 while not core_state.quit do
@@ -73,6 +73,7 @@ while not core_state.quit do
   do
     shape_painter:run(core_state)
   end
+  core_state:render_screen()
   core_state:render_present()
 end
 
