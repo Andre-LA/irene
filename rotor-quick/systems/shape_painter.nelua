@@ -14,7 +14,9 @@ global RotorQuick.Systems.ShapePainter = @MakeSystem('ShapePainter', @record{
   painter: RQ_Comps.Painter
 })
 
-function RotorQuick.Systems.ShapePainter:run(core_state: *Nene.CoreState)
+local ShapePainter = RotorQuick.Systems.ShapePainter
+
+function ShapePainter:run(core_state: *Nene.CoreState)
   ## if PROF then
     nprof:push(#[ShapePainter.value.nickname]#)
     defer nprof:pop() end
