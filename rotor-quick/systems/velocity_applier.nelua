@@ -22,7 +22,7 @@ function VelocityApplier:run()
     local position = components.position
 
     if not velocity.active then
-      return
+      continue
     end
 
     if velocity.velocity_is_limited then
