@@ -57,31 +57,20 @@ function ShapePainter:run(core_state: *Nene.CoreState)
 
     case ShapeCategory.Triangle then
       local p1, p2, p3 = shape.vertices[0], shape.vertices[1], shape.vertices[2]
-      --tico.graphics_fill_triangle(
-      --  math.ifloor(global_pos.x + p1.x),
-      --  math.ifloor(global_pos.y + p1.y),
---
-      --  math.ifloor(global_pos.x + p2.x),
-      --  math.ifloor(global_pos.y + p2.y),
---
-      --  math.ifloor(global_pos.x + p3.x),
-      --  math.ifloor(global_pos.y + p3.y),
---
-      --  painter.color
-      --)
+      core_state:render_draw_line(global_pos + p1, global_pos + p2, painter.color)
+      core_state:render_draw_line(global_pos + p2, global_pos + p3, painter.color)
+      core_state:render_draw_line(global_pos + p3, global_pos + p1, painter.color)
 
     case ShapeCategory.Polygon then
       for i = 0, < #shape.vertices - 1 do
-        --tico.graphics_draw_line(
-        --  math.ifloor(global_pos.x + shape.vertices[i].x),
-        --  math.ifloor(global_pos.y + shape.vertices[i].y),
---
-        --  math.ifloor(global_pos.x + shape.vertices[i+1].x),
-        --  math.ifloor(global_pos.y + shape.vertices[i+1].y),
---
-        --  painter.color
-        --)
+
+        core_state:render_draw_line(global_pos + shape.vertices[i],
+                                    global_pos + shape.vertices[i+1],
+                                    painter.color)
       end
+      core_state:render_draw_line(global_pos + shape.vertices[#shape.vertices-1],
+                                  global_pos + shape.vertices[0],
+                                  painter.color)
     end
   end
 end
