@@ -123,7 +123,7 @@ function LanderControllerSystem:run(core_state: *Nene.CoreState)
         y = is_up_down and -1 or 0
       }
 
-      velocity:add_velocity(direction * lander_controller.propulsion_force)
+      velocity:add_velocity(direction * lander_controller.propulsion_force * core_state.deltatime)
     end
   end
 end
@@ -751,14 +751,14 @@ while not core_state.quit do
         defer nprof:pop() end
       ## end
 
-      Game_State.systems.gravity_applier:run()
+      Game_State.systems.gravity_applier:run(core_state.deltatime)
       Game_State.systems.lander_ctrl_system:run(core_state)
 
       Game_State.systems.intersectable_update:run()
       Game_State.systems.intersections_detector:run()
       Game_State.systems.collisions:run()
 
-      Game_State.systems.velocity_applier:run(core_state.deltatime)
+      Game_State.systems.velocity_applier:run()
 
       if show_dev_info then
         Game_State.systems.intersectable_update:run()

@@ -47,10 +47,9 @@ local falling_box, falling_box_entity = FallingBox.new{
   },
   velocity = {
     active = true,
-    max_velocity = 1,
   },
   gravity  = {
-    acceleration = 0.005,
+    acceleration = 10,
     direction = {0,1},
     active = true
   }
@@ -66,7 +65,7 @@ check(ok, err_msg)
 while not core_state.quit do
   core_state:pool_events()
 
-  gravity_applier:run()
+  gravity_applier:run(core_state.deltatime)
   velocity_applier:run()
 
   core_state:render_clear(Nene.Palette.bg)

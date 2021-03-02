@@ -13,7 +13,7 @@ global RotorQuick.Systems.GravityApplier = @MakeSystem('GravityApplier', @record
 
 local GravityApplier = RotorQuick.Systems.GravityApplier
 
-function GravityApplier:run()
+function GravityApplier:run(dt: number)
   ## if PROF then
     nprof:push(#[GravityApplier.value.nickname]#)
     defer nprof:pop() end
@@ -27,7 +27,7 @@ function GravityApplier:run()
       return
     end
 
-    velocity:add_velocity(gravity.direction * gravity.acceleration)
+    velocity:add_velocity(gravity.direction * gravity.acceleration * dt)
   end
 end
 
