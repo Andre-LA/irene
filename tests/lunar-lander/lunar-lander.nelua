@@ -19,16 +19,19 @@ local RQ_Sys = RotorQuick.Systems
 local Lander_Start_Position: Nene.Math.Vec2 = {}
 local LANDER_MAX_VELOCITY <comptime> = 300
 
-local SCREEN_WIDTH <comptime> = 800
-local SCREEN_HEIGHT <comptime> = 624
+local WINDOW_WIDTH <comptime> = 800
+local WINDOW_HEIGHT <comptime> = 624
+
+local SCREEN_WIDTH <comptime> = WINDOW_WIDTH // 4
+local SCREEN_HEIGHT <comptime> = WINDOW_HEIGHT // 4
 
 local ok, err_msg, core_state = Nene.init("Lunar lander test",
-                                          SCREEN_WIDTH,
-                                          SCREEN_HEIGHT,
+                                          WINDOW_WIDTH,
+                                          WINDOW_HEIGHT,
                                           'nene/resources/monogram_extended.ttf',
                                           16,
-                                          SCREEN_WIDTH // 4,
-                                          SCREEN_HEIGHT // 4)
+                                          SCREEN_WIDTH,
+                                          SCREEN_HEIGHT)
 check(ok, err_msg)
 
 local GameLayers = @enum{
@@ -132,18 +135,15 @@ end
 local SafeLanding = @MakeEntity('safe_landing',
   RQ_Comps.Position,
   RQ_Comps.Shape,
-  RQ_Comps.Sprite,
   RQ_Comps.Painter,
-  RQ_Comps.Intersectable,
-  IsSafeLanding
+  RQ_Comps.Intersectable
 )
 
-local FloorArea = @MakeEntity('floor_area',
+local Floor = @MakeEntity('floor',
   RQ_Comps.Position,
   RQ_Comps.Shape,
-  RQ_Comps.Intersectable,
-  IsFloor,
-  RQ_Comps.Painter
+  RQ_Comps.Painter,
+  RQ_Comps.Intersectable
 )
 
 local Lander = @MakeEntity('lander',
@@ -486,36 +486,24 @@ end
 -- ]] Game State ]]
 
 -- [[ callbacks [[
-
--- helper function to know if some intersectable is owned by a floor entity
-local function intersected_is_floor(other_intersectable: *RQ_Comps.Intersectable)
-  local is_floor_opt = IsFloor.get_entry_from_entity_id(other_intersectable.entity_id)
-  return is_floor_opt.filled
-end
-
--- helper function to know if some intersectable is owned by a safe landing entity
-local function intersected_is_safe_landing(other_intersectable: *RQ_Comps.Intersectable)
-  local is_safe_landing_opt = IsSafeLanding.get_entry_from_entity_id(other_intersectable.entity_id)
-  return is_safe_landing_opt.filled
-end
-
 -- callback when lander intersects other intersectable
 local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *RQ_Comps.Intersectable, self_intersections: *RQ_Comps.Intersections, other_intersectable: *RQ_Comps.Intersectable)
   local lander_controller = lander:get_lander_controller()
 
-  if intersected_is_safe_landing(other_intersectable) then
-    lander_controller.state = LanderState.Landed
-    Game_State.resources.audio.sound_effects.land:play()
+  switch other_intersectable.mask
+    case CollisionMasks.Safe then
+      lander_controller.state = LanderState.Landed
+      Game_State.resources.audio.sound_effects.land:play()
 
-  elseif intersected_is_floor(other_intersectable) then
-    lander_controller.state = LanderState.Crashed
-    Game_State.resources.audio.sound_effects.hit:play()
+    case CollisionMasks.Floor then
+      lander_controller.state = LanderState.Crashed
+      Game_State.resources.audio.sound_effects.hit:play()
   end
 end
 
 -- callback when lander exit the intersection with other intersectable
 local function on_lander_intersect_exit(lander: *Lander, self_intersectable: *RQ_Comps.Intersectable, self_intersections: *RQ_Comps.Intersections, other_intersectable: *RQ_Comps.Intersectable)
-  if intersected_is_safe_landing(other_intersectable) then
+  if other_intersectable.mask == CollisionMasks.Safe then
     local lander_controller = lander:get_lander_controller()
     lander_controller.state = LanderState.Flying
   end
@@ -526,7 +514,7 @@ end
 -- [[ Game State extensions [[
 
 function GameState:create_lander(pos: Nene.Math.Vec2): Lander
-  local gravity_acceleration: number <comptime> = 0.05
+  local gravity_acceleration: number <comptime> = 1.5
 
   local lander_shape: RQ_Comps.Shape = {
     category = RQ_Comps.Shape.ShapeCategory.Polygon,
@@ -645,22 +633,20 @@ function GameState:create_tilemap(tilemap: *Nene.Tilemap, pos: Nene.Math.Vec2): 
   return lunarmap
 end
 
-function GameState:create_floorarea(pos: Nene.Math.Vec2, size: Nene.Math.Vec2): FloorArea
-  local floorarea_shape: RQ_Comps.Shape = {
+function GameState:create_floor(pos: Nene.Math.Vec2, size: Nene.Math.Vec2): Floor
+  local floor_shape: RQ_Comps.Shape = {
     category = RQ_Comps.Shape.ShapeCategory.Rectangle,
     vertices = { {0, 0}, {size.x, 0}, {size.x, size.y}, {0, size.y} }
   }
 
-  local floorarea, floorarea_entity = FloorArea.new{
+  local floor, floor_entity = Floor.new{
     position = {local_position = pos},
 
-    shape = floorarea_shape,
+    shape = floor_shape,
 
     intersectable = {
       mask = CollisionMasks.Floor,
     },
-
-    is_floor = {},
 
     painter = {
       active = true,
@@ -669,13 +655,41 @@ function GameState:create_floorarea(pos: Nene.Math.Vec2, size: Nene.Math.Vec2): 
     }
   }
 
-  floorarea:get_intersectable():init(pos, floorarea_shape.vertices.data)
+  floor:get_intersectable():init(pos, floor_shape.vertices.data)
 
-  self:update_systems(floorarea_entity)
+  self:update_systems(floor_entity)
 
-  return floorarea
+  return floor
 end
 
+function GameState:create_safe_landing(pos: Nene.Math.Vec2, size: Nene.Math.Vec2): SafeLanding
+  local safe_shape: RQ_Comps.Shape = {
+    category = RQ_Comps.Shape.ShapeCategory.Rectangle,
+    vertices = { {0, 0}, {size.x, 0}, {size.x, size.y}, {0, size.y} }
+  }
+
+  local safe, safe_entity = SafeLanding.new{
+    position = {local_position = pos},
+
+    shape = safe_shape,
+
+    intersectable = {
+      mask = CollisionMasks.Safe,
+    },
+
+    painter = {
+      active = true,
+      use_lines = true,
+      color = Nene.Palette.white,
+    }
+  }
+
+  safe:get_intersectable():init(pos, safe_shape.vertices.data)
+
+  self:update_systems(safe_entity)
+
+  return safe
+end
 -- ]] Game State extensions ]]
 
 -- [[ Game Start [[
@@ -686,9 +700,12 @@ do
   local map_tilemap = Game_State.lunarmaps.map:get_tilemap()
 
   for i, v in ipairs(map_tilemap.tilemap.map) do
+    local tilepos = map_tilemap.tilemap:get_position_from_index(i)
+
     if v == 5 then
-      local tilepos = map_tilemap.tilemap:get_position_from_index(i)
-      Game_State:create_floorarea(tilepos, {16, 16})
+      Game_State:create_floor(tilepos, {16, 16})
+    elseif v == 6 then
+      Game_State:create_safe_landing(tilepos, {16, 16})
     end
   end
 end
@@ -696,7 +713,9 @@ end
 Game_State.lander = Game_State:create_lander(Lander_Start_Position)
 core_state:play_music(Game_State.resources.audio.music, true)
 
---local default_font = tico.font_load_default()
+local landed_txt = Nene.TextTexture.new(core_state, "You Landed!'", Nene.Palette.white)
+local crashed_txt = Nene.TextTexture.new(core_state, "You Crashed!", Nene.Palette.white)
+
 -- ]] Game Start ]]
 
 -- [[ Main Loop [[
@@ -704,12 +723,6 @@ while not core_state.quit do
   core_state:pool_events()
 
   local show_dev_info = core_state:get_scancode(SDL_Scancode.SDL_SCANCODE_I)
-
-  if core_state:get_scancode(SDL_Scancode.SDL_SCANCODE_X) then
-    for i = 12, 22 do
-      Game_State.resources.maps.bgmap.map[i] = -1
-    end
-  end
 
   if core_state:get_scancode(SDL_Scancode.SDL_SCANCODE_R) then
     Game_State:reset()
@@ -732,6 +745,12 @@ while not core_state.quit do
       defer nprof:pop() end
     ## end
 
+    if is_flying then
+      ## if PROF then
+        nprof:push'is flying systems'
+        defer nprof:pop() end
+      ## end
+
       Game_State.systems.gravity_applier:run()
       Game_State.systems.lander_ctrl_system:run(core_state)
 
@@ -739,7 +758,7 @@ while not core_state.quit do
       Game_State.systems.intersections_detector:run()
       Game_State.systems.collisions:run()
 
-      Game_State.systems.velocity_applier:run()
+      Game_State.systems.velocity_applier:run(core_state.deltatime)
 
       if show_dev_info then
         Game_State.systems.intersectable_update:run()
@@ -750,14 +769,9 @@ while not core_state.quit do
       Game_State.systems.camera_holder_system:run()
 
       Game_State.systems.sprite_animation:run(core_state)
-
-    if is_flying then
-      ## if PROF then
-        nprof:push'is flying systems'
-        defer nprof:pop() end
-      ## end
     end
   end
+
 
   core_state:render_clear(Nene.Palette.black)
   do
@@ -765,7 +779,6 @@ while not core_state.quit do
       nprof:push'drawing systems' -- [[ nprof drawying systems [[
     ## end
 
-    --tico.camera_attach(camera_holder.camera)
     do
       ## if PROF then
         nprof:push'painting systems'
@@ -782,40 +795,35 @@ while not core_state.quit do
       end
     end
 
-    --tico.camera_detach()
+    if not is_flying then
+      local half_screen: Nene.Math.Vec2 = {SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2}
+      local tex_txt: Nene.TextTexture = lander_controller.state == LanderState.Landed and landed_txt or crashed_txt
+      local half_tex_size: Nene.Math.Vec2 = {tex_txt.texture.width // 2, tex_txt.texture.height // 2}
+      local draw_pos = half_screen - half_tex_size
 
-    --if not is_flying then
-    --  local msg = (do
-    --    switch lander_controller.state
-    --    case LanderState.Landed then
-    --      return "You're Landed"
-    --    case LanderState.Crashed then
-    --      return "You Crashed"
-    --    else
-    --      return ""
-    --    end
-    --  end)
---
-    --  local msg_fontsize <comptime> = 18
-    --  local msg_width = tico.font_get_text_width(default_font, msg, #msg)
-    --  tico.graphics_draw_text(msg, math.ifloor(tico.window_get_width() / 2 - msg_width / 2), math.ifloor(tico.window_get_height() / 2), Nene.Palette.white)
-    --end
+      tex_txt:draw(core_state, draw_pos + (@Nene.Math.Vec2){1, 1}, Nene.Palette.black)
+      tex_txt:draw(core_state, draw_pos, Nene.Palette.white)
+    end
 
-    --if show_dev_info then
-    --  tico.graphics_draw_line(tico.window_get_width() // 2, 0, tico.window_get_width() // 2, tico.window_get_height(), tico.RED)
-    --  tico.graphics_draw_line(0, tico.window_get_height() // 2, tico.window_get_width(), tico.window_get_height() // 2, tico.RED)
---
-    --  local fps = tico.timer_get_fps()
-    --  tico.graphics_draw_text(tostring(fps), 8, 8, tico.RED)
-    --end
+
+    core_state.camera = {}
+
+    if show_dev_info then
+      core_state:render_draw_line({SCREEN_WIDTH // 2, 0}, {SCREEN_WIDTH // 2, SCREEN_HEIGHT}, Nene.Palette.yellow)
+      core_state:render_draw_line({0, SCREEN_HEIGHT // 2}, {SCREEN_WIDTH, SCREEN_HEIGHT // 2}, Nene.Palette.yellow)
+
+      --local fps = tico.timer_get_fps()
+      --tico.graphics_draw_text(tostring(fps), 8, 8, tico.RED)
+    end
 
     core_state:render_screen()
-    core_state.camera = {}
 
     ## if PROF then
       nprof:pop() -- ]] nprof drawying systems ]]
       nprof:pop() -- ]] nprof systems ]]
-      nprof:draw(core_state)
+      if show_dev_info then
+        nprof:draw(core_state)
+      end
       nprof:reset()
     ## end
   end
