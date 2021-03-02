@@ -11,7 +11,7 @@ global RotorQuick.Systems.VelocityApplier = @MakeSystem('VelocityApplier', @reco
 
 local VelocityApplier = RotorQuick.Systems.VelocityApplier
 
-function VelocityApplier:run()
+function VelocityApplier:run(dt: number)
   ## if PROF then
     nprof:push(#[VelocityApplier.value.nickname]#)
     defer nprof:pop() end
@@ -29,8 +29,8 @@ function VelocityApplier:run()
       velocity.final_velocity = RQ_Comps.Velocity.get_limited_velocity(velocity.final_velocity, velocity.max_velocity)
     end
 
-    position.local_position.x = position.local_position.x + velocity.final_velocity.x -- * tico.timer_get_delta()
-    position.local_position.y = position.local_position.y + velocity.final_velocity.y -- * tico.timer_get_delta()
+    position.local_position.x = position.local_position.x + velocity.final_velocity.x * dt
+    position.local_position.y = position.local_position.y + velocity.final_velocity.y * dt
   end
 end
 
