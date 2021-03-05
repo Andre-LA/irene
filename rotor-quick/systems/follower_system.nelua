@@ -19,13 +19,13 @@ function FollowerSystem:run()
   ## end
 
   for _, components in self:iterate_components() do
-    local follower: *Follower = components.follower
-    local position: *Position = components.position
+    local follower = components.follower
+    local position = components.position
 
     local followed_position_opt = follower:get_position()
     if followed_position_opt.filled then
-      local followed_position: *Position = followed_position_opt:get()
-      position:set_local_from_global(followed_position.origin_position)
+      local followed_position = followed_position_opt:get()
+      position:set_local_from_global(followed_position:get_global_position())
     end
   end
 end
