@@ -8,8 +8,7 @@ require 'rotor-quick.components.painter'
 local RQ_Comps = RotorQuick.Components
 
 global RotorQuick.Systems.IntersectablePainter = @MakeSystem('IntersectablePainter', @record{
-  intersectable: RQ_Comps.Intersectable,
-  painter: RQ_Comps.Painter
+  intersectable: RQ_Comps.Intersectable
 })
 
 local IntersectablePainter = RotorQuick.Systems.IntersectablePainter
@@ -22,16 +21,11 @@ function IntersectablePainter:run(core_state: *Nene.CoreState)
 
   for _, components in self:iterate_components() do
     local intersectable = components.intersectable
-    local painter = components.painter
-
-    if not painter.active then
-      return
-    end
 
     core_state:render_draw_rect(
       intersectable.global_rect:to_rect(),
-      painter.use_lines,
-      painter.color
+      true,
+      Nene.Palette.white
     )
   end
 end

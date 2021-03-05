@@ -9,7 +9,6 @@ local RQ_Comps = RotorQuick.Components
 
 global RotorQuick.Systems.IntersectionsPainter = @MakeSystem('IntersectionsPainter', @record{
   intersections: RQ_Comps.Intersections,
-  painter: RQ_Comps.Painter
 })
 
 local IntersectionsPainter = RotorQuick.Systems.IntersectionsPainter
@@ -22,18 +21,12 @@ function IntersectionsPainter:run(core_state: *Nene.CoreState)
 
   for _, components in self:iterate_components() do
     local intersections = components.intersections
-    local painter = components.painter
-
-    if not painter.active then
-      return
-    end
 
     for i = 0, < #intersections.intersections do
       local intersection = intersections.intersections[i]
       local rect_color: Nene.Color = intersection.cycles_live > 0 and Nene.Palette.red or Nene.Palette.green
-      core_state:render_draw_rect(intersection.rect:to_rect(), painter.use_lines, rect_color)
+      core_state:render_draw_rect(intersection.rect:to_rect(), true, rect_color)
     end
   end
-
 end
 
