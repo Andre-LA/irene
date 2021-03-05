@@ -13,7 +13,7 @@ global RotorQuick.Systems.SpriteAnimation = @MakeSystem('SpriteAnimation', @reco
 
 local SpriteAnimation = RotorQuick.Systems.SpriteAnimation
 
-function SpriteAnimation:run(core_state: Nene.CoreState)
+function SpriteAnimation:run(current_time: uinteger)
   ## if PROF then
     nprof:push(#[SpriteAnimation.value.nickname]#)
     defer nprof:pop() end
@@ -27,7 +27,6 @@ function SpriteAnimation:run(core_state: Nene.CoreState)
       return
     end
 
-    local current_time = core_state:get_ms_time()
     local diff_time = current_time - anim_player.last_change_time
 
     local is_last_frame = sprite.current_frame >= anim_player.current_animation.to
