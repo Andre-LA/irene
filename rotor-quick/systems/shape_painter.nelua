@@ -28,7 +28,7 @@ function ShapePainter:run(core_state: *Nene.CoreState)
     local painter = components.painter
 
     if not painter.active then
-      return
+      continue
     end
 
     local size_x, size_y = 0.0, 0.0

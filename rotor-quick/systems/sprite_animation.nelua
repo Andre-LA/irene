@@ -24,7 +24,7 @@ function SpriteAnimation:run(current_time: uinteger)
     local anim_player = components.animation_player
 
     if anim_player.paused then
-      return
+      continue
     end
 
     local diff_time = current_time - anim_player.last_change_time

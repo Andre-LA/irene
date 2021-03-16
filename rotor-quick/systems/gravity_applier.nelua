@@ -24,7 +24,7 @@ function GravityApplier:run(dt: number)
     local velocity: *Velocity = components.velocity
 
     if not gravity.active then
-      return
+      continue
     end
 
     velocity:add_velocity(gravity.direction * gravity.acceleration * dt)
