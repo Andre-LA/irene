@@ -17,4 +17,8 @@ global RotorQuick.Components.Shape = @record{
 local Shape = RotorQuick.Components.Shape
 ## is_component(Shape)
 
+function Shape:destroy()
+  self.vertices:destroy()
+end
+
 global Shape.ShapeCategory = ShapeCategory

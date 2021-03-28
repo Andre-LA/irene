@@ -27,9 +27,6 @@ global RotorQuick.storages: record{} = {}
   RotorQuick.masks.#|compname|# = BitsetArray.lshifted_one(#[masks_count]#)
   RotorQuick.storages.#|compname|# = storageT.new()
 
-  global T.mask = RotorQuick.masks.#|compname|#
-  global T.storage = &RotorQuick.storages.#|compname|#
-
   ## masks_count = masks_count + 1
   -- ]] fill fields ]]
 ## end)

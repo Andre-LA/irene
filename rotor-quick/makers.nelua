@@ -356,6 +356,10 @@ global MakeEntity = #[make_entity]#
     return iterator, (@IterState){ system_data = &self.system_data, =ids_iterator, =ids_vec, =index }, -1
   end
 
+  function systemT:destroy()
+    self.system_data:destroy()
+  end
+
   ## return systemT
 ## end)
 

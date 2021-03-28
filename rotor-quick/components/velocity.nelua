@@ -1,5 +1,4 @@
 require 'math'
-require 'vector'
 require 'nene.math'
 require 'rotor-quick.makers'
 

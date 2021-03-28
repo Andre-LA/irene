@@ -106,3 +106,7 @@ function SceneGraphNode:get_traversal(nodes: *vector(GenerationalIndex), childre
     nodes:push(self.self_id)
   ## end
 end
+
+function SceneGraphNode:destroy()
+  self.children_ids:destroy()
+end
