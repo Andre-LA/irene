@@ -58,7 +58,5 @@ function Intersections:update_intersection(intersection: Nene.Math.Rectf, mask: 
 end
 
 function Intersections:destroy()
-  print('intersctions before destroy', #self.intersections)
   self.intersections:destroy()
-  print('intersctions after destroy', #self.intersections)
 end
