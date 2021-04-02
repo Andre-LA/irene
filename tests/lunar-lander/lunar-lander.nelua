@@ -715,6 +715,13 @@ core_state:play_music(Game_State.resources.audio.music, true)
 
 local landed_txt = Nene.TextTexture.new(core_state, "You Landed!'", Nene.Palette.white)
 local crashed_txt = Nene.TextTexture.new(core_state, "You Crashed!", Nene.Palette.white)
+local fps_txt = Nene.TextTexture.new(core_state, "00", Nene.Palette.white)
+
+defer
+  landed_txt:free()
+  crashed_txt:free()
+  fps_txt:free()
+end
 
 -- ]] Game Start ]]
 
@@ -812,8 +819,16 @@ while not core_state.quit do
       core_state:render_draw_line({SCREEN_WIDTH // 2, 0}, {SCREEN_WIDTH // 2, SCREEN_HEIGHT}, Nene.Palette.yellow)
       core_state:render_draw_line({0, SCREEN_HEIGHT // 2}, {SCREEN_WIDTH, SCREEN_HEIGHT // 2}, Nene.Palette.yellow)
 
-      --local fps = tico.timer_get_fps()
-      --tico.graphics_draw_text(tostring(fps), 8, 8, tico.RED)
+      local fps = 1 / core_state.deltatime
+      local fps_str = (do
+        local fps_num_str = tostring(fps)
+        local fps_fps_str = 'FPS: ' .. fps_num_str
+        fps_num_str:destroy()
+        return fps_fps_str
+      end)
+
+      fps_txt:update_text(core_state, fps_str, Nene.Palette.white)
+      fps_txt:draw(core_state, {8, 8}, Nene.Palette.red)
     end
 
     core_state:render_screen()
