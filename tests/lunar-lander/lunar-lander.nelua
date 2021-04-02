@@ -32,7 +32,7 @@ local ok, err_msg, core_state = Nene.init("Lunar lander test",
                                           16,
                                           SCREEN_WIDTH,
                                           SCREEN_HEIGHT)
-check(ok, err_msg)
+assert(ok, err_msg)
 
 local GameLayers = @enum{
   Background = 0,
@@ -95,15 +95,15 @@ function LanderControllerSystem:run(core_state: *Nene.CoreState)
     local prop_sprite_opt = RQ_Comps.Sprite.get_entry_from_id(lander_controller.prop_sprite_id)
     local prop_anim_pl_opt = RQ_Comps.AnimationPlayer.get_entry_from_id(lander_controller.prop_anim_pl_id)
 
-    check(prop_sprite_opt.filled, 'prop_sprite_opt is not filled')
-    check(prop_anim_pl_opt.filled, 'prop_anim_pl_opt is not filled')
+    assert(prop_sprite_opt.filled, 'prop_sprite_opt is not filled')
+    assert(prop_anim_pl_opt.filled, 'prop_anim_pl_opt is not filled')
 
     if prop_sprite_opt.filled and prop_anim_pl_opt.filled then
       local prop_sprite = prop_sprite_opt:get()
       local prop_anim_pl = prop_anim_pl_opt:get()
 
       local ok, anim_range = prop_sprite.spritesheet:get_named_animation_range(is_up_down and 'prop_active' or 'prop_inactive')
-      check(ok, 'animation range not found')
+      assert(ok, 'animation range not found')
 
       prop_anim_pl:change_animation(prop_sprite, anim_range, core_state:get_ms_time())
     end
@@ -282,21 +282,21 @@ local Game_State: GameState = { --[[initialized below]] }
 do
   do -- audio
     local ok, errmsg, music = core_state:load_music'tests/lunar-lander/assets/lunar-lander-music.ogg'
-    check(ok, errmsg)
+    assert(ok, errmsg)
     Game_State.resources.audio.music = music
 
     local ok, errmsg, land = core_state:load_sound'tests/lunar-lander/assets/land.wav'
-    check(ok, errmsg)
+    assert(ok, errmsg)
     Game_State.resources.audio.sound_effects.land = land
 
     local ok, errmsg, hit = core_state:load_sound'tests/lunar-lander/assets/hit.wav'
-    check(ok, errmsg)
+    assert(ok, errmsg)
     Game_State.resources.audio.sound_effects.hit = hit
   end
 
   do -- texture sprites
     local ok, err_msg, texture = core_state:load_texture'tests/lunar-lander/assets/figures/sprites.png'
-    check(ok, err_msg)
+    assert(ok, err_msg)
     Game_State.resources.textures.sprites = texture
   end
 
@@ -833,5 +833,4 @@ end
 -- ]] Main Loop ]]
 
 Game_State:unload()
-
 core_state:terminate()

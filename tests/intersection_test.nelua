@@ -27,7 +27,7 @@ b:init({100,100}, quads.data)
 
 -- main:
 local ok, err_msg, core_state = Nene.init("Intersection test", 300, 300, 'nene/resources/monogram_extended.ttf', 16)
-check(ok, err_msg)
+assert(ok, err_msg)
 
 local mx: integer, my: integer;
 
