@@ -26,9 +26,8 @@ function Target:get_direction(self_position: Nene.Math.Vec2): (Nene.Math.Vec2, b
   if not ok then
     return (@Nene.Math.Vec2)(), false, errmsg
   end
-  local target_gl_pos = target_pos:get_global_position()
 
-  return Target.get_direction_from_pos(self_position, target_gl_pos), true, ''
+  return Target.get_direction_from_pos(self_position, target_pos:get_global_position()), true, ''
 end
 
 function Target:get_distance(self_position: Nene.Math.Vec2): (number, boolean, string)
@@ -36,8 +35,7 @@ function Target:get_distance(self_position: Nene.Math.Vec2): (number, boolean, s
   if not ok then
     return 0, false, errmsg
   end
-  local target_gl_pos = target_pos:get_global_position()
 
-  local diff = target_gl_pos - self_position
+  local diff = target_pos:get_global_position() - self_position
   return #diff, true, ''
 end
