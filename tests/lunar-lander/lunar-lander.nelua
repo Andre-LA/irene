@@ -765,7 +765,7 @@ while not core_state.quit do
       end
 
       Game_State.systems.position_hierarchy:run()
-      Game_State.systems.follower_system:run()
+      Game_State.systems.follower_system:run(core_state.deltatime)
       Game_State.systems.camera_holder_system:run()
 
       Game_State.systems.sprite_animation:run(core_state:get_ms_time())

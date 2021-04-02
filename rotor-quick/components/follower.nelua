@@ -1,5 +1,3 @@
-require 'math'
-require 'vector'
 require 'rotor.optional'
 require 'rotor-quick.makers'
 require 'rotor-quick.components.position'
@@ -7,12 +5,8 @@ require 'rotor-quick.components.position'
 local Position = RotorQuick.Components.Position
 
 global RotorQuick.Components.Follower = @record{
-  position_id: GenerationalIndex,
+  speed: number,
 }
 
 local Follower = RotorQuick.Components.Follower
-## is_component(Follower)
-
-function Follower:get_position(): optional(*Position)
-  return RotorQuick.storages.position:get_entry(self.position_id)
-end
+## impl_is_component(Follower)
