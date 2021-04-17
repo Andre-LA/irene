@@ -263,16 +263,16 @@ function GameState:update_systems(entity: *Entity)
 end
 
 function GameState:reset()
-  local lander_controller = self.lander:get_lander_controller()
+  local lander_controller = self.lander:get_component(LanderController)
   lander_controller.state = LanderState.Flying
 
-  local position = self.lander:get_position()
+  local position = self.lander:get_component(RQ_Comps.Position)
   position.local_position = Lander_Start_Position
 
-  local velocity = self.lander:get_velocity()
+  local velocity = self.lander:get_component(RQ_Comps.Velocity)
   velocity:reset_velocity()
 
-  local intersectable = self.lander:get_intersectable()
+  local intersectable = self.lander:get_component(RQ_Comps.Intersectable)
   intersectable:set_global_rect(position:get_global_position())
 end
 
@@ -475,7 +475,7 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
     painter          = { color = Nene.Palette.white, active = true }
   }
 
-  local position = lander_propulsion:get_position()
+  local position = lander_propulsion:get_component(RQ_Comps.Position)
   position:set_local_position({ 0, 16 })
 
   self:update_systems(lander_propulsion_entity)
@@ -488,7 +488,7 @@ end
 -- [[ callbacks [[
 -- callback when lander intersects other intersectable
 local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *RQ_Comps.Intersectable, self_intersections: *RQ_Comps.Intersections, other_intersectable: *RQ_Comps.Intersectable)
-  local lander_controller = lander:get_lander_controller()
+  local lander_controller = lander:get_component(LanderController)
 
   switch other_intersectable.mask
     case CollisionMasks.Safe then
@@ -504,7 +504,7 @@ end
 -- callback when lander exit the intersection with other intersectable
 local function on_lander_intersect_exit(lander: *Lander, self_intersectable: *RQ_Comps.Intersectable, self_intersections: *RQ_Comps.Intersections, other_intersectable: *RQ_Comps.Intersectable)
   if other_intersectable.mask == CollisionMasks.Safe then
-    local lander_controller = lander:get_lander_controller()
+    local lander_controller = lander:get_component(LanderController)
     lander_controller.state = LanderState.Flying
   end
 end
@@ -599,14 +599,14 @@ function GameState:create_lander(pos: Nene.Math.Vec2): Lander
     camera = self:create_camera_entity()
   }
 
-  local lander_controller = lander:get_lander_controller()
+  local lander_controller = lander:get_component(LanderController)
 
   lander_controller.prop_sprite_id = lander.lander_propulsion.sprite_id
   lander_controller.prop_anim_pl_id = lander.lander_propulsion.animation_player_id
 
-  lander:get_intersectable():init(pos, lander_shape.vertices.data)
+  lander:get_component(RQ_Comps.Intersectable):init(pos, lander_shape.vertices.data)
 
-  local scene_graph_node = lander:get_scene_graph_node()
+  local scene_graph_node = lander:get_component(RQ_Comps.SceneGraphNode)
   scene_graph_node:attach_child(lander.camera.scene_graph_node_id)
   scene_graph_node:attach_child(lander.lander_propulsion.scene_graph_node_id)
 
@@ -655,7 +655,7 @@ function GameState:create_floor(pos: Nene.Math.Vec2, size: Nene.Math.Vec2): Floo
     }
   }
 
-  floor:get_intersectable():init(pos, floor_shape.vertices.data)
+  floor:get_component(RQ_Comps.Intersectable):init(pos, floor_shape.vertices.data)
 
   self:update_systems(floor_entity)
 
@@ -684,7 +684,7 @@ function GameState:create_safe_landing(pos: Nene.Math.Vec2, size: Nene.Math.Vec2
     }
   }
 
-  safe:get_intersectable():init(pos, safe_shape.vertices.data)
+  safe:get_component(RQ_Comps.Intersectable):init(pos, safe_shape.vertices.data)
 
   self:update_systems(safe_entity)
 
@@ -697,7 +697,7 @@ Game_State.lunarmaps.bgmap = Game_State:create_tilemap(Game_State.resources.maps
 Game_State.lunarmaps.map = Game_State:create_tilemap(Game_State.resources.maps.map, {0,0})
 
 do
-  local map_tilemap = Game_State.lunarmaps.map:get_tilemap()
+  local map_tilemap = Game_State.lunarmaps.map:get_component(RQ_Comps.Tilemap)
 
   for i, v in ipairs(map_tilemap.tilemap.map) do
     local tilepos = map_tilemap.tilemap:get_position_from_index(i)
@@ -735,8 +735,8 @@ while not core_state.quit do
     Game_State:reset()
   end
 
-  local lander_controller = Game_State.lander:get_lander_controller()
-  local camera_holder = Game_State.lander.camera:get_camera_holder()
+  local lander_controller = Game_State.lander:get_component(LanderController)
+  local camera_holder = Game_State.lander.camera:get_component(RQ_Comps.CameraHolder)
 
   local is_flying = lander_controller.state == LanderState.Flying
 
