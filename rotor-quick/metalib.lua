@@ -77,7 +77,11 @@ function metalib.pascalcase_to_snakecase(s)
     table.insert(words, string.lower(w))
   end
 
-  return table.concat(words, '_')
+  if #words > 0 then
+    return table.concat(words, '_')
+  else
+    return s
+  end
 end
 
 function metalib.ins(v, d)
