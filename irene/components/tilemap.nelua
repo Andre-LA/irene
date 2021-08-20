@@ -1,0 +1,13 @@
+require 'nene'
+require 'nene.tilemap'
+require 'irene.core'
+require 'irene.makers'
+
+local Comps = @Irene.Comps
+
+local TilemapComp = @record{
+  tilemap: Tilemap
+}
+
+global Comps.TilemapComp = @TilemapComp
+## Irene.impl_is_component(TilemapComp)

@@ -1,0 +1,11 @@
+require 'irene.makers'
+
+local Comps = @Irene.Comps
+
+local Collider = @record{
+  tolerance: integer,
+  mask: uint32,
+}
+## Irene.impl_is_component(Collider)
+
+global Comps.Collider = @Collider

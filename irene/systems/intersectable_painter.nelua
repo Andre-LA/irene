@@ -1,0 +1,27 @@
+require 'math'
+require 'nene'
+require 'irene.core'
+require 'irene.makers'
+require 'irene.components.intersectable'
+require 'irene.components.painter'
+
+local Comps, Sys = @Irene.Comps, @Irene.Sys
+
+local IntersectablePainter = @MakeSystem('IntersectablePainter', @record{
+  intersectable: Comps.Intersectable
+})
+
+global Sys.IntersectablePainter = @IntersectablePainter
+
+function IntersectablePainter:run(nene: *Nene)
+  ## if PROF then
+    nprof:push(#[IntersectablePainter.value.nickname]#)
+    defer nprof:pop() end
+  ## end
+
+  for _, components in self:iterate_components() do
+    local intersectable = components.intersectable
+    nene:render_draw_rect(intersectable.global_rect:to_rect(), true)
+  end
+end
+

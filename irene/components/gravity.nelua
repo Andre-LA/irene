@@ -1,0 +1,14 @@
+require 'nene.math'
+require 'irene.makers'
+
+local Vec2 = @Math.Vec2
+local Comps = @Irene.Comps
+
+local Gravity = @record{
+  acceleration: number,
+  direction: Vec2,
+  active: boolean
+}
+## Irene.impl_is_component(Gravity)
+
+global Comps.Gravity = @Gravity

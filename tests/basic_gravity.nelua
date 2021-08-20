@@ -5,75 +5,81 @@ require 'nene'
 -- is possible to only require the used records by not requiring any init:
 -- however it may be better to just require everything once, in this case,
 -- check "lunar_lander.nelua" test, it just require "rotor-quick".
-require 'rotor-quick.core'
-require 'rotor-quick.components.position'
-require 'rotor-quick.components.shape'
-require 'rotor-quick.components.painter'
-require 'rotor-quick.components.velocity'
-require 'rotor-quick.components.gravity'
-require 'rotor-quick.systems.gravity_applier'
-require 'rotor-quick.systems.shape_painter'
-require 'rotor-quick.systems.velocity_applier'
-
-local RQ_Comps = RotorQuick.Components
-local RQ_Sys = RotorQuick.Systems
-
-local gravity_applier = RQ_Sys.GravityApplier.new()
-local shape_painter = RQ_Sys.ShapePainter.new()
-local velocity_applier = RQ_Sys.VelocityApplier.new()
+require 'irene.core'
+require 'irene.components.position'
+require 'irene.components.shape'
+require 'irene.components.painter'
+require 'irene.components.velocity'
+require 'irene.components.gravity'
+require 'irene.systems.gravity_applier'
+require 'irene.systems.shape_painter'
+require 'irene.systems.velocity_applier'
 
 local SCREEN_WIDTH: integer <comptime> = 800
 local SCREEN_HEIGHT: integer <comptime> = 450
 
 local FallingBox = @MakeEntity('falling_box',
-  RQ_Comps.Position,
-  RQ_Comps.Shape,
-  RQ_Comps.Painter,
-  RQ_Comps.Velocity,
-  RQ_Comps.Gravity
+  Irene.Comps.Position,
+  Irene.Comps.Shape,
+  Irene.Comps.Painter,
+  Irene.Comps.Velocity,
+  Irene.Comps.Gravity
 )
 
-local falling_box, falling_box_entity = FallingBox.new{
-  position = {
-    origin_position = {32, 32},
-  },
-  shape    = {
-    category = RQ_Comps.Shape.ShapeCategory.Rectangle,
-    vertices = { {0, 0}, {16, 0}, {16, 16}, {0, 16} }
-  },
-  painter  = {
-    color = Nene.Palette.yellow,
-    active = true
-  },
-  velocity = {
-    active = true,
-  },
-  gravity  = {
-    acceleration = 10,
-    direction = {0,1},
-    active = true
-  }
-}
+local function basic_gravity()
+  local gravity_applier = Irene.Sys.GravityApplier.new()
+  local shape_painter = Irene.Sys.ShapePainter.new()
+  local velocity_applier = Irene.Sys.VelocityApplier.new()
 
-gravity_applier.system_data:update(falling_box_entity)
-shape_painter.system_data:update(falling_box_entity)
-velocity_applier.system_data:update(falling_box_entity)
-
-local ok, err_msg, core_state = Nene.init("Basic Gravity test", 800, 450, 'nene/resources/monogram_extended.ttf', 16)
-assert(ok, err_msg)
-
-while not core_state.quit do
-  core_state:pool_events()
-
-  gravity_applier:run(core_state.deltatime)
-  velocity_applier:run()
-
-  core_state:render_clear(Nene.Palette.bg)
-  do
-    shape_painter:run(core_state)
+  defer
+    gravity_applier:destroy()
+    shape_painter:destroy()
+    velocity_applier:destroy()
   end
-  core_state:render_screen()
-  core_state:render_present()
+
+  local falling_box, falling_box_entity = FallingBox.new{
+    position = {
+      origin_position = {32, 32},
+    },
+    shape    = {
+      category = Irene.Comps.Shape.ShapeCategory.Rectangle,
+      vertices = { {0, 0}, {16, 0}, {16, 16}, {0, 16} }
+    },
+    painter  = {
+      color = Color.Palette.yellow,
+      active = true
+    },
+    velocity = {
+      active = true,
+    },
+    gravity  = {
+      acceleration = 10,
+      direction = {0,1},
+      active = true
+    }
+  }
+
+  gravity_applier.system_data:update(falling_box_entity)
+  shape_painter.system_data:update(falling_box_entity)
+  velocity_applier.system_data:update(falling_box_entity)
+
+  local ok, nene = Nene.init('Irene - Basic gravity', 800, 450)
+  assert(ok, 'error: nene initialization failed.')
+  defer nene:terminate() end
+
+  repeat
+    nene:poll_events()
+
+    gravity_applier:run(nene.delta_time)
+    velocity_applier:run()
+
+    nene:render_clear(Color.Palette.bg)
+
+    shape_painter:run(nene)
+
+    nene:render_present()
+
+  until nene.quit
 end
 
-core_state:terminate()
+basic_gravity()

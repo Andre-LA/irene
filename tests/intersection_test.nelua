@@ -7,56 +7,57 @@ require 'nene'
 require 'vector'
 
 -- is possible to only require the used records by not requiring any init:
-require 'rotor-quick.core'
-require 'rotor-quick.components.intersectable'
+require 'irene.core'
+require 'irene.components.intersectable'
 
-local RQ_Comps = RotorQuick.Components
-
-local quads: vector(Nene.Math.Vec2) = {
-  (@Nene.Math.Vec2){ 0,  0},
-  (@Nene.Math.Vec2){32,  0},
-  (@Nene.Math.Vec2){32, 32},
-  (@Nene.Math.Vec2){ 0, 32}
-}
-
-local a: RQ_Comps.Intersectable = {}
-a:init({32,32}, quads.data)
-
-local b: RQ_Comps.Intersectable = {}
-b:init({100,100}, quads.data)
-
--- main:
-local ok, err_msg, core_state = Nene.init("Intersection test", 300, 300, 'nene/resources/monogram_extended.ttf', 16)
-assert(ok, err_msg)
-
+local Vec2 = @Math.Vec2
 local mx: integer, my: integer;
 
-while not core_state.quit do -- main loop
-  core_state:pool_events((@Nene.Callbacks){
-    motion_cb = function(motion: SDL_MouseMotionEvent)
-      mx = motion.x
-      my = motion.y
+local function intersection_test()
+  local quads: vector(Vec2) = {
+    { 0,  0},
+    {32,  0},
+    {32, 32},
+    { 0, 32}
+  }
+
+  local a: Irene.Comps.Intersectable = {}
+  a:init({32,32}, quads.data)
+
+  local b: Irene.Comps.Intersectable = {}
+  b:init({100,100}, quads.data)
+
+  -- main:
+  local ok, nene = Nene.init("Intersection test", 300, 300)
+  assert(ok, 'error: nene initialization failed')
+  defer nene:terminate() end
+
+  while not nene.quit do -- main loop
+    nene:poll_events({
+      motion_cb = function(motion: SDL_MouseMotionEvent)
+        mx = motion.x
+        my = motion.y
+      end
+    })
+
+    a:set_global_rect({mx, my})
+
+    local intersection, is_intersecting = a:get_intersection(b)
+
+    nene:render_clear(Color.Palette.bg) -- clear screen with color
+    do
+      local text = is_intersecting and 'is intersecting' or 'is not intersecting'
+      -- TODO: render this text
+
+      nene:render_draw_rect(a.global_rect:to_rect(), false)
+      nene:render_draw_rect(b.global_rect:to_rect(), false)
+
+      if is_intersecting then
+        nene:render_draw_rect(intersection:to_rect(), false, Color.Palette.green)
+      end
     end
-  })
-
-  a:set_global_rect({mx, my})
-
-  local intersection, is_intersecting = a:get_intersection(b)
-
-  core_state:render_clear(Nene.Palette.bg) -- clear screen with color
-  do
-    local text = is_intersecting and 'is intersecting' or 'is not intersecting'
-    -- TODO: render this text
-
-    core_state:render_draw_rect(a.global_rect:to_rect(), false, Nene.Palette.white)
-    core_state:render_draw_rect(b.global_rect:to_rect(), false, Nene.Palette.white)
-
-    if is_intersecting then
-      core_state:render_draw_rect(intersection:to_rect(), false, Nene.Palette.green)
-    end
+    nene:render_present()
   end
-  core_state:render_screen()
-  core_state:render_present()
 end
 
-core_state:terminate()
+intersection_test()

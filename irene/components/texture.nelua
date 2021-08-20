@@ -1,0 +1,12 @@
+require 'nene.texture'
+require 'irene.core'
+require 'irene.makers'
+
+local Comps = @Irene.Comps
+
+local TextureComp = @record{
+  texture: Texture
+}
+
+global Comps.TextureComp = @TextureComp
+## Irene.impl_is_component(TextureComp)

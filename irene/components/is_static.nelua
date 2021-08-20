@@ -1,0 +1,8 @@
+require 'irene.makers'
+
+local IsStatic = @record{
+  placeholder: cchar,
+}
+## Irene.impl_is_component(IsStatic)
+
+global Irene.Comps.IsStatic = @IsStatic
