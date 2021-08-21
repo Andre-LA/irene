@@ -246,11 +246,8 @@ function GameState:unload()
   self.resources.textures.sprites_and_bg:destroy()
   self.resources.font:destroy()
 
-  print'111'
   self.resources.audio.sound_effects.land:destroy()
-  print'222'
   self.resources.audio.sound_effects.hit:destroy()
-  print'333'
 
   Music.stop()
   self.resources.audio.music:destroy()

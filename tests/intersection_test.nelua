@@ -14,7 +14,7 @@ local Vec2 = @Math.Vec2
 local mx: integer, my: integer;
 
 local function intersection_test()
-  local quads: vector(Vec2) = {
+  local quads: vector(Vec2) <close> = {
     { 0,  0},
     {32,  0},
     {32, 32},
