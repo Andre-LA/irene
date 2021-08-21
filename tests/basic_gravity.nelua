@@ -2,9 +2,9 @@
 require 'rotor'
 require 'nene'
 
--- is possible to only require the used records by not requiring any init:
+-- is possible to only require the used records by not requiring any init file,
 -- however it may be better to just require everything once, in this case,
--- check "lunar_lander.nelua" test, it just require "rotor-quick".
+-- check "lunar_lander.nelua" test, it just require "irene".
 require 'irene.core'
 require 'irene.components.position'
 require 'irene.components.shape'

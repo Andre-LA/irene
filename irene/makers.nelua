@@ -132,7 +132,7 @@ require 'irene.core'
   )
 
   local nickname = "entity('"..entity_name.."', "..subnickname..")"
-  local codename = 'rotor_quick_'..entity_name
+  local codename = 'irene_'..entity_name
   ]]
 
   local EntityT <nickname #[nickname]#, codename #[codename]#> = @record{
