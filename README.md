@@ -1,5 +1,5 @@
 # Irene
-My personal game framework made on top of [Rotor-nelua](https://github.com/Andre-LA/Rotor-nelua) ECS library
+My personal game framework made on top of [Rotor-nelua](https://gitlab.com/Andre-LA/rotor-nelua) ECS library
 and [Nene](https://github.com/Andre-LA/nene) game library.
 
 You should clone this repository with
