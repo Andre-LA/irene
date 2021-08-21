@@ -1,0 +1,26 @@
+require 'irene.makers'
+require 'irene.components.position'
+require 'irene.components.intersectable'
+
+local Comps, Sys = @Irene.Comps, @Irene.Sys
+
+local IntersectableUpdate = @MakeSystem('IntersectableUpdate', @record{
+  position: Comps.Position,
+  intersectable: Comps.Intersectable
+})
+
+global Sys.IntersectableUpdate = @IntersectableUpdate
+
+function IntersectableUpdate:run()
+  ## if PROF then
+    nprof:push(#[IntersectableUpdate.value.nickname]#)
+    defer nprof:pop() end
+  ## end
+
+  for _, components in self:iterate_components() do
+    local position = components.position
+    local intersectable = components.intersectable
+
+    intersectable:set_global_rect(position:get_global_position())
+  end
+end

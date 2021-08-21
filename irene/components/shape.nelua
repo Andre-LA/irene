@@ -1,0 +1,26 @@
+require 'vector'
+require 'nene.math'
+require 'irene.makers'
+
+local Vec2 = @Math.Vec2
+
+local ShapeCategory = @enum{
+  Rectangle = 1,
+  Circle,
+  Triangle,
+  Polygon
+}
+
+local Shape = @record{
+  category: ShapeCategory,
+  vertices: vector(Vec2), -- TODO: rethink this type, can be optimized?
+}
+## Irene.impl_is_component(Shape)
+
+global Shape.ShapeCategory = ShapeCategory
+global Irene.Comps.Shape = @Shape
+
+function Shape:destroy()
+  self.vertices:destroy()
+end
+

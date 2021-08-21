@@ -1,0 +1,37 @@
+require 'nene'
+require 'irene.core'
+require 'irene.makers'
+require 'irene.components.position'
+require 'irene.components.painter'
+
+local Comps, Sys = @Irene.Comps, @Irene.Sys
+
+local TilemapPainter = @MakeSystem('TilemapPainter', @record{
+  position: Comps.Position,
+  tilemap_comp: Comps.TilemapComp,
+  texture_comp: Comps.TextureComp,
+  painter: Comps.Painter,
+})
+
+global Sys.TilemapPainter = @TilemapPainter
+
+function TilemapPainter:run(nene: *Nene)
+  ## if PROF then
+    nprof:push(#[TilemapPainter.value.nickname]#)
+    defer nprof:pop() end
+  ## end
+
+  for _, components in self:iterate_components() do
+    local position = components.position
+    local tilemap  = components.tilemap_comp
+    local texture  = components.texture_comp
+    local painter  = components.painter
+
+    if not painter.active then
+      continue
+    end
+
+    local drawpos = position:get_global_position()
+    tilemap.tilemap:draw(nene, texture.texture, drawpos, painter.color)
+  end
+end

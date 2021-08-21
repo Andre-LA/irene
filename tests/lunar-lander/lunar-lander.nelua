@@ -1,0 +1,860 @@
+-- [[ requires and imports [[
+
+require 'math'
+require 'nene'
+
+require 'rotor'
+require 'irene'
+require 'irene.makers'
+
+local Vec2, Rectf, Grid = @Math.Vec2, @Math.Rectf, @Math.Grid
+local Comps, Sys = @Irene.Comps, @Irene.Sys
+
+-- ]] requires and imports ]]
+
+-- Main Game records and general variables
+local Lander_Start_Position: Vec2 = {}
+local LANDER_MAX_VELOCITY <comptime> = 300
+
+local WINDOW_WIDTH <comptime> = 800
+local WINDOW_HEIGHT <comptime> = 624
+
+local SCREEN_WIDTH <comptime> = (WINDOW_WIDTH // 4)
+local SCREEN_HEIGHT <comptime> = (WINDOW_HEIGHT // 4)
+
+local ok, nene = Nene.init("Lunar lander test", WINDOW_WIDTH, WINDOW_HEIGHT)
+assert(ok, 'error: nene initialization failed')
+
+local GameLayers = @enum{
+  Background = 0,
+  Tiles,
+  Propulsion,
+  Lander
+}
+
+-- 001: Lander
+-- 010: Collidable
+-- 100: is safe zone
+local CollisionMasks = @enum{
+  Lander = 1, -- 001
+  Floor = 2,  -- 010
+  Safe = 6,   -- 110
+}
+
+-- [[ components [[
+
+local IsSafeLanding = @record{a: byte}
+## Irene.impl_is_component(IsSafeLanding)
+
+local IsFloor = @record{ a: byte }
+## Irene.impl_is_component(IsFloor)
+
+local LanderState = @enum {
+  Flying = 1,
+  Landed,
+  Crashed,
+}
+
+local LanderController = @record{
+  prop_sprite_id: GenerationalIndex,
+  prop_anim_pl_id: GenerationalIndex,
+  propulsion_force: number,
+  state: LanderState
+}
+## Irene.impl_is_component(LanderController)
+
+-- ]] components ]]
+
+-- [[ systems [[
+
+local LanderControllerSystem = @MakeSystem('LanderController', @record{
+  lander_controller: LanderController,
+  velocity: Comps.Velocity,
+  gravity: Comps.Gravity,
+})
+
+function LanderControllerSystem:run(nene: *Nene)
+  for _, components in self:iterate_components() do
+    local lander_controller = components.lander_controller
+    local velocity = components.velocity
+    local gravity = components.gravity
+
+    local is_right_down, is_up_down, is_left_down = nene:get_scancode(SDL_Scancode.SDL_SCANCODE_RIGHT),
+                                                    nene:get_scancode(SDL_Scancode.SDL_SCANCODE_UP),
+                                                    nene:get_scancode(SDL_Scancode.SDL_SCANCODE_LEFT)
+
+    local prop_sprite_opt = Comps.Sprite.get_entry_from_id(lander_controller.prop_sprite_id)
+    local prop_anim_pl_opt = Comps.AnimationPlayer.get_entry_from_id(lander_controller.prop_anim_pl_id)
+
+    assert(prop_sprite_opt.filled, 'prop_sprite_opt is not filled')
+    assert(prop_anim_pl_opt.filled, 'prop_anim_pl_opt is not filled')
+
+    if prop_sprite_opt.filled and prop_anim_pl_opt.filled then
+      local prop_sprite = prop_sprite_opt:get()
+      local prop_anim_pl = prop_anim_pl_opt:get()
+      prop_anim_pl:change_animation(prop_sprite, (is_up_down and 'prop_active' or 'prop_inactive'), SDLWrapper.get_ticks())
+    end
+
+    if is_right_down or is_up_down or is_left_down then
+      local direction: Vec2 = {
+        x = (do
+          if is_right_down then
+            return 1
+          elseif is_left_down then
+            return -1
+          else
+            return 0
+          end
+        end),
+
+        y = is_up_down and -1 or 0
+      }
+
+      velocity:add_velocity(direction * lander_controller.propulsion_force * nene.delta_time)
+    end
+  end
+end
+
+-- ]] systems ]]
+
+-- [[ entities [[
+
+local SafeLanding = @MakeEntity('safe_landing',
+  Comps.Position,
+  Comps.Shape,
+  Comps.Painter,
+  Comps.Intersectable
+)
+
+local Floor = @MakeEntity('floor',
+  Comps.Position,
+  Comps.Shape,
+  Comps.Painter,
+  Comps.Intersectable
+)
+
+local Lander = @MakeEntity('lander',
+  Comps.Position,
+  Comps.SceneGraphNode,
+  Comps.Shape,
+  Comps.TextureComp,
+  Comps.Sprite,
+  Comps.Painter,
+  Comps.Velocity,
+  Comps.Gravity,
+  Comps.Intersectable,
+  Comps.Intersections,
+  Comps.Collider,
+
+  LanderController,
+
+  @MakeEntity('lander_propulsion',
+    Comps.Position,
+    Comps.SceneGraphNode,
+    Comps.TextureComp,
+    Comps.Sprite,
+    Comps.AnimationPlayer,
+    Comps.Painter
+  ),
+
+  @MakeEntity('camera',
+    Comps.Position,
+    Comps.SceneGraphNode,
+    Comps.CameraHolder
+  )
+)
+
+local LanderPropulsionEntity: type = #[Lander.value.fields.lander_propulsion.type]#
+local CameraEntity: type = #[Lander.value.fields.camera.type]#
+
+local LunarMap = @MakeEntity('lunar_map',
+  Comps.Position,
+  Comps.TextureComp,
+  Comps.TilemapComp,
+  Comps.Painter
+)
+
+
+local BackgroundEntity = @MakeEntity('background_entity',
+  Comps.Position,
+  Comps.TextureComp,
+  Comps.Sprite,
+  Comps.Painter
+)
+
+-- ]] entities ]]
+
+-- [[ Game State [[
+local GameState = @record{
+  -- entities
+  lander: Lander,
+  lunarmaps: record{
+    map: LunarMap,
+    bgmap: LunarMap,
+  },
+  -- systems
+  systems: record{
+    lander_ctrl_system: LanderControllerSystem,
+    gravity_applier: Sys.GravityApplier,
+    shape_painter: Sys.ShapePainter,
+    velocity_applier: Sys.VelocityApplier,
+    intersectable_update: Sys.IntersectableUpdate,
+    intersectable_painter: Sys.IntersectablePainter,
+    intersections_detector: Sys.IntersectionsDetector,
+    intersections_painter: Sys.IntersectionsPainter,
+    sprite_painter: Sys.SpritePainter,
+    follower_system: Sys.FollowerSystem,
+    camera_holder_system: Sys.CameraHolderSystem,
+    position_hierarchy: Sys.PositionHierarchy,
+    sprite_animation: Sys.SpriteAnimation,
+    tilemap_painter: Sys.TilemapPainter,
+    collisions: Sys.Collisions,
+  },
+  -- useful data
+  last_startmusic_time: float32,
+  -- resources
+  resources: record{
+    textures: record{
+      sprites_and_bg: Texture,
+      screen: Texture,
+    },
+
+    font: Font,
+
+    atlases_grids: record{
+      sprites: Grid,
+      background: Grid,
+    },
+
+    maps: record{
+      map: Tilemap,
+      bgmap: Tilemap,
+    },
+
+    audio: record{
+      music: Music,
+      sound_effects: record{
+        land: Sound,
+        hit: Sound
+      }
+    },
+  }
+}
+
+function GameState:unload()
+  self.resources.textures.screen:destroy()
+  self.resources.textures.sprites_and_bg:destroy()
+  self.resources.font:destroy()
+
+  self.resources.audio.sound_effects.land:destroy()
+  self.resources.audio.sound_effects.hit:destroy()
+
+  Music.stop()
+  self.resources.audio.music:destroy()
+end
+
+function GameState:update_systems(entity: *Entity)
+  ## for _, sys_value in ipairs(GameState.value.fields.systems.type.fields) do
+    self.systems.#|sys_value.name|#.system_data:update(entity)
+  ## end
+end
+
+function GameState:reset()
+  local lander_controller = self.lander:get_component(LanderController)
+  lander_controller.state = LanderState.Flying
+
+  local position = self.lander:get_component(Comps.Position)
+  position.local_position = Lander_Start_Position
+
+  local velocity = self.lander:get_component(Comps.Velocity)
+  velocity:reset_velocity()
+
+  local intersectable = self.lander:get_component(Comps.Intersectable)
+  intersectable:set_global_rect(position:get_global_position())
+end
+
+local Game_State: GameState = { --[[initialized below]] }
+
+-- Game_State remaining init:
+do
+  do -- screen render target
+    local tex_target --[[, ok]] = Texture.create_texture(nene, SCREEN_WIDTH, SCREEN_HEIGHT, nil, SDL_TEXTUREACCESS_TARGET)
+    --assert(ok, 'Could not create screen texture')
+    Game_State.resources.textures.screen = tex_target
+  end
+
+  do -- audio
+    local music, ok = Music.load('tests/lunar-lander/assets/lunar-lander-music.ogg')
+    assert(ok, 'Could not load "Lunar Lander" music')
+    Game_State.resources.audio.music = music
+
+    local land, ok = Sound.load('tests/lunar-lander/assets/land.wav')
+    assert(ok, 'Could not load "land" sound effect')
+    Game_State.resources.audio.sound_effects.land = land
+
+    local hit, ok = Sound.load('tests/lunar-lander/assets/hit.wav')
+    assert(ok, 'Could not load "hit" sound effect')
+    Game_State.resources.audio.sound_effects.hit = hit
+  end
+
+  do -- texture sprites
+    local texture, ok = Texture.load(nene, 'tests/lunar-lander/assets/figures/sprites.png')
+    assert(ok, 'Could not load "sprites" texture')
+    Game_State.resources.textures.sprites_and_bg = texture
+  end
+
+  do -- atlases grids
+    Game_State.resources.atlases_grids = {
+      sprites    = { cell_size = { width = 16, height = 16 } },
+      background = { cell_size = { width = 16, height = 16 } },
+    }
+  end
+
+  Game_State.resources.font = Font.load('nene/resources/monogram_extended.ttf', 16)
+
+  do --maps
+    local _map: vector(isize) = {}
+
+    ##[[
+      for i_line, line in ipairs{
+        'ffffffffffffffffffffffffffffffffffffffffffffffffff',
+        'f                                                f',
+        'f L                                              f',
+        'f                                                f',
+        'f                                                f',
+        'f                                                f',
+        'f               fffffffffffffffffffffffffff      f',
+        'f               f                         f      f',
+        'f               f                         f      f',
+        'fffffffffffffffff                         f      f',
+        'f                                         f      f',
+        'f                                         f      f',
+        'f                              f          f      f',
+        'f                              f          f      f',
+        'f         fffffff              f          f      f',
+        'f         f f   f              f          f      f',
+        'f         f f   f              f                 f',
+        'f         f f   ffffffffffffffff                 f',
+        'f         f f                  f                 f',
+        'f         f f                  f                 f',
+        'f         f f                  f                 f',
+        'f         f f       f          f                 f',
+        'f         f f       f          f                 f',
+        'f         f f       f          f                 f',
+        'f     fffffff     fff          fffffffffffffffffff',
+        'f     ff            f                            f',
+        'f     f             f                            f',
+        'f     f             f                            f',
+        'f     f       ffffffffffffffffffffffffff         f',
+        'f     f             f                            f',
+        'f     f             f                            f',
+        'f     f             f                            f',
+        'f     f             f                            f',
+        'f     fffffff       f       ffffffffffffffffffffff',
+        'f                   f                            f',
+        'f                   f                            f',
+        'f                   f                            f',
+        'f                   f                            f',
+        'fffffffffffffffffffffffffffffffffsssssssssssffffff'
+      } do
+        for c = 1, #line do
+          local chartile = line:sub(c, c)
+          local charframe = -1
+
+          if chartile == 'f' then
+            charframe = 6
+          elseif chartile == 's' then
+            charframe = 7
+          end
+    ]]
+          _map:push(#[charframe]#)
+
+          ## if chartile == 'L' then
+            ## local pos_x, pos_y = (c-1) * 16, (i_line - 1) * 16
+            Lander_Start_Position = { #[pos_x]# + 2, #[pos_y]# }
+          ##[[
+          end
+        end
+      end
+    ]]
+
+    Game_State.resources.maps.map = {
+      tilemap_width = 50,
+      tileset_width = 5,
+      grid = { cell_size = {width = 16, height = 16} },
+      map = _map,
+    }
+
+    Game_State.resources.maps.bgmap = {
+      tilemap_width = 25,
+      tileset_width = 5,
+      grid = { cell_size = {width = 32, height = 32} },
+      map = {
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+      }
+    }
+  end
+
+  ## for _, sys_v in ipairs(GameState.value.fields.systems.type.fields) do
+    Game_State.systems.#|sys_v.name|# = (@#[sys_v.type]#).new()
+  ## end
+end
+
+function GameState:create_camera_entity(): CameraEntity
+  local camera_entity, camera_entity_entity = CameraEntity.new{
+    position         = {},
+    scene_graph_node = {},
+    camera_holder    = { position = {}, offset = { 8, 8 } }
+  }
+
+  self:update_systems(camera_entity_entity)
+
+  return camera_entity
+end
+
+function GameState:create_lander_propulsion(): LanderPropulsionEntity
+  local animations: hashmap(string, AnimationRange)
+
+  animations['lander_idle'] = {
+    fps = 1,
+    from = 9,
+    to = 9,
+  }
+
+  animations['prop_active'] = {
+    fps = 12,
+    from = 0,
+    to = 1,
+  }
+
+  animations['prop_inactive'] = {
+    fps = 1,
+    from = 4,
+    to = 4,
+  }
+
+  local lander_propulstion_sprite: Comps.Sprite = {
+    spritesheet = {
+      grid = self.resources.atlases_grids.sprites,
+      sprites_per_line = 5
+    },
+    current_frame = 4,
+    offset = { 0, 0 },
+    layer = GameLayers.Propulsion,
+  }
+
+  local lander_propulsion, lander_propulsion_entity = LanderPropulsionEntity.new{
+    position         = {},
+    scene_graph_node = {},
+    painter          = { color = Color.Palette.white, active = true },
+    texture_comp     = { texture = Game_State.resources.textures.sprites_and_bg },
+    sprite           = lander_propulstion_sprite,
+    animation_player = {
+      =animations,
+      speed = 1,
+      looping = true,
+    },
+  }
+
+  local position = lander_propulsion:get_component(Comps.Position)
+  position:set_local_position({ 0, 16 })
+
+  self:update_systems(lander_propulsion_entity)
+
+  return lander_propulsion
+end
+
+-- ]] Game State ]]
+
+-- [[ callbacks [[
+-- callback when lander intersects other intersectable
+local function on_lander_intersect_enter(lander: *Lander, self_intersectable: *Comps.Intersectable, self_intersections: *Comps.Intersections, other_intersectable: *Comps.Intersectable)
+  local lander_controller = lander:get_component(LanderController)
+
+  switch other_intersectable.mask
+    case CollisionMasks.Safe then
+      lander_controller.state = LanderState.Landed
+      Game_State.resources.audio.sound_effects.land:play()
+
+    case CollisionMasks.Floor then
+      lander_controller.state = LanderState.Crashed
+      Game_State.resources.audio.sound_effects.hit:play()
+  end
+end
+
+-- callback when lander exit the intersection with other intersectable
+local function on_lander_intersect_exit(lander: *Lander, self_intersectable: *Comps.Intersectable, self_intersections: *Comps.Intersections, other_intersectable: *Comps.Intersectable)
+  if other_intersectable.mask == CollisionMasks.Safe then
+    local lander_controller = lander:get_component(LanderController)
+    lander_controller.state = LanderState.Flying
+  end
+end
+
+-- ]] callbacks ]]
+
+-- [[ Game State extensions [[
+
+function GameState:create_lander(pos: Vec2): Lander
+  local gravity_acceleration: number <comptime> = 1.5
+
+  local lander_shape: Comps.Shape = {
+    category = Comps.Shape.ShapeCategory.Polygon,
+
+    -- create 8 elements with no actual used values, the numbers here are just for code clarity about the indexes
+    vertices = { {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8} }
+  }
+
+  local lprop = self:create_lander_propulsion()
+
+  ## local radius = 6
+  ## for i = 0, 8 do
+    ## local i_rad = i/4 * math.pi
+    ## local cos = math.cos(i_rad)
+    ## local sin = math.sin(i_rad)
+
+    lander_shape.vertices[ #[i]# ] = { #[cos*radius + radius]# + 3, #[sin*radius + radius]# + 4}
+  ## end
+
+  local lander_sprite: Comps.Sprite = {
+    spritesheet = {
+      grid = self.resources.atlases_grids.sprites,
+      sprites_per_line = 5,
+    },
+    current_frame = 9,
+    offset = { 0, 0 },
+    layer = GameLayers.Lander
+  }
+
+  local lander, lander_entity = Lander.new{
+    position = { local_position = pos },
+
+    scene_graph_node = { },
+
+    shape = lander_shape,
+
+    texture_comp = { texture = Game_State.resources.textures.sprites_and_bg },
+
+    sprite = lander_sprite,
+
+    painter = {
+      active = true,
+      use_lines = true,
+      color = Color.Palette.white
+    },
+
+    velocity = {
+      active = true,
+      final_velocity = {0,0},
+      max_velocity = LANDER_MAX_VELOCITY,
+      velocity_is_limited = true
+    },
+
+    gravity = {
+      active = true,
+      acceleration = gravity_acceleration,
+      direction = {0.0, 1.0}
+    },
+
+    intersectable = {
+      mask = CollisionMasks.Lander
+    },
+
+    intersections = {
+      intersections = {},
+      on_enter_callback = function(self_intersectable: *Comps.Intersectable, self_intersections: *Comps.Intersections, other_intersectable: *Comps.Intersectable)
+        on_lander_intersect_enter(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
+      end,
+      on_exit_callback =  function (self_intersectable: *Comps.Intersectable, self_intersections: *Comps.Intersections, other_intersectable: *Comps.Intersectable)
+        on_lander_intersect_exit(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
+      end
+    },
+
+    collider = {
+      mask = CollisionMasks.Floor | CollisionMasks.Safe,
+      tolerance = 2,
+    },
+
+    lander_controller = {
+      prop_sprite_id = {0, 0},
+      propulsion_force = gravity_acceleration * 2.5,
+      state = LanderState.Flying
+    },
+
+    lander_propulsion = lprop,
+
+    camera = self:create_camera_entity()
+  }
+
+  local lander_controller = lander:get_component(LanderController)
+
+  lander_controller.prop_sprite_id = lander.lander_propulsion.sprite_id
+  lander_controller.prop_anim_pl_id = lander.lander_propulsion.animation_player_id
+
+  lander:get_component(Comps.Intersectable):init(pos, lander_shape.vertices.data)
+
+  local scene_graph_node = lander:get_component(Comps.SceneGraphNode)
+  scene_graph_node:attach_child(lander.camera.scene_graph_node_id)
+  scene_graph_node:attach_child(lander.lander_propulsion.scene_graph_node_id)
+
+  self:update_systems(lander_entity)
+
+  return lander
+end
+
+function GameState:create_tilemap(tilemap: Tilemap, pos: Vec2): LunarMap
+  local lunarmap, lunarmap_entity = LunarMap.new{
+    position = { local_position = pos },
+
+    texture_comp = { texture = Game_State.resources.textures.sprites_and_bg },
+
+    tilemap_comp = { =tilemap },
+
+    painter = {
+      active = true,
+      color = Color.Palette.white,
+      use_lines = true,
+    }
+  }
+
+  self:update_systems(lunarmap_entity)
+
+  return lunarmap
+end
+
+function GameState:create_floor(pos: Vec2, size: Vec2): Floor
+  local floor_shape: Comps.Shape = {
+    category = Comps.Shape.ShapeCategory.Rectangle,
+    vertices = { {0, 0}, {size.x, 0}, {size.x, size.y}, {0, size.y} }
+  }
+
+  local floor, floor_entity = Floor.new{
+    position = {local_position = pos},
+
+    shape = floor_shape,
+
+    intersectable = {
+      mask = CollisionMasks.Floor,
+    },
+
+    painter = {
+      active = true,
+      use_lines = true,
+      color = Color.Palette.white,
+    }
+  }
+
+  floor:get_component(Comps.Intersectable):init(pos, floor_shape.vertices.data)
+
+  self:update_systems(floor_entity)
+
+  return floor
+end
+
+function GameState:create_safe_landing(pos: Vec2, size: Vec2): SafeLanding
+  local safe_shape: Comps.Shape = {
+    category = Comps.Shape.ShapeCategory.Rectangle,
+    vertices = { {0, 0}, {size.x, 0}, {size.x, size.y}, {0, size.y} }
+  }
+
+  local safe, safe_entity = SafeLanding.new{
+    position = {local_position = pos},
+
+    shape = safe_shape,
+
+    intersectable = {
+      mask = CollisionMasks.Safe,
+    },
+
+    painter = {
+      active = true,
+      use_lines = true,
+      color = Color.Palette.white,
+    }
+  }
+
+  safe:get_component(Comps.Intersectable):init(pos, safe_shape.vertices.data)
+
+  self:update_systems(safe_entity)
+
+  return safe
+end
+-- ]] Game State extensions ]]
+
+-- [[ Game Start [[
+Game_State.lunarmaps.bgmap = Game_State:create_tilemap(Game_State.resources.maps.bgmap, {0,16})
+Game_State.lunarmaps.map = Game_State:create_tilemap(Game_State.resources.maps.map, {0,0})
+
+do
+  local map_tilemap = Game_State.lunarmaps.map:get_component(Comps.TilemapComp)
+
+  for i, v in ipairs(map_tilemap.tilemap.map) do
+    local tile_row, tile_column = map_tilemap.tilemap:get_tile_column_row(i)
+    local tilepos = map_tilemap.tilemap:get_tile_pos(tile_row, tile_column)
+
+    if v == 6 then
+      Game_State:create_floor(tilepos, {16, 16})
+    elseif v == 7 then
+      Game_State:create_safe_landing(tilepos, {16, 16})
+    end
+  end
+end
+
+Game_State.lander = Game_State:create_lander(Lander_Start_Position)
+Game_State.resources.audio.music:play()
+
+local landed_txt = TextTexture.new(nene, "You Landed!", Game_State.resources.font)
+local crashed_txt = TextTexture.new(nene, "You Crashed!", Game_State.resources.font)
+local fps_txt = TextTexture.new(nene, "00", Game_State.resources.font)
+
+defer
+  landed_txt:destroy()
+  crashed_txt:destroy()
+  fps_txt:destroy()
+end
+
+-- ]] Game Start ]]
+
+-- [[ Main Loop [[
+repeat
+  nene:poll_events()
+
+  local show_dev_info = nene:get_scancode(SDL_Scancode.SDL_SCANCODE_I)
+
+  if nene:get_scancode(SDL_Scancode.SDL_SCANCODE_R) then
+    Game_State:reset()
+  end
+
+  local lander_controller = Game_State.lander:get_component(LanderController)
+  local camera_holder = Game_State.lander.camera:get_component(Comps.CameraHolder)
+
+  local is_flying = lander_controller.state == LanderState.Flying
+
+  ## if PROF then
+    nprof:push'systems' -- [[ nprof systems [[
+  ## end
+
+  do
+    ## if PROF then
+      nprof:push'processing systems'
+      defer nprof:pop() end
+    ## end
+
+    if is_flying then
+      ## if PROF then
+        nprof:push'is flying systems'
+        defer nprof:pop() end
+      ## end
+
+      Game_State.systems.gravity_applier:run(nene.delta_time)
+      Game_State.systems.lander_ctrl_system:run(nene)
+
+      Game_State.systems.intersectable_update:run()
+      Game_State.systems.intersections_detector:run()
+      Game_State.systems.collisions:run()
+
+      Game_State.systems.velocity_applier:run()
+
+      if show_dev_info then
+        Game_State.systems.intersectable_update:run()
+      end
+
+      Game_State.systems.position_hierarchy:run()
+      Game_State.systems.follower_system:run(nene.delta_time)
+      Game_State.systems.camera_holder_system:run()
+
+      Game_State.systems.sprite_animation:run(SDLWrapper.get_ticks())
+    end
+  end
+
+  -- set screen texture as target
+  nene:set_render_target(Game_State.resources.textures.screen:get())
+  nene:render_clear(Color.Palette.black)
+
+  nene.render_offset = camera_holder.position + camera_holder.offset - Vec2{ (SCREEN_WIDTH // 2), (SCREEN_HEIGHT // 2) }
+
+  do
+    ## if PROF then
+      nprof:push'drawing systems' -- [[ nprof drawing systems [[
+    ## end
+
+    do
+      ## if PROF then
+        nprof:push'painting systems'
+        defer nprof:pop() end
+      ## end
+
+      Game_State.systems.tilemap_painter:run(nene)
+      Game_State.systems.sprite_painter:run(nene)
+
+      if show_dev_info then
+        Game_State.systems.shape_painter:run(nene)
+        Game_State.systems.intersectable_painter:run(nene)
+        Game_State.systems.intersections_painter:run(nene)
+      end
+    end
+
+    nene.render_offset = {}
+
+    if not is_flying then
+      local half_screen: Vec2 = { (SCREEN_WIDTH // 2), (SCREEN_HEIGHT // 2) }
+      local tex_txt: TextTexture = lander_controller.state == LanderState.Landed and landed_txt or crashed_txt
+      local half_tex_size: Vec2 = {tex_txt.texture.width // 2, tex_txt.texture.height // 2}
+      local draw_pos = half_screen - half_tex_size
+
+      tex_txt:draw(nene, draw_pos + {1, 1}, Color.Palette.black)
+      tex_txt:draw(nene, draw_pos, Color.Palette.white)
+    end
+
+    if show_dev_info then
+      nene:render_draw_line({SCREEN_WIDTH // 2, 0}, {SCREEN_WIDTH // 2, SCREEN_HEIGHT}, Color.Palette.yellow)
+      nene:render_draw_line({0, SCREEN_HEIGHT // 2}, {SCREEN_WIDTH, SCREEN_HEIGHT // 2}, Color.Palette.yellow)
+
+      local fps = 1 / nene.delta_time
+      local fps_str = (do
+        local fps_num_str = tostring(fps)
+        local fps_fps_str = 'FPS: ' .. fps_num_str
+        fps_num_str:destroy()
+        return fps_fps_str
+      end)
+
+      fps_txt:update_text(nene, fps_str, Game_State.resources.font)
+      fps_txt:draw(nene, {8, 8}, Color.Palette.red)
+    end
+
+    nene:set_render_target()
+    Game_State.resources.textures.screen:draw(nene)
+
+    ## if PROF then
+      nprof:pop() -- ]] nprof drawing systems ]]
+      nprof:pop() -- ]] nprof systems ]]
+      if show_dev_info then
+        nprof:draw(nene)
+      end
+      nprof:reset()
+    ## end
+  end
+
+  nene:render_present()
+until nene.quit
+-- ]] Main Loop ]]
+
+Game_State:unload()
+nene:terminate()

@@ -1,103 +1,85 @@
 -- minimal example of a box falling
-
-##[[
-  TICO = {
-    L = 'tinycoffee/build',
-    I = {
-      include = "tinycoffee/include",
-      external = "tinycoffee/external"
-    }
-  }
-]]
-
-require 'tico'
 require 'rotor'
+require 'nene'
 
 -- is possible to only require the used records by not requiring any init:
 -- however it may be better to just require everything once, in this case,
 -- check "lunar_lander.nelua" test, it just require "rotor-quick".
-require 'rotor-quick.core'
-require 'rotor-quick.components.position'
-require 'rotor-quick.components.shape'
-require 'rotor-quick.components.painter'
-require 'rotor-quick.components.velocity'
-require 'rotor-quick.components.gravity'
-require 'rotor-quick.systems.gravity_applier'
-require 'rotor-quick.systems.shape_painter'
-require 'rotor-quick.systems.velocity_applier'
-
-local nelua_argc: cint <cimport, nodecl>
-local nelua_argv: *[0]cstring <cimport, nodecl>
-
-local Config = tico.Config
-
-local Position = RotorQuick.Components.Position
-local Shape = RotorQuick.Components.Shape
-local Painter = RotorQuick.Components.Painter
-local Velocity = RotorQuick.Components.Velocity
-local Gravity = RotorQuick.Components.Gravity
-
-local GravityApplier = RotorQuick.Systems.GravityApplier
-local ShapePainter = RotorQuick.Systems.ShapePainter
-local VelocityApplier = RotorQuick.Systems.VelocityApplier
-
-local gravity_applier = GravityApplier.new()
-local shape_painter = ShapePainter.new()
-local velocity_applier = VelocityApplier.new()
+require 'irene.core'
+require 'irene.components.position'
+require 'irene.components.shape'
+require 'irene.components.painter'
+require 'irene.components.velocity'
+require 'irene.components.gravity'
+require 'irene.systems.gravity_applier'
+require 'irene.systems.shape_painter'
+require 'irene.systems.velocity_applier'
 
 local SCREEN_WIDTH: integer <comptime> = 800
 local SCREEN_HEIGHT: integer <comptime> = 450
 
 local FallingBox = @MakeEntity('falling_box',
-  Position,
-  Shape,
-  Painter,
-  Velocity,
-  Gravity
+  Irene.Comps.Position,
+  Irene.Comps.Shape,
+  Irene.Comps.Painter,
+  Irene.Comps.Velocity,
+  Irene.Comps.Gravity
 )
 
-local falling_box, falling_box_entity = FallingBox.new{
-  position = {
-    origin_position = {32, 32},
-  },
-  shape    = {
-    category = Shape.ShapeCategory.Rectangle,
-    vertices = { {0, 0}, {16, 0}, {16, 16}, {0, 16} }
-  },
-  painter  = {
-    color = tico.WHITE,
-    active = true
-  },
-  velocity = {
-    active = true,
-    max_velocity = 10,
-  },
-  gravity  = {
-    acceleration = 0.1,
-    direction = {0,1},
-    active = true
-  }
-}
+local function basic_gravity()
+  local gravity_applier = Irene.Sys.GravityApplier.new()
+  local shape_painter = Irene.Sys.ShapePainter.new()
+  local velocity_applier = Irene.Sys.VelocityApplier.new()
 
-gravity_applier.system_data:update(falling_box_entity)
-shape_painter.system_data:update(falling_box_entity)
-velocity_applier.system_data:update(falling_box_entity)
-
-local config = tico.config_init("Basic Gravity test", 800, 450, nelua_argc, nelua_argv)
-tico.init(config)
-
-while not tico.window_should_close() do
-  tico.update()
-
-  gravity_applier:run()
-  velocity_applier:run()
-
-  tico.begin_draw()
-  do
-    tico.graphics_clear(tico.BLACK)
-    shape_painter:run()
+  defer
+    gravity_applier:destroy()
+    shape_painter:destroy()
+    velocity_applier:destroy()
   end
-  tico.end_draw()
+
+  local falling_box, falling_box_entity = FallingBox.new{
+    position = {
+      origin_position = {32, 32},
+    },
+    shape    = {
+      category = Irene.Comps.Shape.ShapeCategory.Rectangle,
+      vertices = { {0, 0}, {16, 0}, {16, 16}, {0, 16} }
+    },
+    painter  = {
+      color = Color.Palette.yellow,
+      active = true
+    },
+    velocity = {
+      active = true,
+    },
+    gravity  = {
+      acceleration = 10,
+      direction = {0,1},
+      active = true
+    }
+  }
+
+  gravity_applier.system_data:update(falling_box_entity)
+  shape_painter.system_data:update(falling_box_entity)
+  velocity_applier.system_data:update(falling_box_entity)
+
+  local ok, nene = Nene.init('Irene - Basic gravity', 800, 450)
+  assert(ok, 'error: nene initialization failed.')
+  defer nene:terminate() end
+
+  repeat
+    nene:poll_events()
+
+    gravity_applier:run(nene.delta_time)
+    velocity_applier:run()
+
+    nene:render_clear(Color.Palette.bg)
+
+    shape_painter:run(nene)
+
+    nene:render_present()
+
+  until nene.quit
 end
 
-tico.terminate()
+basic_gravity()

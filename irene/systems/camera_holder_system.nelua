@@ -1,0 +1,27 @@
+require 'irene.makers'
+require 'irene.components.position'
+require 'irene.components.camera_holder'
+
+local Comps, Sys = @Irene.Comps, @Irene.Sys
+
+local CameraHolderSystem = @MakeSystem('CameraHolderSystem', @record{
+  camera_holder: Comps.CameraHolder,
+  position: Comps.Position,
+})
+
+global Sys.CameraHolderSystem = @CameraHolderSystem
+
+function CameraHolderSystem:run()
+  ## if PROF then
+    nprof:push(#[CameraHolderSystem.value.nickname]#)
+    defer nprof:pop() end
+  ## end
+
+  for _, components in self:iterate_components() do
+    local camera_holder = components.camera_holder
+    local position = components.position
+
+    camera_holder:set_target(position:get_global_position())
+  end
+end
+

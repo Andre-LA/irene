@@ -1,0 +1,32 @@
+require 'math'
+require 'nene.colors'
+require 'irene.core'
+require 'irene.makers'
+require 'irene.components.intersections'
+require 'irene.components.painter'
+
+local Comps, Sys = @Irene.Comps, @Irene.Sys
+
+local IntersectionsPainter = @MakeSystem('IntersectionsPainter', @record{
+  intersections: Comps.Intersections,
+})
+
+global Sys.IntersectionsPainter = @IntersectionsPainter
+
+function IntersectionsPainter:run(nene: *Nene)
+  ## if PROF then
+    nprof:push(#[IntersectionsPainter.value.nickname]#)
+    defer nprof:pop() end
+  ## end
+
+  for _, components in self:iterate_components() do
+    local intersections = components.intersections
+
+    for i = 0, < #intersections.intersections do
+      local intersection = intersections.intersections[i]
+      local rect_color: Color = intersection.cycles_live > 0 and Color.Palette.red or Color.Palette.green
+      nene:render_draw_rect(intersection.rect:to_rect(), true, rect_color)
+    end
+  end
+end
+

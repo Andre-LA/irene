@@ -1,0 +1,34 @@
+require 'math'
+require 'nene.math'
+require 'irene.makers'
+
+local Vec2 = @Math.Vec2
+local Comps = @Irene.Comps
+
+local Velocity = @record{
+  active: boolean,
+  final_velocity: Vec2,
+  max_velocity: uinteger,
+  velocity_is_limited: boolean
+}
+## Irene.impl_is_component(Velocity)
+
+global Comps.Velocity = @Velocity
+
+function Velocity:add_velocity(velocity: Vec2)
+  self.final_velocity = self.final_velocity + velocity
+end
+
+function Velocity:reset_velocity()
+  self.final_velocity = { 0, 0 }
+end
+
+function Velocity.get_limited_velocity(velocity: Vec2, limit: number): Vec2
+  local velocity_len = #velocity
+
+  if velocity_len > limit then
+    return velocity * (limit / velocity_len)
+  else
+    return velocity
+  end
+end

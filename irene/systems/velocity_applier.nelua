@@ -1,0 +1,36 @@
+require 'irene.makers'
+require 'irene.components.velocity'
+require 'irene.components.position'
+
+local Comps, Sys = @Irene.Comps, @Irene.Sys
+
+local VelocityApplier = @MakeSystem('VelocityApplier', @record{
+  velocity: Comps.Velocity,
+  position: Comps.Position,
+})
+
+global Sys.VelocityApplier = @VelocityApplier
+
+function VelocityApplier:run()
+  ## if PROF then
+    nprof:push(#[VelocityApplier.value.nickname]#)
+    defer nprof:pop() end
+  ## end
+
+  for _, components in self:iterate_components() do
+    local velocity = components.velocity
+    local position = components.position
+
+    if not velocity.active then
+      continue
+    end
+
+    if velocity.velocity_is_limited then
+      velocity.final_velocity = Comps.Velocity.get_limited_velocity(velocity.final_velocity, velocity.max_velocity)
+    end
+
+    position.local_position.x = position.local_position.x + velocity.final_velocity.x
+    position.local_position.y = position.local_position.y + velocity.final_velocity.y
+  end
+end
+

@@ -2,75 +2,62 @@
      License, v. 2.0. If a copy of the MPL was not distributed with this
      file, You can obtain one at https://mozilla.org/MPL/2.0/. ]]
 
-##[[
-  TICO = {
-    L = 'tinycoffee/build',
-    I = {
-      include = "tinycoffee/include",
-      external = "tinycoffee/external"
-    }
-  }
-]]
-
-require 'tico'
 require 'math'
+require 'nene'
 require 'vector'
 
 -- is possible to only require the used records by not requiring any init:
-require 'rotor-quick.core'
-require 'rotor-quick.components.intersectable'
+require 'irene.core'
+require 'irene.components.intersectable'
 
-local Vec2 = tico.Vec2
-local Color = tico.Color
-local Rectf = tico.Rectf
+local Vec2 = @Math.Vec2
+local mx: integer, my: integer;
 
-local Intersectable = RotorQuick.Components.Intersectable
+local function intersection_test()
+  local quads: vector(Vec2) <close> = {
+    { 0,  0},
+    {32,  0},
+    {32, 32},
+    { 0, 32}
+  }
 
-local quad: vector(Vec2) = { (@Vec2){0,0}, (@Vec2){32,0}, (@Vec2){32,32}, (@Vec2){0,32} }
+  local a: Irene.Comps.Intersectable = {}
+  a:init({32,32}, quads.data)
 
-local a: Intersectable = {}
-a:init({}, {32,32}, quad.data)
+  local b: Irene.Comps.Intersectable = {}
+  b:init({100,100}, quads.data)
 
-local b: Intersectable = {}
-b:init({}, {128,128}, quad.data)
+  -- main:
+  local ok, nene = Nene.init("Intersection test", 300, 300)
+  assert(ok, 'error: nene initialization failed')
+  defer nene:terminate() end
 
-local function draw_rect(r: Rectf, color: Color)
-  tico.graphics_draw_rectangle(r.x, r.y, math.ifloor(r.w), math.ifloor(r.h), color)
-end
+  while not nene.quit do -- main loop
+    nene:poll_events({
+      motion_cb = function(motion: SDL_MouseMotionEvent)
+        mx = motion.x
+        my = motion.y
+      end
+    })
 
-local nelua_argc: cint <cimport, nodecl>
-local nelua_argv: *[0]cstring <cimport, nodecl>
+    a:set_global_rect({mx, my})
 
-local config = tico.config_init('Intersection test', 640, 380, nelua_argc, nelua_argv)
-tico.init(config)
+    local intersection, is_intersecting = a:get_intersection(b)
 
-while not tico.window_should_close() do -- main loop
-  tico.update() -- update inputs, timers, ...
+    nene:render_clear(Color.Palette.bg) -- clear screen with color
+    do
+      local text = is_intersecting and 'is intersecting' or 'is not intersecting'
+      -- TODO: render this text
 
-  local mx, my = 0_cint, 0_cint
-  tico.input_get_mouse_pos(&mx, &my)
+      nene:render_draw_rect(a.global_rect:to_rect(), false)
+      nene:render_draw_rect(b.global_rect:to_rect(), false)
 
-  a:set_global_rect({mx, my})
-
-  local intersection, is_intersecting = a:get_intersection(b)
-
-  -- [[ begin batch render [[
-  tico.begin_draw()
-  do
-    tico.graphics_clear(tico.BG) -- clear screen with color
-
-    local text = is_intersecting and 'is intersecting' or 'is not intersecting'
-    tico.graphics_draw_text(text, 0, 0, tico.WHITE)
-
-    draw_rect(a.global_rect, tico.WHITE)
-    draw_rect(b.global_rect, tico.WHITE)
-
-    if is_intersecting then
-      draw_rect(intersection, tico.RED)
+      if is_intersecting then
+        nene:render_draw_rect(intersection:to_rect(), false, Color.Palette.green)
+      end
     end
+    nene:render_present()
   end
-  tico.end_draw()
-  -- ]] finish batch render ]]
 end
 
-tico.terminate()
+intersection_test()

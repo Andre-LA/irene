@@ -1,0 +1,44 @@
+require 'irene.makers'
+require 'irene.components.position'
+require 'irene.components.scene_graph_node'
+
+local Comps, Sys = @Irene.Comps, @Irene.Sys
+
+-- TODO: optimize with is_dirty flag
+local function traverse(origin_sg_node: *Comps.SceneGraphNode, origin_pos: *Comps.Position)
+  for i, child_node, child_node_id in origin_sg_node:iter_children() do
+    local child_pos_opt = Comps.Position.get_entry_from_entity_id(child_node.entity_id)
+    if child_pos_opt.filled then
+      local child_pos = child_pos_opt:get()
+
+      child_pos.origin_position = origin_pos:get_global_position()
+
+      if #child_node.children_ids > 0 then
+        traverse(child_node, child_pos)
+      end
+    end
+  end
+end
+
+local PositionHierarchy = @MakeSystem('PositionHierarchy', @record{
+  scene_graph_node: Comps.SceneGraphNode,
+  position: Comps.Position
+})
+
+global Sys.PositionHierarchy = @PositionHierarchy
+
+function PositionHierarchy:run()
+  ## if PROF then
+    nprof:push(#[PositionHierarchy.value.nickname]#)
+    defer nprof:pop() end
+  ## end
+
+  for _, components in self:iterate_components() do
+    local scene_graph_node = components.scene_graph_node
+    local position = components.position
+
+    if scene_graph_node.parent_id == {0,0} then
+      traverse(scene_graph_node, position)
+    end
+  end
+end
