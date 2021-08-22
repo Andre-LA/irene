@@ -246,6 +246,9 @@ function GameState:unload()
   self.resources.textures.sprites_and_bg:destroy()
   self.resources.font:destroy()
 
+  self.resources.maps.map:destroy()
+  self.resources.maps.bgmap:destroy()
+
   self.resources.audio.sound_effects.land:destroy()
   self.resources.audio.sound_effects.hit:destroy()
 
