@@ -92,7 +92,7 @@ function LanderControllerSystem:run(nene: *Nene)
     if prop_sprite_opt.filled and prop_anim_pl_opt.filled then
       local prop_sprite = prop_sprite_opt:get()
       local prop_anim_pl = prop_anim_pl_opt:get()
-      prop_anim_pl:change_animation(prop_sprite, (is_up_down and 'prop_active' or 'prop_inactive'), SDLWrapper.get_ticks())
+      prop_anim_pl:change_animation(prop_sprite, (is_up_down and 'prop_active' or 'prop_inactive'), nene.current_time)
     end
 
     if is_right_down or is_up_down or is_left_down then
@@ -780,7 +780,7 @@ repeat
       Game_State.systems.follower_system:run(nene.delta_time)
       Game_State.systems.camera_holder_system:run()
 
-      Game_State.systems.sprite_animation:run(SDLWrapper.get_ticks())
+      Game_State.systems.sprite_animation:run(nene.current_time)
     end
   end
 
