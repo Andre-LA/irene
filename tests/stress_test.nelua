@@ -48,7 +48,7 @@ function WalkerSystem:run()
     -- copy **references** from each component
     local position = components.position
     local walker = components.walker_comp
-    local walker_ids = components.walker
+    local walker_e = components.walker
 
     -- then just a very standard gameplay code
     local beywond_width = position.local_position.x > win_w
@@ -64,19 +64,28 @@ function WalkerSystem:run()
           position.local_position.y = 0
         end
       else -- then destroy
-        -- for each component of Walker, we need to free the entry for it's respective storage
-        Irene.storages.position:remove_entry(walker_ids.position_id)
-        Irene.storages.painter:remove_entry(walker_ids.painter_id)
-        Irene.storages.velocity:remove_entry(walker_ids.velocity_id)
-        Irene.storages.walker_comp:remove_entry(walker_ids.walker_comp_id)
+        --[[
+          calls `destroy` method, this iterate over the entity's components 
+          ids and calls the respectives entries removal, that is, for each
+          component, it's respective storage will remove it's entry, making
+          the entry space "free" for the next component to be created.
+          however, some components contains allocated memory that need to be
+          freed, in this case, an argument can be passed, that maps 
+          a destroy callback for each component.
+          
+          in this case, the shape components contains a `vertices` field
+          that is a vector, so we need to destroy this vector before removing
+          this shape component.
+          
+          shape already provides a `destroy` method to make that, so we just
+          give to Walker's destroy method this "shape destroy" function as a 
+          callback.
+        ]] 
+        walker_e:destroy({
+          shape = Irene.Comps.Shape.destroy
+        })
 
-        -- the shape component contains a `vector` inside, which is allocated, so we need to free
-        -- the previously allocated memory, otherwise it will leak
-        Irene.storages.shape:remove_entry(walker_ids.shape_id, Irene.Comps.Shape.destroy)
-
-        -- finally, remove the entity, an destroy method also needs to be passed as argument
-        Irene.storages.entity:remove_entry(walker_ids.entity_id, Entity.destroy)
-
+        -- decrease entity count
         entity_count = entity_count - 1
       end
     end
@@ -167,3 +176,4 @@ local function stress_test()
 end
 
 stress_test()
+
