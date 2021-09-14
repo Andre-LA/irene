@@ -582,7 +582,7 @@ function GameState:create_lander(pos: Vec2): Lander
 
     intersections = {
       intersections = {},
-      on_enter_callback = function(self_intersectable: *Comps.Intersectable, self_intersections: *Comps.Intersections, other_intersectable: *Comps.Intersectable)
+      on_enter_callback = function(intersection: Rectf, self_intersectable: *Comps.Intersectable, self_intersections: *Comps.Intersections, other_intersectable: *Comps.Intersectable)
         on_lander_intersect_enter(Game_State.lander, self_intersectable, self_intersections, other_intersectable)
       end,
       on_exit_callback =  function (self_intersectable: *Comps.Intersectable, self_intersections: *Comps.Intersections, other_intersectable: *Comps.Intersectable)

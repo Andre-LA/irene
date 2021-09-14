@@ -17,7 +17,7 @@ local Intersection = @record{
 
 local Intersections = @record{
   intersections: vector(Intersection),
-  on_enter_callback: function(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable),
+  on_enter_callback: function(intersection: Rectf, self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable),
   on_exit_callback: function(self_intersectable: *Intersectable, self_intersections: *Intersections, other_intersectable: *Intersectable)
 }
 

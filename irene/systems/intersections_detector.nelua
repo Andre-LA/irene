@@ -26,11 +26,13 @@ function IntersectionsDetector:run()
         local intersectable_i = &Irene.storages.intersectable.entries[i]
 
         if intersectable.entity_id ~= intersectable_i.entity_id then
-          if intersectable:is_intersecting(intersectable_i) then
-            local already_existent = intersections:update_intersection(intersectable:get_intersection(intersectable_i), intersectable_i.mask , intersectable_i.entity_id)
+          local intersection, is_intersecting = intersectable:get_intersection(intersectable_i)
+
+          if is_intersecting then
+            local already_existent = intersections:update_intersection(intersection, intersectable_i.mask , intersectable_i.entity_id)
 
             if not already_existent and intersections.on_enter_callback ~= nilptr then
-              intersections.on_enter_callback(intersectable, intersections, intersectable_i)
+              intersections.on_enter_callback(intersection, intersectable, intersections, intersectable_i)
             end
           else
             local was_existent = intersections:update_no_intersection(intersectable_i.entity_id)
