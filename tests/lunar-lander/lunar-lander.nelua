@@ -99,11 +99,11 @@ function LanderControllerSystem:run(nene: *Nene)
       local direction: Vec2 = {
         x = (do
           if is_right_down then
-            return 1
+            in 1
           elseif is_left_down then
-            return -1
+            in -1
           else
-            return 0
+            in 0
           end
         end),
 
@@ -835,7 +835,7 @@ repeat
         local fps_num_str = tostring(fps)
         local fps_fps_str = 'FPS: ' .. fps_num_str
         fps_num_str:destroy()
-        return fps_fps_str
+        in fps_fps_str
       end)
 
       fps_txt:update_text(nene, fps_str, Game_State.resources.font)
