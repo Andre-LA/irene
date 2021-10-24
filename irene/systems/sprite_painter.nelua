@@ -7,6 +7,7 @@ require 'irene.components.sprite'
 require 'irene.components.painter'
 
 local Comps, Sys = @Irene.Comps, @Irene.Sys
+local Vec2 = @Math.Vec2
 
 local EachRunIds = @record{
   position_id: GenerationalIndex,
@@ -90,7 +91,8 @@ function SpritePainter:run(nene: *Nene)
 
       local drawpos = position:get_global_position() + sprite.offset
 
-      sprite.spritesheet:draw(nene, drawpos, texture.texture, sprite.current_frame, painter.color)
+      local center: Vec2 = { 0.5 + sprite.center_offset.x * 0.5, 0.5 + sprite.center_offset.y * -0.5 }
+      sprite.spritesheet:draw(nene, drawpos, texture.texture, sprite.current_frame, painter.color, sprite.angle, center, sprite.flip.horizontal, sprite.flip.vertical)
     end
   end
 end

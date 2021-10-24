@@ -9,6 +9,9 @@ local Sprite = @record{
   current_frame: uinteger,
   offset: Vec2,
   layer: usize,
+  angle: number,
+  center_offset: Vec2,
+  flip: record{ horizontal: boolean, vertical: boolean },
 }
 ## Irene.impl_is_component(Sprite)
 
