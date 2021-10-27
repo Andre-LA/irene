@@ -446,6 +446,7 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
     fps = 12,
     from = 0,
     to = 1,
+    loop = true,
   }
 
   animations['prop_inactive'] = {
@@ -473,7 +474,6 @@ function GameState:create_lander_propulsion(): LanderPropulsionEntity
     animation_player = {
       =animations,
       speed = 1,
-      looping = true,
     },
   }
 

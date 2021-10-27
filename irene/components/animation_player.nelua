@@ -12,7 +12,6 @@ local AnimationPlayer = @record{
   animations: hashmap(string, AnimationRange),
   speed: number,
   last_change_time: uinteger,
-  looping: boolean,
   paused: boolean,
 }
 ## Irene.impl_is_component(AnimationPlayer)
@@ -23,7 +22,7 @@ function AnimationPlayer:change_animation(sprite: *Comps.Sprite, anim_name: stri
   local pos_animation_range = self.animations:peek(anim_name)
 
   if pos_animation_range ~= nilptr then
-    if self.current_animation ~= pos_animation_range then
+    if self.current_animation ~= pos_animation_range then -- change animation
       self.current_animation = $pos_animation_range
       self.last_change_time = current_time
       sprite.current_frame = self.current_animation.from

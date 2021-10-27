@@ -35,7 +35,7 @@ function SpriteAnimation:run(current_time: uinteger)
     local should_change_frame = (do
       if frame_is_done then
         if is_last_frame then
-          in anim_player.looping
+          in anim_player.current_animation.loop
         else
           in true
         end
