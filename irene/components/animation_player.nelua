@@ -9,6 +9,7 @@ local Comps = @Irene.Comps
 
 local AnimationPlayer = @record{
   current_animation: AnimationRange,
+  current_animation_name: string,
   animations: hashmap(string, AnimationRange),
   speed: number,
   last_change_time: uinteger,
@@ -19,18 +20,20 @@ local AnimationPlayer = @record{
 global Comps.AnimationPlayer = @AnimationPlayer
 
 function AnimationPlayer:change_animation(sprite: *Comps.Sprite, anim_name: string, current_time: uint32)
+  if anim_name == self.current_animation_name then
+    return -- ignore change when it's the same current animation
+  end
+
   local pos_animation_range = self.animations:peek(anim_name)
 
   if pos_animation_range ~= nilptr then
-    if self.current_animation ~= pos_animation_range then -- change animation
-      self.current_animation = $pos_animation_range
-      self.last_change_time = current_time
-      sprite.current_frame = self.current_animation.from
-    end
+    self.current_animation = $pos_animation_range
+    self.current_animation_name = anim_name
+    self.last_change_time = current_time
+    sprite.current_frame = self.current_animation.from
   else
-    local msg = 'AnimationPlayer.change_animation: could not find animation to ' .. anim_name
+    local msg <close> = 'AnimationPlayer.change_animation: could not find animation to ' .. anim_name
     warn(msg)
-    msg:destroy()
   end
 end
 
