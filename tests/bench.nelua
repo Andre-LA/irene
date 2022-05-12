@@ -1,0 +1,132 @@
+-- bench test --
+-- this is a port of rotor's bench example.
+
+--[[
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+]]
+
+-- nelua
+local math = require 'math'
+
+-- nene
+local Nene = require 'nene'
+local Color = require 'nene.color'
+
+-- rotor
+local storage   = require 'rotor.storage'
+local entity    = require 'rotor.entity'
+local system    = require 'rotor.system'
+local GenIdx    = require 'rotor.gen_idx'
+
+-- irene
+local Position = require 'irene.components.position'
+local Velocity = require 'irene.components.velocity'
+local EntityData = require 'irene.components.entity_data'
+local RectPainter = require 'irene.components.rect_painter'
+
+local VelocitySystem = require 'irene.systems.velocity_system'
+local RectPainterSystem = require 'irene.systems.rect_painter_system'
+
+-- bench
+local e_count = 0_u
+local E_MAX <comptime> = #[ E_COUNT or 5000 ]#
+local E_DELTA <comptime> = #[ E_DELTA or 100 ]#
+
+local ok, nene <close> = Nene.init('Irene port of Rotor Benchmark', 800, 600)
+check(ok)
+
+local Particle = @entity(@record{
+  position: Position,
+  velocity: Velocity,
+  rect_painter: RectPainter,
+  entity_data: EntityData,
+})
+
+local Particle.storage: storage(Particle, E_MAX)
+
+function Particle.new()
+  local ok, id, particle = Particle.storage:push({
+    velocity = {
+      active = true,
+      final_velocity = {
+        math.random(25, 50), math.random(25, 50)
+      },
+      use_deltatime = true,
+    },
+    rect_painter = {
+      active = true,
+      size = { 2, 2 },
+      color = Color.Palette.yellow,
+    }
+  })
+  check(ok)
+
+  particle.entity_data.id = id
+
+  e_count = e_count + 1
+
+  ## if not NOLOG then
+    print('SPAWN: ', id.index, id.generation)
+  ## end
+end
+
+function Particle.remove(id: GenIdx)
+  Particle.storage:remove(id)
+  e_count = e_count - 1
+
+  ## if not NOLOG then
+    print('DEAD: ', id.index, id.generation)
+  ## end
+end
+
+local CycleOrDestroySystem = @record{}
+
+function CycleOrDestroySystem:run(c: record{ position: *Position, entity_data: *EntityData })
+  local pos = c.position:final_pos()
+  if pos.x > 800 or pos.y > 600 then
+    if math.random(0.0, 1.0) < 0.4 then
+      Particle.remove(c.entity_data.id)
+    else
+      c.position.local_pos.x, c.position.local_pos.y = 0, 0
+    end
+  end
+end
+
+local velocity_system: system(VelocitySystem.run)
+local rect_painter_system: system(RectPainterSystem.run)
+local cycle_or_destroy_system: system(CycleOrDestroySystem.run)
+
+local function frame()
+  nene:poll_events()
+
+  for i = 1, E_DELTA do
+    if e_count < E_MAX then
+      Particle.new()
+    end
+  end
+
+  velocity_system:run(&Particle.storage)
+  cycle_or_destroy_system:run(&Particle.storage)
+
+  nene:render_clear(Color.Palette.bg)
+  do
+    ## if not NODRAW then
+      rect_painter_system:run(&Particle.storage)
+    ## end
+
+    ## if not NOFPS then
+      print('dt: ', nene.delta_time)
+    ## end
+
+    ## if not NODRAWCOUNT then
+      print('e_count: ', e_count)
+    ## end
+  end
+  nene:render_present()
+end
+
+repeat
+  frame()
+until nene.quit

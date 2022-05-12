@@ -1,0 +1,25 @@
+-- Micro system runner system
+
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+local MicroSystem = require 'irene.components.micro_system'
+
+local MicroSystemRunner = @record{}
+
+function MicroSystemRunner:run(c: record{ micro_system: *MicroSystem })
+  check(c.micro_system.system, 'system of micro system is not defined')
+
+  if c.micro_system.active and c.micro_system.system then
+    c.micro_system:system()
+  end
+end
+
+return MicroSystemRunner

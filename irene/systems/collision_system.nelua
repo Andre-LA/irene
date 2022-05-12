@@ -1,0 +1,194 @@
+-- Collision system
+
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+-- nelua --
+local vector = require 'vector'
+local math = require 'math'
+
+-- nene --
+local Nene = require 'nene'
+local Vec2 = require 'nene.math.vec2'
+local Color = require 'nene.color'
+
+-- rotor --
+local GenIdx = require 'rotor.gen_idx'
+
+-- irene --
+local Position = require 'irene.components.position'
+local Collider = require 'irene.components.collider'
+local EntitiesRemoved = require 'irene.managers.entities_removed'
+
+-- Collision System --
+
+local Collidable = @record{
+  position: *Position,
+  collider: *Collider,
+}
+
+local CollisionSystem = @record{
+  collidables: vector(Collidable),
+  draw_colliders: boolean,
+}
+
+function CollisionSystem:run(c: Collidable)
+  c.collider.velocity_interrupted.x = 0
+  c.collider.velocity_interrupted.y = 0
+
+  self.collidables:push(c)
+end
+
+function CollisionSystem:pre_run()
+  self.collidables:clear()
+end
+
+local function call_end_collision(intersection_id: GenIdx, self_collidable: Collidable, other_collidable: Collidable)
+  local ok = self_collidable.collider.intersecting_with:mget(intersection_id)
+  self_collidable.collider.intersecting_with:remove(intersection_id)
+
+  if self_collidable.collider.on_end_collision then
+    self_collidable.collider:on_end_collision(other_collidable.collider)
+  end
+end
+
+function CollisionSystem:post_run()
+  local function draw_collidable(nene: *Nene, collidable: Collidable, color: Color)
+    local pos = collidable.position:final_pos()
+    local hitbox = collidable.collider.hitbox
+
+    hitbox.x, hitbox.y = hitbox.x + math.ifloor(pos.x), hitbox.y + math.ifloor(pos.y)
+
+    nene:render_draw_rect(hitbox, true, color)
+  end
+
+  local nene = Nene.instance()
+
+  for i = 0, < #self.collidables do
+    local i_collidable = self.collidables[i]
+
+    if not i_collidable.collider.active then
+      continue
+    end
+
+    for idx, iw in mpairs(i_collidable.collider.intersecting_with) do
+      local gen_id = GenIdx{ idx, i_collidable.collider.intersecting_with.generations[idx] }
+
+      if EntitiesRemoved.try_find_entity(iw.entity_id, iw.collision_id) then
+        i_collidable.collider.intersecting_with:remove(gen_id)
+      end
+    end
+
+    for j = 0, < #self.collidables do
+      if j == i then
+        continue
+      end
+
+      local j_collidable = self.collidables[j]
+
+      if i_collidable.collider.collision_mask & j_collidable.collider.collision_id == 0 then
+        continue
+      end
+
+      local i_pos = i_collidable.position:final_pos()
+      local j_pos = j_collidable.position:final_pos()
+
+      local is_intersecting, resolved_hitbox, intersection = i_collidable.collider:simple_collision(i_pos, j_collidable.collider, j_pos)
+
+      if is_intersecting then
+        local corner_tolerance = i_collidable.collider.corner_tolerance
+
+        -- ignore if doesn't pass the corner tolerance
+        if intersection.w < corner_tolerance and intersection.h < corner_tolerance then
+          continue
+        end
+
+        -- if it isn't a ongoing collision, then call "begin" reaction
+        if not (i_collidable.collider:was_already_intersecting_with(j_collidable.collider.entity_id)) then
+          local ok, id = i_collidable.collider.intersecting_with:push({
+            entity_id = j_collidable.collider.entity_id,
+            collision_id = j_collidable.collider.collision_id,
+          })
+          check(ok, "error: failed to push entity id to 'intersecting_with'")
+
+          if i_collidable.collider.on_begin_collision then
+            i_collidable.collider:on_begin_collision(j_collidable.collider)
+          end
+
+          if self.draw_colliders then
+            draw_collidable(nene, j_collidable, Color.Palette.green)
+            draw_collidable(nene, i_collidable, Color.Palette.blue)
+          end
+        end
+
+        -- call reaction callback
+        if i_collidable.collider.on_collision then
+          i_collidable.collider:on_collision(j_collidable.collider)
+
+          if self.draw_colliders then
+            draw_collidable(nene, j_collidable, Color.Palette.green)
+            draw_collidable(nene, i_collidable, Color.Palette.cyan)
+          end
+        end
+
+        -- "physical" collision system
+        if i_collidable.collider.with_collision then
+          local resolved_pos: Vec2 = { resolved_hitbox.x, resolved_hitbox.y }
+          local hitbox_pos: Vec2 = { i_collidable.collider.hitbox.x,  i_collidable.collider.hitbox.y }
+
+          local pos = i_pos
+          pos.x = math.ifloor(pos.x)
+          pos.y = math.ifloor(pos.y)
+
+          local diff = (resolved_pos - hitbox_pos) - pos
+
+          if diff.x ~= 0 then
+            i_pos.x = resolved_pos.x - i_collidable.collider.hitbox.x
+            i_collidable.collider.velocity_interrupted.x = math.sign(diff.x)
+          end
+
+          if diff.y ~= 0 then
+            i_pos.y = resolved_pos.y - i_collidable.collider.hitbox.y
+            i_collidable.collider.velocity_interrupted.y = math.sign(-diff.y)
+          end
+        end
+      else
+        local was_already_intersecting_with, iw_id = i_collidable.collider:was_already_intersecting_with(j_collidable.collider.entity_id)
+
+        if was_already_intersecting_with then -- if it was an on going collision, then call "end" reaction
+          call_end_collision(iw_id, i_collidable, j_collidable)
+
+          if self.draw_colliders then
+            draw_collidable(nene, j_collidable, Color.Palette.green)
+            draw_collidable(nene, i_collidable, Color.Palette.red)
+          end
+        end
+      end
+    end
+  end
+end
+
+function CollisionSystem:draw_hitboxes()
+  local nene = Nene.instance()
+
+  for i = 0, < #self.collidables do
+    local col = self.collidables[i]
+
+    local hitbox = col.collider.hitbox
+    local pos = col.position:final_pos()
+
+    hitbox.x = math.floor(hitbox.x + pos.x)
+    hitbox.y = math.floor(hitbox.y + pos.y)
+
+    nene:render_draw_rect(hitbox, true, Color.Palette.green)
+  end
+end
+
+return CollisionSystem

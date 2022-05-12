@@ -1,4 +1,4 @@
--- Sprite Animation system
+-- Camera component
 
 --[[
   Copyright (c) 2020-2022 André Luiz Alvares
@@ -11,13 +11,18 @@
 ]]
 
 local Nene = require 'nene'
-local Sprite = require 'irene.components.sprite'
+local Vec2 = require 'nene.math.vec2'
 
-local SpriteAnimationSystem = @record{}
+local component = require 'rotor.component'
 
-function SpriteAnimationSystem:run(c: record{sprite: *Sprite})
+local Camera = @component(@record{
+  offset: Vec2,
+  half_screen_size: Vec2,
+})
+
+function Camera:set_render_offset(pos: Vec2)
   local nene = Nene.instance()
-  c.sprite:update_animation()
+  nene.render_offset = pos + self.offset - self.half_screen_size
 end
 
-return SpriteAnimationSystem
+return Camera

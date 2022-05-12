@@ -1,4 +1,4 @@
--- Position component
+-- Rect Painter component
 
 --[[
   Copyright (c) 2020-2022 André Luiz Alvares
@@ -10,16 +10,15 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
-local Vec2 = require 'nene.math.vec2'
+local Vec2i = require 'nene.math.vec2i'
+local Color = require 'nene.color'
+
 local component = require 'rotor.component'
 
-local Position = @component(@record{
-  origin_pos: Vec2,
-  local_pos: Vec2,
+local RectPainter = @component(@record{
+  active: boolean,
+  size: Vec2i,
+  color: Color,
 })
 
-function Position:final_pos(): Vec2
-  return self.origin_pos + self.local_pos
-end
-
-return Position
+return RectPainter

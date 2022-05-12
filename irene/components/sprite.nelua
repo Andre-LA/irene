@@ -1,18 +1,132 @@
-require 'nene'
-require 'irene.core'
-require 'irene.makers'
+-- Sprite component
 
-local Vec2 = @Math.Vec2
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
 
-local Sprite = @record{
-  spritesheet: SpriteSheet,
-  current_frame: uinteger,
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+local math = require 'math'
+
+local Nene = require 'nene'
+local Color = require 'nene.color'
+local Texture = require 'nene.texture'
+local AnimationRange = require 'nene.animation'
+
+local component = require 'rotor.component'
+
+local Vec2 = require 'nene.math.vec2'
+local Rect = require 'nene.math.rect'
+local Grid = require 'nene.math.grid'
+
+local Sprite = @component(@record{
+  texture: Texture,
   offset: Vec2,
-  layer: usize,
-  angle: number,
-  center_offset: Vec2,
-  flip: record{ horizontal: boolean, vertical: boolean },
-}
-## Irene.impl_is_component(Sprite)
+  flip_h: boolean,
+  frame_rect: Rect,
+  current_animation: AnimationRange,
+  current_frame: usize,
+  last_frame_change: uint32,
+  animation_extra_speed: number,
+  animation_running: boolean,
+  use_tint: boolean,
+  tint: Color,
+})
 
-global Irene.Comps.Sprite = @Sprite
+local function is_frame_done(diff_time: uint32, anim_speed: number, fps: number): boolean
+  return diff_time * anim_speed > 1000 / fps
+end
+
+local function update_frame_rect(self: *Sprite)
+  check(self.frame_rect.w > 0)
+  check(self.frame_rect.w > 0)
+
+  local frames_per_line = math.ifloor(self.texture.width / self.frame_rect.w)
+
+  local spritesheet_grid: Grid = {cell_size = { self.frame_rect.w, self.frame_rect.h }}
+  local frame_x, frame_y = Grid.get_nth_cell_column_row(self.current_frame, frames_per_line)
+  self.frame_rect = spritesheet_grid:gen_rect(frame_x, frame_y)
+end
+
+function Sprite:update_frame(current_frame_is_last_frame: boolean, current_time: uint32)
+  self.current_frame = current_frame_is_last_frame and self.current_animation.from or self.current_frame + 1
+  self.last_frame_change = current_time
+  update_frame_rect(self)
+end
+
+function Sprite:set_animation(animation: AnimationRange, current_time: uint32, only_set_if_last_frame: facultative(boolean)): boolean
+  ## if not only_set_if_last_frame.type.is_niltype then
+    if only_set_if_last_frame then
+      if self.current_frame ~= self.current_animation.to then
+        return false
+      else
+        local anim_speed = self.animation_extra_speed + 1
+
+        local diff_time = current_time - self.last_frame_change
+
+        local current_frame_is_last_frame = self.current_frame >= self.current_animation.to
+        if not is_frame_done(diff_time, anim_speed, self.current_animation.fps) then
+          return false
+        end
+      end
+    end
+  ## end
+
+  if self.current_animation ~= animation then
+    self.current_animation = animation
+    self:update_frame(true, current_time)
+    return true
+  end
+
+  return false
+end
+
+function Sprite:update_animation()
+  local nene = Nene.instance()
+
+  if not self.animation_running then
+    return
+  end
+
+  if self.current_frame < self.current_animation.from then
+    self:update_frame(false, nene.current_time)
+  end
+
+  local anim_speed = 1 + self.animation_extra_speed
+
+  local diff_time = nene.current_time - self.last_frame_change
+
+  local current_frame_is_last_frame = self.current_frame >= self.current_animation.to
+  local frame_is_done = is_frame_done(diff_time, anim_speed, self.current_animation.fps)
+
+  local should_change_frame = (do
+    if frame_is_done then
+      if current_frame_is_last_frame then
+        in self.current_animation.loop
+      else
+        in true
+      end
+    end
+    in false
+  end)
+
+  if should_change_frame then
+    self:update_frame(current_frame_is_last_frame, nene.current_time)
+  end
+end
+
+function Sprite:draw(pos: Vec2, color: Color)
+  local nene = Nene.instance()
+
+  local src = self.frame_rect
+  check(src.w > 0 and src.h > 0, 'frame_rect contains zeroed dimensions')
+
+  local dest = Rect.from_vec2(pos + self.offset, {src.w, src.h})
+  self.texture:draw(color, src, dest, nil, nil, self.flip_h)
+end
+
+return Sprite

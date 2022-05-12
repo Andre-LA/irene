@@ -1,0 +1,42 @@
+-- Velocity system
+
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+local Nene = require 'nene'
+local Position = require 'irene.components.position'
+local Velocity = require 'irene.components.velocity'
+
+local VelocitySystem = @record{}
+
+function VelocitySystem:run(c: record{ velocity: *Velocity, position: *Position })
+  local nene = Nene.instance()
+
+  if c.velocity.active then
+    local final_vel = (do
+      if c.velocity.velocity_is_limited then
+        if c.velocity.max_velocity_is_per_axis then
+          in Velocity.get_limited_velocity(c.velocity.final_velocity, c.velocity.max_velocity_per_axis)
+        else
+          in Velocity.get_limited_velocity(c.velocity.final_velocity, c.velocity.max_velocity)
+        end
+      else
+        in c.velocity.final_velocity
+      end
+    end)
+
+    local mul = c.velocity.use_deltatime and nene.delta_time or 1
+
+    c.position.local_pos.x = c.position.local_pos.x + final_vel.x * mul
+    c.position.local_pos.y = c.position.local_pos.y + final_vel.y * mul
+  end
+end
+
+return VelocitySystem

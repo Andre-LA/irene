@@ -1,3 +1,0 @@
-require 'irene.core'
-require 'irene.components'
-require 'irene.systems'

@@ -1,0 +1,27 @@
+-- Micro System component
+
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+local component = require 'rotor.component'
+local storage = require 'rotor.storage'
+local GenIdx = require 'rotor.gen_idx'
+
+local MicroSystem: type = @component(@record{
+  id: GenIdx,
+  active: boolean,
+  -- added later -> system: function(self: *MicroSystem)
+})
+
+local method_type: type = @function(self: *MicroSystem)
+
+## MicroSystem.value:add_field('system', method_type.value)
+
+return MicroSystem

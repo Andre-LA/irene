@@ -1,4 +1,4 @@
--- Sprite Animation system
+-- Camera system
 
 --[[
   Copyright (c) 2020-2022 André Luiz Alvares
@@ -10,14 +10,13 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
-local Nene = require 'nene'
-local Sprite = require 'irene.components.sprite'
+local Position = require 'irene.components.position'
+local Camera = require 'irene.components.camera'
 
-local SpriteAnimationSystem = @record{}
+local CameraSystem = @record{}
 
-function SpriteAnimationSystem:run(c: record{sprite: *Sprite})
-  local nene = Nene.instance()
-  c.sprite:update_animation()
+function CameraSystem:run(c: record{ position: *Position, camera: *Camera })
+  c.camera:set_render_offset(c.position:final_pos())
 end
 
-return SpriteAnimationSystem
+return CameraSystem

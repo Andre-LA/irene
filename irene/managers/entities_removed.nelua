@@ -1,0 +1,58 @@
+-- Entity Removed manager
+
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+-- nelua --
+require 'iterators'
+local hashmap = require 'hashmap'
+local vector = require 'vector'
+
+-- rotor --
+local GenIdx = require 'rotor.gen_idx'
+
+-- EntitiesRemoved --
+local entities_removed: hashmap(uint32, vector(GenIdx))
+
+local EntitiesRemoved = @record{}
+
+function EntitiesRemoved.push_removal(entity_id: GenIdx, entity_mask: uint32)
+  entities_removed[entity_mask]:push(entity_id)
+end
+
+function EntitiesRemoved.try_find_entity(entity_id: GenIdx, entity_mask: uint32): boolean
+  local id_vec = entities_removed:peek(entity_mask)
+
+  if id_vec ~= nilptr then
+    for i = 0, < #id_vec do
+      if id_vec[i] == entity_id then
+        return true
+      end
+    end
+  end
+
+  return false
+end
+
+function EntitiesRemoved.clear()
+  for _, value in mpairs(entities_removed) do
+    value:clear()
+  end
+end
+
+function EntitiesRemoved.destroy()
+  for _, value in mpairs(entities_removed) do
+    value:destroy()
+  end
+
+  entities_removed:destroy()
+end
+
+return EntitiesRemoved

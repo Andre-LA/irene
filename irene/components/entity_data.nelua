@@ -1,4 +1,4 @@
--- Position component
+-- EntityData component
 
 --[[
   Copyright (c) 2020-2022 André Luiz Alvares
@@ -10,16 +10,12 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
-local Vec2 = require 'nene.math.vec2'
+local GenIdx = require 'rotor.gen_idx'
 local component = require 'rotor.component'
 
-local Position = @component(@record{
-  origin_pos: Vec2,
-  local_pos: Vec2,
+local EntityData = @component(@record{
+  id: GenIdx,
+  mask: uint32,
 })
 
-function Position:final_pos(): Vec2
-  return self.origin_pos + self.local_pos
-end
-
-return Position
+return EntityData

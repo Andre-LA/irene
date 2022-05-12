@@ -1,44 +1,33 @@
-require 'irene.makers'
-require 'irene.components.position'
-require 'irene.components.scene_graph_node'
+-- Position hierarchy
 
-local Comps, Sys = @Irene.Comps, @Irene.Sys
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
 
--- TODO: optimize with is_dirty flag
-local function traverse(origin_sg_node: *Comps.SceneGraphNode, origin_pos: *Comps.Position)
-  for i, child_node, child_node_id in origin_sg_node:iter_children() do
-    local child_pos_opt = Comps.Position.get_entry_from_entity_id(child_node.entity_id)
-    if child_pos_opt.filled then
-      local child_pos = child_pos_opt:get()
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-      child_pos.origin_position = origin_pos:get_global_position()
+  SPDX-License-Identifier: MPL-2.0
+]]
 
-      if #child_node.children_ids > 0 then
-        traverse(child_node, child_pos)
-      end
-    end
-  end
-end
+local concepts = require 'rotor.concepts'
+local Position = require 'irene.components.position'
 
-local PositionHierarchy = @MakeSystem('PositionHierarchy', @record{
-  scene_graph_node: Comps.SceneGraphNode,
-  position: Comps.Position
-})
+local PositionHierarchySystem = @record{}
 
-global Sys.PositionHierarchy = @PositionHierarchy
+local function position_hierarchy(entity: concepts.an_entity_ptr)
+  ## local entity_type = entity.type.subtype
 
-function PositionHierarchy:run()
-  ## if PROF then
-    nprof:push(#[PositionHierarchy.value.nickname]#)
-    defer nprof:pop() end
+  ## for _, child_field in ipairs(entity_type:find_children_fields({Position.value})) do
+    ## local child_pos_field = child_field.type:find_fields_of_type(Position.value)[1]
+
+    entity.#|child_field.name|#.position.origin_pos = entity.position:final_pos()
+    position_hierarchy(&entity.#|child_field.name|#)
   ## end
-
-  for _, components in self:iterate_components() do
-    local scene_graph_node = components.scene_graph_node
-    local position = components.position
-
-    if scene_graph_node.parent_id == {0,0} then
-      traverse(scene_graph_node, position)
-    end
-  end
 end
+
+function PositionHierarchySystem:run(c: record{ position: *Position }, entity: concepts.an_entity_ptr)
+  position_hierarchy(entity)
+end
+
+return PositionHierarchySystem

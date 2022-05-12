@@ -1,13 +1,25 @@
-require 'nene'
-require 'nene.tilemap'
-require 'irene.core'
-require 'irene.makers'
+-- Tilemap component
 
-local Comps = @Irene.Comps
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
 
-local TilemapComp = @record{
-  tilemap: Tilemap
-}
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-global Comps.TilemapComp = @TilemapComp
-## Irene.impl_is_component(TilemapComp)
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+local Color = require 'nene.color'
+local Texture = require 'nene.texture'
+local Tilemap = require 'nene.tilemap'
+local component = require 'rotor.component'
+
+local TilemapComp = @component(@record{
+  tileset: Texture,
+  tilemap: Tilemap,
+  use_tint: boolean,
+  tint: Color,
+})
+
+return TilemapComp

@@ -1,34 +1,50 @@
-require 'math'
-require 'nene.math'
-require 'irene.makers'
+-- Velocity component
 
-local Vec2 = @Math.Vec2
-local Comps = @Irene.Comps
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
 
-local Velocity = @record{
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+local math = require 'math'
+local Vec2 = require 'nene.math.vec2'
+local component = require 'rotor.component'
+
+local Velocity = @component(@record{
   active: boolean,
   final_velocity: Vec2,
-  max_velocity: uinteger,
-  velocity_is_limited: boolean
-}
-## Irene.impl_is_component(Velocity)
-
-global Comps.Velocity = @Velocity
+  max_velocity_per_axis: Vec2,
+  max_velocity: number,
+  max_velocity_is_per_axis: boolean,
+  velocity_is_limited: boolean,
+  use_deltatime: boolean,
+})
 
 function Velocity:add_velocity(velocity: Vec2)
   self.final_velocity = self.final_velocity + velocity
 end
 
-function Velocity:reset_velocity()
-  self.final_velocity = { 0, 0 }
+function Velocity.get_limited_velocity(velocity: Vec2, limit: overload(number, Vec2)): Vec2
+  ## if limit.type.is_vec2 then
+    local vel: Vec2 = {
+      x = math.clamp(velocity.x, -limit.x, limit.x),
+      y = math.clamp(velocity.y, -limit.y, limit.y),
+    }
+
+    return vel
+  ## else
+    local velocity_len = #velocity
+
+    if velocity_len > limit then
+      return velocity * (limit / velocity_len)
+    else
+      return velocity
+    end
+  ## end
 end
 
-function Velocity.get_limited_velocity(velocity: Vec2, limit: number): Vec2
-  local velocity_len = #velocity
-
-  if velocity_len > limit then
-    return velocity * (limit / velocity_len)
-  else
-    return velocity
-  end
-end
+return Velocity

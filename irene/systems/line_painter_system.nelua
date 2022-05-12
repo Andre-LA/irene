@@ -1,4 +1,4 @@
--- Sprite Animation system
+-- Line Painter system
 
 --[[
   Copyright (c) 2020-2022 André Luiz Alvares
@@ -11,13 +11,14 @@
 ]]
 
 local Nene = require 'nene'
-local Sprite = require 'irene.components.sprite'
+local math = require 'math'
+local LinePainter = require 'irene.components.line_painter'
 
-local SpriteAnimationSystem = @record{}
+local LinePainterSystem = @record{}
 
-function SpriteAnimationSystem:run(c: record{sprite: *Sprite})
+function LinePainterSystem:run(c: record{ line_painter: *LinePainter })
   local nene = Nene.instance()
-  c.sprite:update_animation()
+  nene:render_draw_line(c.line_painter.start, c.line_painter._end, c.line_painter.color)
 end
 
-return SpriteAnimationSystem
+return LinePainterSystem

@@ -1,37 +1,24 @@
-require 'nene'
-require 'irene.core'
-require 'irene.makers'
-require 'irene.components.position'
-require 'irene.components.painter'
+-- Tilemap Painter system
 
-local Comps, Sys = @Irene.Comps, @Irene.Sys
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
 
-local TilemapPainter = @MakeSystem('TilemapPainter', @record{
-  position: Comps.Position,
-  tilemap_comp: Comps.TilemapComp,
-  texture_comp: Comps.TextureComp,
-  painter: Comps.Painter,
-})
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-global Sys.TilemapPainter = @TilemapPainter
+  SPDX-License-Identifier: MPL-2.0
+]]
 
-function TilemapPainter:run(nene: *Nene)
-  ## if PROF then
-    nprof:push(#[TilemapPainter.value.nickname]#)
-    defer nprof:pop() end
-  ## end
+local Color = require 'nene.color'
+local Position = require 'irene.components.position'
+local TilemapComp = require 'irene.components.tilemap'
 
-  for _, components in self:iterate_components() do
-    local position = components.position
-    local tilemap  = components.tilemap_comp
-    local texture  = components.texture_comp
-    local painter  = components.painter
+local TilemapPainter = @record{}
 
-    if not painter.active then
-      continue
-    end
-
-    local drawpos = position:get_global_position()
-    tilemap.tilemap:draw(nene, texture.texture, drawpos, painter.color)
-  end
+function TilemapPainter:run(c: record{ tm: *TilemapComp, position: *Position })
+  local color = c.tm.use_tint and c.tm.tint or Color.Palette.white
+  c.tm.tilemap:draw(c.tm.tileset, c.position:final_pos(), color)
 end
+
+return TilemapPainter

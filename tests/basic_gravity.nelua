@@ -1,85 +1,85 @@
--- minimal example of a box falling
-require 'rotor'
-require 'nene'
+-- minimal example of a box falling --
 
--- is possible to only require the used records by not requiring any init file,
--- however it may be better to just require everything once, in this case,
--- check "lunar_lander.nelua" test, it just require "irene".
-require 'irene.core'
-require 'irene.components.position'
-require 'irene.components.shape'
-require 'irene.components.painter'
-require 'irene.components.velocity'
-require 'irene.components.gravity'
-require 'irene.systems.gravity_applier'
-require 'irene.systems.shape_painter'
-require 'irene.systems.velocity_applier'
+--[[
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+]]
 
-local SCREEN_WIDTH: integer <comptime> = 800
-local SCREEN_HEIGHT: integer <comptime> = 450
+-- nene
+local Nene = require 'nene'
+local Color = require 'nene.color'
 
-local FallingBox = @MakeEntity('falling_box',
-  Irene.Comps.Position,
-  Irene.Comps.Shape,
-  Irene.Comps.Painter,
-  Irene.Comps.Velocity,
-  Irene.Comps.Gravity
-)
+-- rotor
+local entity = require 'rotor.entity'
+local storage = require 'rotor.storage'
+local system = require 'rotor.system'
 
-local function basic_gravity()
-  local gravity_applier = Irene.Sys.GravityApplier.new()
-  local shape_painter = Irene.Sys.ShapePainter.new()
-  local velocity_applier = Irene.Sys.VelocityApplier.new()
+-- irene
+local Position = require 'irene.components.position'
+local Gravity = require 'irene.components.gravity'
+local Velocity = require 'irene.components.velocity'
+local RectPainter = require 'irene.components.rect_painter'
 
-  defer
-    gravity_applier:destroy()
-    shape_painter:destroy()
-    velocity_applier:destroy()
-  end
+local GravitySystem = require 'irene.systems.gravity_system'
+local VelocitySystem = require 'irene.systems.velocity_system'
+local RectPainterSystem = require 'irene.systems.rect_painter_system'
 
-  local falling_box, falling_box_entity = FallingBox.new{
-    position = {
-      origin_position = {32, 32},
-    },
-    shape    = {
-      category = Irene.Comps.Shape.ShapeCategory.Rectangle,
-      vertices = { {0, 0}, {16, 0}, {16, 16}, {0, 16} }
-    },
-    painter  = {
-      color = Color.Palette.yellow,
-      active = true
-    },
-    velocity = {
-      active = true,
-    },
-    gravity  = {
-      acceleration = 10,
-      direction = {0,1},
-      active = true
-    }
-  }
+-- Falling box entity
 
-  gravity_applier.system_data:update(falling_box_entity)
-  shape_painter.system_data:update(falling_box_entity)
-  velocity_applier.system_data:update(falling_box_entity)
+local FallingBox = @entity(@record{
+  position: Position,
 
-  local ok, nene = Nene.init('Irene - Basic gravity', 800, 450)
-  assert(ok, 'error: nene initialization failed.')
-  defer nene:terminate() end
+  gravity: Gravity,
+  velocity: Velocity,
 
-  repeat
-    nene:poll_events()
+  rect_painter: RectPainter,
+})
 
-    gravity_applier:run(nene.delta_time)
-    velocity_applier:run()
+local FallingBox.storage: storage(FallingBox, 1)
 
-    nene:render_clear(Color.Palette.bg)
+-- systems
+local gravity_system: system(GravitySystem.run)
+local velocity_system: system(VelocitySystem.run)
+local rect_painter_system: system(RectPainterSystem.run)
 
-    shape_painter:run(nene)
+-- basic gravity --
 
-    nene:render_present()
+local ok = FallingBox.storage:push({
+  position = {
+    local_pos = {32, 32},
+  },
 
-  until nene.quit
-end
+  velocity = {
+    active = true,
+    use_deltatime = true,
+  },
 
-basic_gravity()
+  gravity = {
+    active = true,
+    acceleration = 10,
+    direction = { 0, 1 },
+  },
+
+  rect_painter = {
+    active = true,
+    size = { 16, 16 },
+    color = Color.Palette.yellow,
+  },
+})
+
+local ok, nene <close> = Nene.init('Irene - Basic gravity', 800, 450)
+assert(ok, 'error: nene initialization failed.')
+
+repeat
+  nene:poll_events()
+
+  gravity_system:run(&FallingBox.storage)
+  velocity_system:run(&FallingBox.storage)
+
+  nene:render_clear(Color.Palette.bg)
+
+  rect_painter_system:run(&FallingBox.storage)
+
+  nene:render_present()
+until nene.quit

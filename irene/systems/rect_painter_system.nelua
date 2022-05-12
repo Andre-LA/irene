@@ -1,0 +1,30 @@
+-- Rect Painter system
+
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+local Nene = require 'nene'
+local Rect = require 'nene.math.rect'
+
+local Position = require 'irene.components.position'
+local RectPainter = require 'irene.components.rect_painter'
+
+local RectPainterSystem = @record{}
+
+function RectPainterSystem:run(c: record{ position: *Position, rect_painter: *RectPainter })
+  if not c.rect_painter.active then
+    return
+  end
+
+  local nene = Nene.instance()
+  nene:render_draw_rect(Rect.from_vec2(c.position:final_pos(), c.rect_painter.size), false, c.rect_painter.color)
+end
+
+return RectPainterSystem

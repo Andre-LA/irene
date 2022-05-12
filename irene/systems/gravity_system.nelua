@@ -1,0 +1,29 @@
+-- Gravity system
+
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+local Nene = require 'nene'
+
+local Position = require 'irene.components.position'
+local Gravity = require 'irene.components.gravity'
+local Velocity = require 'irene.components.velocity'
+
+local GravitySystem = @record{}
+
+function GravitySystem:run(c: record{position: *Position, gravity: *Gravity, velocity: *Velocity})
+  local nene = Nene.instance()
+
+  if c.gravity.active then
+    c.velocity:add_velocity(c.gravity.direction * c.gravity.acceleration * nene.delta_time)
+  end
+end
+
+return GravitySystem

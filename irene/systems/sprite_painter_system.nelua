@@ -1,4 +1,4 @@
--- Sprite Animation system
+-- Sprite Painter system
 
 --[[
   Copyright (c) 2020-2022 André Luiz Alvares
@@ -11,13 +11,17 @@
 ]]
 
 local Nene = require 'nene'
+local Color = require 'nene.color'
+
+local Position = require 'irene.components.position'
 local Sprite = require 'irene.components.sprite'
 
-local SpriteAnimationSystem = @record{}
+local SpritePainterSystem = @record{}
 
-function SpriteAnimationSystem:run(c: record{sprite: *Sprite})
+function SpritePainterSystem:run(c: record{position: *Position, sprite: *Sprite})
   local nene = Nene.instance()
-  c.sprite:update_animation()
+  local color = c.sprite.use_tint and c.sprite.tint or Color.Palette.white
+  c.sprite:draw(c.position:final_pos(), color)
 end
 
-return SpriteAnimationSystem
+return SpritePainterSystem

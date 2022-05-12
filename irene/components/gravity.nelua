@@ -1,14 +1,22 @@
-require 'nene.math'
-require 'irene.makers'
+-- Gravity component
 
-local Vec2 = @Math.Vec2
-local Comps = @Irene.Comps
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
 
-local Gravity = @record{
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+local Vec2 = require 'nene.math.vec2'
+local component = require 'rotor.component'
+
+local Gravity = @component(@record{
   acceleration: number,
   direction: Vec2,
   active: boolean
-}
-## Irene.impl_is_component(Gravity)
+})
 
-global Comps.Gravity = @Gravity
+return Gravity
