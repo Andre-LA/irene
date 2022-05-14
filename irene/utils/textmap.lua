@@ -1,6 +1,8 @@
 local ins = require 'inspect'
 local textmap = {}
 
+local NL <const> = utf8.codepoint'\n'
+
 local function count_line_chars(line, char, pos)
   local count = 0
   for i = pos, #line do
@@ -48,10 +50,20 @@ local function text_to_char_matrix(text)
   return matrix
 end
 
-function textmap.from_text(text, fn_all, fn_per_char, fn_per_region)
-  local map_matrix = text_to_char_matrix(text)
+local function utf8_text_to_char_matrix(text)
+  local matrix = { {} }
+  for _, codepoint in utf8.codes(text) do
+    if codepoint == NL then
+      table.insert(matrix, {})
+    else
+      table.insert(matrix[#matrix], codepoint)
+    end
+  end
+  return matrix
+end
 
-  for i, line in ipairs(map_matrix) do
+local function iter_and_call(matrix, fn_all, fn_per_char, fn_per_region)
+  for i, line in ipairs(matrix) do
     for j, char in ipairs(line) do
       fn_all(j, i, char)
 
@@ -61,22 +73,32 @@ function textmap.from_text(text, fn_all, fn_per_char, fn_per_region)
     end
   end
 
-  for i, line in ipairs(map_matrix) do
+  for i, line in ipairs(matrix) do
     for j, char in ipairs(line) do
       if fn_per_region[char] then
         local count_h = count_line_chars(line, char, j)
-        local count_v = count_column_char(map_matrix, char, j, i)
+        local count_v = count_column_char(matrix, char, j, i)
 
         if count_h >= count_v then
           erase_line(line, j, count_h)
           fn_per_region[char]({x=j, y=i, w=count_h, h=1})
         else
-          erase_column(map_matrix, j, i, count_v)
+          erase_column(matrix, j, i, count_v)
           fn_per_region[char]({x=j, y=i, w=1, h=count_v})
         end
       end
     end
   end
+end
+
+function textmap.from_text(text, fn_all, fn_per_char, fn_per_region)
+  local map_matrix = text_to_char_matrix(text)
+  iter_and_call(map_matrix, fn_all, fn_per_char, fn_per_region)
+end
+
+function textmap.from_utf8_text(text, fn_all, fn_per_char, fn_per_region)
+  local map_matrix = utf8_text_to_char_matrix(text)
+  iter_and_call(map_matrix, fn_all, fn_per_char, fn_per_region)
 end
 
 return textmap
