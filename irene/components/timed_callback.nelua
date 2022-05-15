@@ -1,0 +1,39 @@
+-- Timed Callback component
+
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+local component = require 'rotor.component'
+local GenIdx = require 'rotor.gen_idx'
+
+local TimedCallback = @component(@record{
+  active: boolean,
+  last_call: uint32,
+  call_interval: uint32,
+  entity_id: GenIdx,
+  --callback: function(*TimedCallback), -- (added later through meta-programming)
+})
+
+local Callback = @function(*TimedCallback)
+## TimedCallback.value:add_field('callback', Callback.value)
+
+function TimedCallback:can_call(current_time: uint32)
+  return current_time - self.last_call > self.call_interval
+end
+
+function TimedCallback:call(current_time: uint32)
+  self.last_call = current_time
+
+  if self.callback then
+    self:callback()
+  end
+end
+
+return TimedCallback

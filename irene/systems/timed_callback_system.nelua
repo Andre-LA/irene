@@ -1,0 +1,31 @@
+-- Timed Callback system
+
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+local Nene = require 'nene'
+
+local TimedCallback = require 'irene.components.timed_callback'
+
+local system = require 'rotor.system'
+
+local TimedCallbackSystem = @record{}
+
+function TimedCallbackSystem:run(c: record{ timed_callback: *TimedCallback })
+  if c.timed_callback.active then
+    local nene = Nene.instance()
+
+    if c.timed_callback:can_call(nene.current_time) then
+      c.timed_callback:call(nene.current_time)
+    end
+  end
+end
+
+return TimedCallbackSystem
