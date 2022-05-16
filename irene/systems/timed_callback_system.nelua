@@ -13,17 +13,18 @@
 local Nene = require 'nene'
 
 local TimedCallback = require 'irene.components.timed_callback'
+local EntityData = require 'irene.components.entity_data'
 
 local system = require 'rotor.system'
 
 local TimedCallbackSystem = @record{}
 
-function TimedCallbackSystem:run(c: record{ timed_callback: *TimedCallback })
+function TimedCallbackSystem:run(c: record{ timed_callback: *TimedCallback, entity_data: *EntityData })
   if c.timed_callback.active then
     local nene = Nene.instance()
 
     if c.timed_callback:can_call(nene.current_time) then
-      c.timed_callback:call(nene.current_time)
+      c.timed_callback:call(nene.current_time, c.entity_data.id)
     end
   end
 end

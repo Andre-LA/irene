@@ -25,13 +25,16 @@ local GenIdx = require 'rotor.gen_idx'
 -- irene --
 local Position = require 'irene.components.position'
 local Collider = require 'irene.components.collider'
+local EntityData = require 'irene.components.entity_data'
 local EntitiesRemoved = require 'irene.managers.entities_removed'
+
 
 -- Collision System --
 
 local Collidable = @record{
   position: *Position,
   collider: *Collider,
+  entity_data: *EntityData,
 }
 
 local CollisionSystem = @record{
@@ -50,12 +53,12 @@ function CollisionSystem:pre_run()
   self.collidables:clear()
 end
 
-local function call_end_collision(intersection_id: GenIdx, self_collidable: Collidable, other_collidable: Collidable)
+local function call_end_collision(intersection_id: GenIdx, self_collidable: *Collidable, other_collidable: *Collidable)
   local ok = self_collidable.collider.intersecting_with:mget(intersection_id)
   self_collidable.collider.intersecting_with:remove(intersection_id)
 
   if self_collidable.collider.on_end_collision then
-    self_collidable.collider:on_end_collision(other_collidable.collider)
+    self_collidable.collider:on_end_collision(other_collidable.collider, self_collidable.entity_data, other_collidable.entity_data)
   end
 end
 
@@ -81,7 +84,7 @@ function CollisionSystem:post_run()
     for idx, iw in mpairs(i_collidable.collider.intersecting_with) do
       local gen_id = GenIdx{ idx, i_collidable.collider.intersecting_with.generations[idx] }
 
-      if EntitiesRemoved.try_find_entity(iw.entity_id, iw.collision_id) then
+      if EntitiesRemoved.try_find_entity(iw.id, iw.mask) then
         i_collidable.collider.intersecting_with:remove(gen_id)
       end
     end
@@ -93,7 +96,7 @@ function CollisionSystem:post_run()
 
       local j_collidable = self.collidables[j]
 
-      if i_collidable.collider.collision_mask & j_collidable.collider.collision_id == 0 then
+      if i_collidable.collider.collision_mask & j_collidable.entity_data.mask == 0 then
         continue
       end
 
@@ -111,15 +114,15 @@ function CollisionSystem:post_run()
         end
 
         -- if it isn't a ongoing collision, then call "begin" reaction
-        if not (i_collidable.collider:was_already_intersecting_with(j_collidable.collider.entity_id)) then
+        if not (i_collidable.collider:was_already_intersecting_with(j_collidable.entity_data.id)) then
           local ok, id = i_collidable.collider.intersecting_with:push({
-            entity_id = j_collidable.collider.entity_id,
-            collision_id = j_collidable.collider.collision_id,
+            id = j_collidable.entity_data.id,
+            mask = j_collidable.entity_data.mask,
           })
           check(ok, "error: failed to push entity id to 'intersecting_with'")
 
           if i_collidable.collider.on_begin_collision then
-            i_collidable.collider:on_begin_collision(j_collidable.collider)
+            i_collidable.collider:on_begin_collision(j_collidable.collider, i_collidable.entity_data, j_collidable.entity_data)
           end
 
           if self.draw_colliders then
@@ -130,7 +133,7 @@ function CollisionSystem:post_run()
 
         -- call reaction callback
         if i_collidable.collider.on_collision then
-          i_collidable.collider:on_collision(j_collidable.collider)
+          i_collidable.collider:on_collision(j_collidable.collider, i_collidable.entity_data, j_collidable.entity_data)
 
           if self.draw_colliders then
             draw_collidable(nene, j_collidable, Color.Palette.green)
@@ -160,7 +163,7 @@ function CollisionSystem:post_run()
           end
         end
       else
-        local was_already_intersecting_with, iw_id = i_collidable.collider:was_already_intersecting_with(j_collidable.collider.entity_id)
+        local was_already_intersecting_with, iw_id = i_collidable.collider:was_already_intersecting_with(j_collidable.entity_data.id)
 
         if was_already_intersecting_with then -- if it was an on going collision, then call "end" reaction
           call_end_collision(iw_id, i_collidable, j_collidable)

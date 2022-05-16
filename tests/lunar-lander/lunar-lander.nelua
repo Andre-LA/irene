@@ -149,6 +149,7 @@ local LanderController = @component(@record{
 local SafeLanding = @entity(@record{
   position: Position,
   collider: Collider,
+  entity_data: EntityData,
 })
 local SafeLanding.storage: storage(SafeLanding, 11)
 
@@ -160,12 +161,15 @@ function SafeLanding.init(rect: Rect): *SafeLanding
 
     collider = {
       hitbox = { 0,0 , rect.w, rect.h },
-      collision_id = EntityMask.Safe,
     },
+
+    entity_data = {
+      mask = EntityMask.Safe,
+    }
   })
   assert(ok, "Couldn't add a safe landing entity")
 
-  safe_landing.collider.entity_id = id
+  safe_landing.entity_data.id = id
 
   return safe_landing
 end
@@ -173,6 +177,7 @@ end
 local Floor = @entity(@record{
   position: Position,
   collider: Collider,
+  entity_data: EntityData,
 })
 
 local Floor.storage: storage(Floor, 512)
@@ -185,12 +190,15 @@ function Floor.init(rect: Rect): *Floor
 
     collider = {
       hitbox = { 0,0 , rect.w, rect.h },
-      collision_id = EntityMask.Floor,
+    },
+
+    entity_data = {
+      mask = EntityMask.Floor,
     },
   })
   assert(ok, "Couldn't add a floor entity")
 
-  floor.collider.entity_id = id
+  floor.entity_data.id = id
 
   return floor
 end
@@ -228,35 +236,37 @@ local Lander = @entity(@record{
   velocity: Velocity,
   gravity: Gravity,
   collider: Collider,
+  entity_data: EntityData,
 
   controller: LanderController,
-  propulsion: LanderPropulsion,
 
+  propulsion: LanderPropulsion,
   camera: CameraEntity,
 })
 
 local Lander.storage: storage(Lander, 1)
 
 -- collision reaction callbacks
-local function on_lander_begin_collision(self: *Collider, other: *Collider)
-  local ok, lander = Lander.storage:mget(self.entity_id)
+local function on_lander_begin_collision(self: *Collider, other: *Collider, self_data: *EntityData, other_data: *EntityData)
+  local ok, lander = Lander.storage:mget(self_data.id)
   assert(ok, "Couldn't find lander")
 
-  switch other.collision_id do
+  switch other_data.mask do
   case EntityMask.Safe then
     lander.controller.state = LanderState.Landed
     Resources.res.audio.sound_effects.land:play()
+
   case EntityMask.Floor then
     lander.controller.state = LanderState.Crashed
     Resources.res.audio.sound_effects.hit:play()
   end
 end
 
-local function on_lander_end_collision(self: *Collider, other: *Collider)
-  local ok, lander = Lander.storage:mget(self.entity_id)
+local function on_lander_end_collision(self: *Collider, other: *Collider, self_data: *EntityData, other_data: *EntityData)
+  local ok, lander = Lander.storage:mget(self_data.id)
   assert(ok, "Couldn't find lander")
 
-  if other.collision_id  == EntityMask.Safe then
+  if other_data.mask  == EntityMask.Safe then
     lander.controller.state = LanderState.Flying
   end
 end
@@ -290,12 +300,15 @@ function Lander.init(): GenIdx
     collider = {
       active = true,
       hitbox = { 0,0 , 16,16 },
-      collision_id = EntityMask.Lander,
       collision_mask = EntityMask.Floor | EntityMask.Safe,
       with_collision = true,
       corner_tolerance = 2,
       on_begin_collision = on_lander_begin_collision,
       on_end_collision   = on_lander_end_collision,
+    },
+
+    entity_data = {
+      mask = EntityMask.Lander,
     },
 
     controller = {
@@ -314,7 +327,7 @@ function Lander.init(): GenIdx
   })
   assert(ok, 'could not create lander entity')
 
-  lander.collider.entity_id = id
+  lander.entity_data.id = id
 
   return id
 end

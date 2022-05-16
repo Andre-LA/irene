@@ -17,22 +17,21 @@ local TimedCallback = @component(@record{
   active: boolean,
   last_call: uint32,
   call_interval: uint32,
-  entity_id: GenIdx,
-  --callback: function(*TimedCallback), -- (added later through meta-programming)
+  --callback: function(*TimedCallback, GenIdx), -- (added later through meta-programming)
 })
 
-local Callback = @function(*TimedCallback)
+local Callback = @function(*TimedCallback, GenIdx)
 ## TimedCallback.value:add_field('callback', Callback.value)
 
 function TimedCallback:can_call(current_time: uint32)
   return current_time - self.last_call > self.call_interval
 end
 
-function TimedCallback:call(current_time: uint32)
+function TimedCallback:call(current_time: uint32, entity_id: GenIdx)
   self.last_call = current_time
 
   if self.callback then
-    self:callback()
+    self:callback(entity_id)
   end
 end
 

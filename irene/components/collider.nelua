@@ -19,29 +19,24 @@ local component = require 'rotor.component'
 local storage = require 'rotor.storage'
 local GenIdx = require 'rotor.gen_idx'
 
-local Intersection = @record{
-  entity_id: GenIdx,
-  collision_id: uint32,
-}
+local EntityData = require 'irene.components.entity_data'
 
 local Collider = @component(@record{
   active: boolean,         -- active field, set this to true to make it in the collision system
   hitbox: Rect,            -- collider's hitbox
-  entity_id: GenIdx,       -- entity's id
-  collision_id: uint32,    -- collider's id, a bitset of one bit, don't be confused with entity id!
   collision_mask: uint32,  -- bitmask of all collider ids this collider can collide with!
   with_collision: boolean, -- if true, this collider will "physically" collide with other colliders
   corner_tolerance: integer,   -- this adds a bit of tolerance, useful to avoid unwanted collision on corners
   velocity_interrupted: Vec2,  -- used internally by the collision system
-  intersecting_with: storage(Intersection, 8), -- stores entity and collision ids from on going collisions
+  intersecting_with: storage(EntityData, 8), -- stores the data of the entities from the on going collisions
 
   -- these fields are actually defined, but later in this source file, through meta-programming:
-  -- on_collision: function(self: *Collider, other: *Collider)       -- general reaction callback, continuously called per frame while the collider is intersecting other collider
-  -- on_begin_collision: function(self: *Collider, other: *Collider) -- begin reaction callback, called when the collider begin intersecting another one
-  -- on_end_collision: function(self: *Collider, other: *Collider)   -- end reaction callback, called when the collider stops intersecting another collider
+  -- on_collision: function(self: *Collider, other: *Collider, self_data: *EntityData, other_data: *EntityData)       -- general reaction callback, continuously called per frame while the collider is intersecting other collider
+  -- on_begin_collision: function(self: *Collider, other: *Collider, self_data: *EntityData, other_data: *EntityData) -- begin reaction callback, called when the collider begin intersecting another one
+  -- on_end_collision: function(self: *Collider, other: *Collider, self_data: *EntityData, other_data: *EntityData)   -- end reaction callback, called when the collider stops intersecting another collider
 })
 
-local callback_t = @function(self: *Collider, other: *Collider)
+local callback_t = @function(self: *Collider, other: *Collider, self_data: *EntityData, other_data: *EntityData)
 ## Collider.value:add_field('on_collision', callback_t.value)
 ## Collider.value:add_field('on_begin_collision', callback_t.value)
 ## Collider.value:add_field('on_end_collision', callback_t.value)
@@ -50,7 +45,7 @@ local Collider.CollisionCallback = callback_t
 
 function Collider:was_already_intersecting_with(id: GenIdx): (boolean, GenIdx)
   for idx, iw in mpairs(self.intersecting_with) do
-    if iw.entity_id == id then
+    if iw.id == id then
       return true, GenIdx{ idx, self.intersecting_with.generations[idx] }
     end
   end
