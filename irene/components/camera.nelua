@@ -10,6 +10,7 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
+local math = require 'math'
 local Nene = require 'nene'
 local Vec2 = require 'nene.math.vec2'
 
@@ -19,6 +20,22 @@ local Camera = @component(@record{
   offset: Vec2,
   half_screen_size: Vec2,
 })
+
+function Camera.get_screen_size(scale: cint): (cint, cint)
+  local nene = Nene.instance()
+  local win_w, win_h = nene:get_window_size()
+
+  return math.ifloor(win_w / scale), math.ifloor(win_h / scale)
+end
+
+function Camera.get_half_screen_point(scale_or_size: overload(cint, Vec2)): Vec2
+  ## if not scale_or_size.type.is_vec2 then
+  local w, h = Camera.get_screen_size(scale_or_size)
+  local scale_or_size = Vec2{ w, h }
+  ## end
+
+  return scale_or_size / Vec2{2,2}
+end
 
 function Camera:set_render_offset(pos: Vec2)
   local nene = Nene.instance()
