@@ -38,7 +38,7 @@ local PixelArtCamera = @entity(@record{
 
 local PixelArtCamera.PixelCamera = PixelCamera
 
-function PixelArtCamera.init(pos: Vec2, offset: Vec2, scale: cint, dest: Rect): PixelArtCamera
+function PixelArtCamera.init(pos: Vec2, offset: Vec2, scale: cint, dest: facultative(Rect)): PixelArtCamera
   local sw, sh = Camera.get_screen_size(scale)
   local ok, screen = Texture.create_texture(sw, sh, nil, Texture.Access.Target)
   assert(ok, "Couldn't create screen texture for pixel art camera")
@@ -57,10 +57,13 @@ function PixelArtCamera.init(pos: Vec2, offset: Vec2, scale: cint, dest: Rect): 
       active = true,
       =screen,
 
-      use_destination = true,
-      draw_destination = dest
+      use_destination = #[not dest.type.is_niltype]#,
     },
   }
+
+  ## if not dest.type.is_niltype then
+    camera.pixel_camera.draw_destination = dest
+  ## end
 
   return camera
 end
@@ -69,7 +72,7 @@ function PixelArtCamera:destroy()
   self.pixel_camera.screen:destroy()
 end
 
-function PixelArtCamera.spawn(stor: Concepts.an_storage_ptr, pos: Vec2, offset: Vec2, scale: cint, dest: Rect): (boolean, GenIdx, *PixelArtCamera)
+function PixelArtCamera.spawn(stor: Concepts.an_storage_ptr, pos: Vec2, offset: Vec2, scale: cint, dest: facultative(Rect)): (boolean, GenIdx, *PixelArtCamera)
   local ok, id, camera = stor:push(PixelArtCamera.init(pos, offset, scale, dest))
   check(ok, "Couldn't push pixel art camera on storage")
   return ok, id, camera
@@ -102,15 +105,23 @@ function PixelArtCamera.System:draw_screens(c: record{ position: *Position, pixe
 
   local tint = c.pixel_camera.use_tint and c.pixel_camera.tint or Color.Palette.white
 
-  c.pixel_camera.screen:draw(
-    tint,
-    nil,
-    c.pixel_camera.draw_destination,
-    nil,
-    nil,
-    c.pixel_camera.flip_h,
-    c.pixel_camera.flip_v
-  )
+  ## local function paint(dest)
+    c.pixel_camera.screen:draw(
+      tint,
+      nil,
+      #[dest]#,
+      nil,
+      nil,
+      c.pixel_camera.flip_h,
+      c.pixel_camera.flip_v
+    )
+  ## end
+
+  if c.pixel_camera.use_destination then
+    paint!(c.pixel_camera.draw_destination)
+  else
+    paint!()
+  end
 end
 
 return PixelArtCamera
