@@ -10,7 +10,6 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
-local Nene = require 'nene'
 local Color = require 'nene.color'
 
 local Position = require 'irene.components.position'
@@ -19,7 +18,6 @@ local Sprite = require 'irene.components.sprite'
 local SpritePainterSystem = @record{}
 
 function SpritePainterSystem:run(c: record{position: *Position, sprite: *Sprite})
-  local nene = Nene.instance()
   local color = c.sprite.use_tint and c.sprite.tint or Color.Palette.white
   c.sprite:draw(c.position:final_pos(), color)
 end
