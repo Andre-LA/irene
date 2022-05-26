@@ -55,6 +55,7 @@ local PositionHierarchySystem = require 'irene.systems.position_hierarchy'
 local InterruptVelocityByCollisionSystem = require 'irene.systems.interrupt_velocity_by_collision_system'
 
 ## local textmap = require 'irene.utils.textmap'
+## local map_caller = require 'irene.utils.map_caller'
 
 -- nprof
 -- NOTE: nprof it's broken broken for now, it'll be fixed later :)
@@ -413,7 +414,10 @@ function Resources:load()
       SafeLanding.init({ #[pos_x]#, #[pos_y]#, #[size_x]#, #[size_y]# })
     ## end
 
-    ## textmap.from_text(level_map, fn_all, { L = set_lander_start_pos }, { f = create_floor, s = create_safe })
+    ##[[
+      local map = textmap.from_text(level_map)
+      map_caller(map, fn_all, { L = set_lander_start_pos }, { f = create_floor, s = create_safe })
+    ]]
 
     self.maps.map = {
       tilemap_width = 50,
