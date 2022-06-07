@@ -53,27 +53,25 @@ function Collider:was_already_intersecting_with(id: GenIdx): (boolean, GenIdx)
   return false
 end
 
+function Collider:final_hitbox(pos: Vec2): Rect
+  local final_hitbox: Rect = {
+    x = self.hitbox.x + math.ifloor(pos.x),
+    y = self.hitbox.y + math.ifloor(pos.y),
+    w = self.hitbox.w,
+    h = self.hitbox.h,
+  }
+  return final_hitbox
+end
+
 function Collider:get_intersection(self_pos: Vec2, other: Collider, other_pos: Vec2): (Rect, boolean)
-  local self_hitbox = self.hitbox
-  self_hitbox.x = self.hitbox.x + math.ifloor(self_pos.x)
-  self_hitbox.y = self.hitbox.y + math.ifloor(self_pos.y)
-
-  local other_hitbox = other.hitbox
-  other_hitbox.x = other.hitbox.x + math.ifloor(other_pos.x)
-  other_hitbox.y = other.hitbox.y + math.ifloor(other_pos.y)
-
+  local self_hitbox = self:final_hitbox(self_pos)
+  local other_hitbox = other:final_hitbox(other_pos)
   return self_hitbox:get_intersection(other_hitbox)
 end
 
 function Collider:simple_collision(self_pos: Vec2, other: Collider, other_pos: Vec2): (boolean, Rect, Rect)
-  local self_hitbox = self.hitbox
-  self_hitbox.x = self.hitbox.x + math.ifloor(self_pos.x)
-  self_hitbox.y = self.hitbox.y + math.ifloor(self_pos.y)
-
-  local other_hitbox = other.hitbox
-  other_hitbox.x = other.hitbox.x + math.ifloor(other_pos.x)
-  other_hitbox.y = other.hitbox.y + math.ifloor(other_pos.y)
-
+  local self_hitbox = self:final_hitbox(self_pos)
+  local other_hitbox = other:final_hitbox(other_pos)
   return self_hitbox:simple_collision(other_hitbox)
 end
 
