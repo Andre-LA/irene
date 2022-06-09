@@ -39,7 +39,7 @@ end
 
 function Camera:set_render_offset(pos: Vec2)
   local nene = Nene.instance()
-  nene.render_offset = pos + self.offset - self.half_screen_size
+  nene.render_offset = -(pos + self.offset - self.half_screen_size)
 end
 
 return Camera
