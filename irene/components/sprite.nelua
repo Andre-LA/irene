@@ -27,6 +27,7 @@ local Sprite = @component(@record{
   texture: Texture,
   offset: Vec2,
   flip_h: boolean,
+  flip_v: boolean,
   frame_rect: Rect,
   current_animation: AnimationRange,
   current_frame: usize,
@@ -126,7 +127,7 @@ function Sprite:draw(pos: Vec2, color: Color)
   check(src.w > 0 and src.h > 0, 'frame_rect contains zeroed dimensions')
 
   local dest = Rect.from_vec2(pos + self.offset, {src.w, src.h})
-  self.texture:draw(color, src, dest, nil, nil, self.flip_h)
+  self.texture:draw(color, src, dest, nil, nil, self.flip_h, self.flip_v)
 end
 
 return Sprite
