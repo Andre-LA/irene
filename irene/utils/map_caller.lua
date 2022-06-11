@@ -37,26 +37,30 @@ end
 return function (matrix, fn_all, fn_per_char, fn_per_region)
   for i, line in ipairs(matrix) do
     for j, char in ipairs(line) do
-      fn_all(j, i, char)
+      if fn_all then
+        fn_all(j, i, char)
+      end
 
-      if fn_per_char[char] then
+      if fn_per_char and fn_per_char[char] then
         fn_per_char[char](j, i)
       end
     end
   end
 
-  for i, line in ipairs(matrix) do
-    for j, char in ipairs(line) do
-      if fn_per_region[char] then
-        local count_h = count_line_chars(line, char, j)
-        local count_v = count_column_char(matrix, char, j, i)
+  if fn_per_region then
+    for i, line in ipairs(matrix) do
+      for j, char in ipairs(line) do
+        if fn_per_region[char] then
+          local count_h = count_line_chars(line, char, j)
+          local count_v = count_column_char(matrix, char, j, i)
 
-        if count_h >= count_v then
-          erase_line(line, j, count_h)
-          fn_per_region[char]({x=j, y=i, w=count_h, h=1})
-        else
-          erase_column(matrix, j, i, count_v)
-          fn_per_region[char]({x=j, y=i, w=1, h=count_v})
+          if count_h >= count_v then
+            erase_line(line, j, count_h)
+            fn_per_region[char]({x=j, y=i, w=count_h, h=1})
+          else
+            erase_column(matrix, j, i, count_v)
+            fn_per_region[char]({x=j, y=i, w=1, h=count_v})
+          end
         end
       end
     end
