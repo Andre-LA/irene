@@ -28,7 +28,6 @@ local Collider = require 'irene.components.collider'
 local EntityData = require 'irene.components.entity_data'
 local EntitiesRemoved = require 'irene.managers.entities_removed'
 
-
 -- Collision System --
 
 local Collidable = @record{
@@ -40,6 +39,7 @@ local Collidable = @record{
 local CollisionSystem = @record{
   collidables: vector(Collidable),
   draw_colliders: boolean,
+  draw_collisions: boolean,
 }
 
 function CollisionSystem:run(c: Collidable)
@@ -125,7 +125,7 @@ function CollisionSystem:post_run()
             i_collidable.collider:on_begin_collision(j_collidable.collider, i_collidable.entity_data, j_collidable.entity_data)
           end
 
-          if self.draw_colliders then
+          if self.draw_collisions then
             draw_collidable(nene, j_collidable, Color.Palette.green)
             draw_collidable(nene, i_collidable, Color.Palette.blue)
           end
@@ -135,7 +135,7 @@ function CollisionSystem:post_run()
         if i_collidable.collider.on_collision then
           i_collidable.collider:on_collision(j_collidable.collider, i_collidable.entity_data, j_collidable.entity_data)
 
-          if self.draw_colliders then
+          if self.draw_collisions then
             draw_collidable(nene, j_collidable, Color.Palette.green)
             draw_collidable(nene, i_collidable, Color.Palette.cyan)
           end
@@ -168,7 +168,7 @@ function CollisionSystem:post_run()
         if was_already_intersecting_with then -- if it was an on going collision, then call "end" reaction
           call_end_collision(iw_id, i_collidable, j_collidable)
 
-          if self.draw_colliders then
+          if self.draw_collisions then
             draw_collidable(nene, j_collidable, Color.Palette.green)
             draw_collidable(nene, i_collidable, Color.Palette.red)
           end
@@ -176,21 +176,19 @@ function CollisionSystem:post_run()
       end
     end
   end
-end
+  
+  if self.draw_colliders then
+    for i = 0, < #self.collidables do
+      local col = self.collidables[i]
 
-function CollisionSystem:draw_hitboxes()
-  local nene = Nene.instance()
+      local hitbox = col.collider.hitbox
+      local pos = col.position:final_pos()
 
-  for i = 0, < #self.collidables do
-    local col = self.collidables[i]
+      hitbox.x = math.floor(hitbox.x + pos.x)
+      hitbox.y = math.floor(hitbox.y + pos.y)
 
-    local hitbox = col.collider.hitbox
-    local pos = col.position:final_pos()
-
-    hitbox.x = math.floor(hitbox.x + pos.x)
-    hitbox.y = math.floor(hitbox.y + pos.y)
-
-    nene:render_draw_rect(hitbox, true, Color.Palette.green)
+      nene:render_draw_rect(hitbox, true, Color.Palette.green)
+    end
   end
 end
 
