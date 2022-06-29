@@ -15,12 +15,11 @@ local storage = require 'rotor.storage'
 local GenIdx = require 'rotor.gen_idx'
 
 local MicroSystem: type = @component(@record{
-  id: GenIdx,
   active: boolean,
-  -- added later -> system: function(self: *MicroSystem)
+  -- added later -> system: function(self: *MicroSystem, id: GenIdx)
 })
 
-local method_type: type = @function(self: *MicroSystem)
+local method_type: type = @function(self: *MicroSystem, id: GenIdx)
 
 ## MicroSystem.value:add_field('system', method_type.value)
 
