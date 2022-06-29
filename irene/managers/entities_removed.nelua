@@ -24,6 +24,7 @@ local entities_removed: hashmap(uint32, vector(GenIdx))
 local EntitiesRemoved = @record{}
 
 function EntitiesRemoved.push_removal(entity_id: GenIdx, entity_mask: uint32)
+  check(entity_mask ~= 0, "Trying to remove a 'unmasked' entity")
   entities_removed[entity_mask]:push(entity_id)
 end
 
