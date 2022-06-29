@@ -11,15 +11,31 @@
 ]]
 
 local Color = require 'nene.color'
+local Nene = require 'nene'
+local Vec2 = require 'nene.math.vec2'
 
 local Position = require 'irene.components.position'
 local Sprite = require 'irene.components.sprite'
 
-local SpritePainterSystem = @record{}
+local SpritePainterSystem = @record{
+  draw_origins: boolean,
+}
 
 function SpritePainterSystem:run(c: record{position: *Position, sprite: *Sprite})
+  if not c.sprite.active then
+    return
+  end
+  
   local color = c.sprite.use_tint and c.sprite.tint or Color.Palette.white
-  c.sprite:draw(c.position:final_pos(), color)
+  
+  local pos = c.position:final_pos()
+  c.sprite:draw(pos, color)
+  
+  if self.draw_origins then
+    local nene = Nene.instance()
+    nene:render_draw_line(pos + Vec2{-1, 0}, pos + Vec2{1, 0})
+    nene:render_draw_line(pos + Vec2{0, -1}, pos + Vec2{0, 1})
+  end
 end
 
 return SpritePainterSystem

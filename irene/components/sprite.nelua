@@ -24,8 +24,11 @@ local Rect = require 'nene.math.rect'
 local Grid = require 'nene.math.grid'
 
 local Sprite = @component(@record{
+  active: boolean,
   texture: Texture,
   offset: Vec2,
+  angle: number,
+  center: Vec2,
   flip_h: boolean,
   flip_v: boolean,
   frame_rect: Rect,
@@ -42,7 +45,7 @@ local function is_frame_done(diff_time: uint32, anim_speed: number, fps: number)
   return diff_time * anim_speed > 1000 / fps
 end
 
-local function update_frame_rect(self: *Sprite)
+function Sprite:update_frame_rect()
   check(self.frame_rect.w > 0)
   check(self.frame_rect.w > 0)
 
@@ -56,7 +59,7 @@ end
 function Sprite:update_frame(current_frame_is_last_frame: boolean, current_time: uint32)
   self.current_frame = current_frame_is_last_frame and self.current_animation.from or self.current_frame + 1
   self.last_frame_change = current_time
-  update_frame_rect(self)
+  self:update_frame_rect()
 end
 
 function Sprite:set_animation(animation: AnimationRange, current_time: uint32, only_set_if_last_frame: facultative(boolean)): boolean
@@ -127,7 +130,7 @@ function Sprite:draw(pos: Vec2, color: Color)
   check(src.w > 0 and src.h > 0, 'frame_rect contains zeroed dimensions')
 
   local dest = Rect.from_vec2(pos + self.offset, {src.w, src.h})
-  self.texture:draw(color, src, dest, nil, nil, self.flip_h, self.flip_v)
+  self.texture:draw(color, src, dest, self.angle, self.center, self.flip_h, self.flip_v)
 end
 
 return Sprite
