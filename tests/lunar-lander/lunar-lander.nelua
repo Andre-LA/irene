@@ -216,6 +216,7 @@ function LanderPropulsion.init(): LanderPropulsion
     },
 
     sprite = {
+      active = true,
       texture = Resources.res.sprites_and_bg,
       frame_rect = { 0,0 , 16,16 },
       animation_running = true,
@@ -281,6 +282,7 @@ function Lander.init(): GenIdx
     },
 
     sprite = {
+      active = true,
       texture = Resources.res.sprites_and_bg,
       frame_rect = { 64,16, 16,16 },
     },

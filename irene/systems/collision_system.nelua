@@ -38,7 +38,6 @@ local Collidable = @record{
 
 local CollisionSystem = @record{
   collidables: vector(Collidable),
-  draw_colliders: boolean,
   draw_collisions: boolean,
 }
 
@@ -176,19 +175,21 @@ function CollisionSystem:post_run()
       end
     end
   end
-  
-  if self.draw_colliders then
-    for i = 0, < #self.collidables do
-      local col = self.collidables[i]
+end
 
-      local hitbox = col.collider.hitbox
-      local pos = col.position:final_pos()
+function CollisionSystem:draw_hitboxes()
+  local nene = Nene.instance()
 
-      hitbox.x = math.floor(hitbox.x + pos.x)
-      hitbox.y = math.floor(hitbox.y + pos.y)
+  for i = 0, < #self.collidables do
+    local col = self.collidables[i]
 
-      nene:render_draw_rect(hitbox, true, Color.Palette.green)
-    end
+    local hitbox = col.collider.hitbox
+    local pos = col.position:final_pos()
+
+    hitbox.x = math.floor(hitbox.x + pos.x)
+    hitbox.y = math.floor(hitbox.y + pos.y)
+
+    nene:render_draw_rect(hitbox, true, Color.Palette.green)
   end
 end
 
