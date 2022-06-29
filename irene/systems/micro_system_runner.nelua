@@ -10,15 +10,18 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
+local GenIdx = require 'rotor.gen_idx'
+
+local EntityData = require 'irene.components.entity_data'
 local MicroSystem = require 'irene.components.micro_system'
 
 local MicroSystemRunner = @record{}
 
-function MicroSystemRunner:run(c: record{ micro_system: *MicroSystem })
+function MicroSystemRunner:run(c: record{ micro_system: *MicroSystem, entity_data: *EntityData })
   check(c.micro_system.system, 'system of micro system is not defined')
 
   if c.micro_system.active and c.micro_system.system then
-    c.micro_system:system()
+    c.micro_system:system(c.entity_data.id)
   end
 end
 
