@@ -33,6 +33,8 @@ local component = require 'rotor.component'
 local system = require 'rotor.system'
 local storage = require 'rotor.storage'
 local GenIdx = require 'rotor.gen_idx'
+local derived_entity = require 'rotor.derived_entity'
+local utils = require 'rotor.utils'
 
 -- irene
 local Position = require 'irene.components.position'
@@ -53,6 +55,8 @@ local TilemapPainter = require 'irene.systems.tilemap_painter'
 local CameraSystem = require 'irene.systems.camera_system'
 local PositionHierarchySystem = require 'irene.systems.position_hierarchy'
 local InterruptVelocityByCollisionSystem = require 'irene.systems.interrupt_velocity_by_collision_system'
+
+local PixelArtCamera = require 'irene.entities.pixelart_camera'
 
 ## local textmap = require 'irene.utils.textmap'
 ## local map_caller = require 'irene.utils.map_caller'
@@ -141,21 +145,20 @@ local LanderState = @enum{
 }
 
 -- components --
-local LanderController = @component(@record{
+local LanderController <nickname 'LanderController'> = @component(record{
   propulsion_force: number,
   state: LanderState
 })
 
 -- entities --
-local SafeLanding = @entity(@record{
+local Ground <nickname 'Ground'> = @entity(record{
   position: Position,
   collider: Collider,
   entity_data: EntityData,
 })
-local SafeLanding.storage: storage(SafeLanding, 11)
 
-function SafeLanding.init(rect: Rect): *SafeLanding
-  local ok, id, safe_landing = SafeLanding.storage:push({
+function Ground.init(rect: Rect, mask: EntityMask): Ground
+  local ground: Ground = {
     position = {
       local_pos = { rect.x, rect.y },
     },
@@ -165,46 +168,40 @@ function SafeLanding.init(rect: Rect): *SafeLanding
     },
 
     entity_data = {
-      mask = EntityMask.Safe,
+      =mask,
     }
-  })
+  }
+
+  return ground
+end
+
+local SafeLanding <nickname 'SafeLanding'> = @derived_entity(Ground, record{})
+local SafeLanding.storage: storage(SafeLanding, 11)
+
+function SafeLanding.spawn(rect: Rect)
+  local ground = Ground.init(rect, EntityMask.Safe)
+  local safe_landing = utils.copy_entity(&ground, @SafeLanding)
+
+  local ok, id, safe_landing = SafeLanding.storage:push(safe_landing)
   assert(ok, "Couldn't add a safe landing entity")
 
   safe_landing.entity_data.id = id
-
-  return safe_landing
 end
 
-local Floor = @entity(@record{
-  position: Position,
-  collider: Collider,
-  entity_data: EntityData,
-})
-
+local Floor <nickname 'Floor'> = @derived_entity(Ground, record{})
 local Floor.storage: storage(Floor, 512)
 
-function Floor.init(rect: Rect): *Floor
-  local ok, id, floor = Floor.storage:push({
-    position = {
-      local_pos = { rect.x, rect.y },
-    },
+function Floor.spawn(rect: Rect)
+  local ground = Ground.init(rect, EntityMask.Floor)
+  local floor = utils.copy_entity(&ground, @Floor)
 
-    collider = {
-      hitbox = { 0,0 , rect.w, rect.h },
-    },
-
-    entity_data = {
-      mask = EntityMask.Floor,
-    },
-  })
+  local ok, id, floor = Floor.storage:push(floor)
   assert(ok, "Couldn't add a floor entity")
 
   floor.entity_data.id = id
-
-  return floor
 end
 
-local LanderPropulsion = @entity(@record{
+local LanderPropulsion <nickname 'LanderPropulsion'> = @entity(record{
   position: Position,
   sprite: Sprite,
 })
@@ -227,12 +224,12 @@ function LanderPropulsion.init(): LanderPropulsion
   return propulsion
 end
 
-local CameraEntity = @entity(@record{
-  position: Position,
-  camera: Camera,
-})
+-- local CameraEntity <nickname 'CameraEntity'> = @entity(record{
+--   position: Position,
+--   camera: Camera,
+-- })
 
-local Lander = @entity(@record{
+local Lander <nickname 'Lander'> = @entity(record{
   position: Position,
   sprite: Sprite,
   velocity: Velocity,
@@ -243,7 +240,8 @@ local Lander = @entity(@record{
   controller: LanderController,
 
   propulsion: LanderPropulsion,
-  camera: CameraEntity,
+  -- camera: CameraEntity,
+  camera: PixelArtCamera,
 })
 
 local Lander.storage: storage(Lander, 1)
@@ -273,7 +271,7 @@ local function on_lander_end_collision(self: *Collider, other: *Collider, self_d
   end
 end
 
-function Lander.init(): GenIdx
+function Lander.spawn(): GenIdx
   local gravity_acceleration <comptime> = 30
 
   local ok, id, lander = Lander.storage:push({
@@ -321,12 +319,7 @@ function Lander.init(): GenIdx
 
     propulsion = LanderPropulsion.init(),
 
-    camera = {
-      camera = {
-        offset = { 7, 5 },
-        half_screen_size = { SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 }
-      }
-    },
+    camera = PixelArtCamera.init({}, {8, 8}, 2),
   })
   assert(ok, 'could not create lander entity')
 
@@ -341,7 +334,7 @@ function Lander:reset()
   self.velocity.final_velocity = {}
 end
 
-local LunarMap = @entity(@record{
+local LunarMap <nickname 'LunarMap'> = @entity(record{
   position: Position,
   tilemap: TilemapComp,
 })
@@ -407,13 +400,13 @@ function Resources:load()
     ## local function create_floor(rect)
       ## local pos_x, pos_y = from_cr_to_pos(rect.x, rect.y)
       ## local size_x, size_y = from_wh_to_size(rect.w, rect.h)
-      Floor.init({ #[pos_x]#, #[pos_y]#, #[size_x]#, #[size_y]# })
+      Floor.spawn({ #[pos_x]#, #[pos_y]#, #[size_x]#, #[size_y]# })
     ## end
 
     ## local function create_safe(rect)
       ## local pos_x, pos_y = from_cr_to_pos(rect.x, rect.y)
       ## local size_x, size_y = from_wh_to_size(rect.w, rect.h)
-      SafeLanding.init({ #[pos_x]#, #[pos_y]#, #[size_x]#, #[size_y]# })
+      SafeLanding.spawn({ #[pos_x]#, #[pos_y]#, #[size_x]#, #[size_y]# })
     ## end
 
     ##[[
@@ -489,8 +482,6 @@ end
 
 -- Game State --
 local GameState = @record{
-  -- screen target
-  screen: Texture,
   -- entities
   lander_id: GenIdx,
   --maps
@@ -511,20 +502,20 @@ local GameState = @record{
     camera_system: system(CameraSystem.run),
     position_hierarchy: system(PositionHierarchySystem.run),
     interrupt_velocity_by_collision_system: system(InterruptVelocityByCollisionSystem.run),
+
+    pixelcamera_render_begin: system(PixelArtCamera.System.render_begin),
+    pixelcamera_render_end: system(PixelArtCamera.System.render_end),
+    pixelcamera_draw_screens: system(PixelArtCamera.System.draw_screens),
   },
   -- useful data
   last_startmusic_time: float32,
 }
 
 function GameState:init()
-  local ok, tex_target = Texture.create_texture(SCREEN_WIDTH, SCREEN_HEIGHT, nil, Texture.Access.Target)
-  assert(ok, 'Could not create screen texture')
-  self.screen = tex_target
-
   self.lunarmaps.bgmap = LunarMap.init({0,16}, Resources.res.maps.bgmap)
   self.lunarmaps.map =  LunarMap.init({0,0}, Resources.res.maps.map)
 
-  self.lander_id = Lander.init()
+  self.lander_id = Lander.spawn()
 end
 
 function GameState:reset()
@@ -535,7 +526,7 @@ end
 
 function GameState:unload()
   Music.stop()
-  self.screen:destroy()
+  -- self.screen:destroy()
   self.systems.collision_system.data.collidables:destroy()
 end
 
@@ -622,8 +613,8 @@ local function update()
   end
 end
 
-local function painting_systems()
-  ## prof('painting systems')
+local function paint_game()
+  ## prof('paint game')
 
   Game_State:run_system('camera_system')
   Game_State:run_system('tilemap_painter')
@@ -642,21 +633,8 @@ local function draw_stop_flying_text(lander_state: LanderState)
   tex_txt:draw(draw_pos, Color.Palette.white)
 end
 
-local function draw()
-  ## prof('draw')
-
-  local show_dev_info = nene:get_scancode(Scancode.I)
-
-  nene:set_render_target(Game_State.screen:get_raw())
-  nene:render_clear(Color.Palette.black)
-
-  painting_systems()
-
-  if show_dev_info then
-    Game_State.systems.collision_system.data:draw_hitboxes()
-  end
-
-  nene.render_offset = {}
+local function paint_hud(show_dev_info: boolean)
+  ## prof('paint hud')
 
   local ok, lander = Lander.storage:mget(Game_State.lander_id)
   assert(ok, "Couldn't get lander entity")
@@ -670,9 +648,27 @@ local function draw()
   if show_dev_info then
     paint_dev_info()
   end
+end
 
-  nene:set_render_target(nilptr)
-  Game_State.screen:draw()
+local function draw()
+  ## prof('draw')
+
+  Game_State:run_system('pixelcamera_render_begin')
+
+  local show_dev_info = nene:get_scancode(Scancode.I)
+
+  paint_game()
+
+  if show_dev_info then
+    Game_State.systems.collision_system.data:draw_hitboxes()
+  end
+
+  nene.render_offset = {}
+
+  paint_hud(show_dev_info)
+
+  Game_State:run_system('pixelcamera_render_end')
+  Game_State:run_system('pixelcamera_draw_screens')
 end
 
 -- Main Loop --

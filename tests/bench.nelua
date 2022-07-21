@@ -41,7 +41,7 @@ local E_DELTA <comptime> = #[ E_DELTA or 100 ]#
 local ok, nene <close> = Nene.init('Irene port of Rotor Benchmark', 800, 600)
 assert(ok, 'error: nene initialization failed.')
 
-local Particle = @entity(@record{
+local Particle <nickname 'Particle'> = @entity(record{
   position: Position,
   velocity: Velocity,
   rect_painter: RectPainter,

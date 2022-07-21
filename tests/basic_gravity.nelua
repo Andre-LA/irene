@@ -30,7 +30,7 @@ local VelocitySystem = require 'irene.systems.velocity_system'
 local RectPainterSystem = require 'irene.systems.rect_painter_system'
 
 -- Falling box entity
-local FallingBox = @entity(@record{
+local FallingBox <nickname 'FallingBox'> = @entity(record{
   position: Position,
 
   gravity: Gravity,
