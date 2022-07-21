@@ -2,9 +2,13 @@
 -- this is a port of rotor's bench example.
 
 --[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
   This Source Code Form is subject to the terms of the Mozilla Public
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
 ]]
 
 -- nelua
@@ -31,11 +35,11 @@ local RectPainterSystem = require 'irene.systems.rect_painter_system'
 
 -- bench
 local e_count = 0_u
-local E_MAX <comptime> = #[ E_COUNT or 5000 ]#
+local E_COUNT <comptime> = #[ E_COUNT or 5000 ]#
 local E_DELTA <comptime> = #[ E_DELTA or 100 ]#
 
 local ok, nene <close> = Nene.init('Irene port of Rotor Benchmark', 800, 600)
-check(ok)
+assert(ok, 'error: nene initialization failed.')
 
 local Particle = @entity(@record{
   position: Position,
@@ -44,10 +48,10 @@ local Particle = @entity(@record{
   entity_data: EntityData,
 })
 
-local Particle.storage: storage(Particle, E_MAX)
+local Particle.storage: storage(Particle, E_COUNT)
 
-function Particle.new()
-  local ok, id, particle = Particle.storage:push({
+function Particle.init(): Particle
+  local particle: Particle = {
     velocity = {
       active = true,
       final_velocity = {
@@ -60,11 +64,15 @@ function Particle.new()
       size = { 2, 2 },
       color = Color.Palette.yellow,
     }
-  })
-  check(ok)
+  }
+  return particle
+end
+
+function Particle.spawn()
+  local ok, id, particle = Particle.storage:push(Particle.init())
+  assert(ok, "The particle couldn't be pushed to storage")
 
   particle.entity_data.id = id
-
   e_count = e_count + 1
 
   ## if not NOLOG then
@@ -82,14 +90,16 @@ function Particle.remove(id: GenIdx)
 end
 
 local CycleOrDestroySystem = @record{}
+local CycleOrDestroySystem.Filter = @record{ position: *Position, entity_data: *EntityData }
 
-function CycleOrDestroySystem:run(c: record{ position: *Position, entity_data: *EntityData })
-  local pos = c.position:final_pos()
+function CycleOrDestroySystem:run(e: CycleOrDestroySystem.Filter)
+  local pos = e.position:final_pos()
+
   if pos.x > 800 or pos.y > 600 then
-    if math.random(0.0, 1.0) < 0.4 then
-      Particle.remove(c.entity_data.id)
+    if math.random() < 0.4 then
+      Particle.remove(e.entity_data.id)
     else
-      c.position.local_pos.x, c.position.local_pos.y = 0, 0
+      e.position.local_pos.x, e.position.local_pos.y = 0, 0
     end
   end
 end
@@ -102,8 +112,8 @@ local function frame()
   nene:poll_events()
 
   for i = 1, E_DELTA do
-    if e_count < E_MAX then
-      Particle.new()
+    if e_count < E_COUNT then
+      Particle.spawn()
     end
   end
 
@@ -111,6 +121,7 @@ local function frame()
   cycle_or_destroy_system:run(&Particle.storage)
 
   nene:render_clear(Color.Palette.bg)
+
   do
     ## if not NODRAW then
       rect_painter_system:run(&Particle.storage)
@@ -124,6 +135,7 @@ local function frame()
       print('e_count: ', e_count)
     ## end
   end
+
   nene:render_present()
 end
 

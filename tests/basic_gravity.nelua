@@ -1,9 +1,13 @@
 -- minimal example of a box falling --
 
 --[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
   This Source Code Form is subject to the terms of the Mozilla Public
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
 ]]
 
 -- nene
@@ -26,7 +30,6 @@ local VelocitySystem = require 'irene.systems.velocity_system'
 local RectPainterSystem = require 'irene.systems.rect_painter_system'
 
 -- Falling box entity
-
 local FallingBox = @entity(@record{
   position: Position,
 
@@ -36,18 +39,15 @@ local FallingBox = @entity(@record{
   rect_painter: RectPainter,
 })
 
-local FallingBox.storage: storage(FallingBox, 1)
-
 -- systems
 local gravity_system: system(GravitySystem.run)
 local velocity_system: system(VelocitySystem.run)
 local rect_painter_system: system(RectPainterSystem.run)
 
 -- basic gravity --
-
-local ok = FallingBox.storage:push({
+local box: FallingBox = {
   position = {
-    local_pos = {32, 32},
+    local_pos = {120, 16},
   },
 
   velocity = {
@@ -66,20 +66,20 @@ local ok = FallingBox.storage:push({
     size = { 16, 16 },
     color = Color.Palette.yellow,
   },
-})
+}
 
-local ok, nene <close> = Nene.init('Irene - Basic gravity', 800, 450)
+local ok, nene <close> = Nene.init('Irene - Basic gravity', 256, 256)
 assert(ok, 'error: nene initialization failed.')
 
 repeat
   nene:poll_events()
 
-  gravity_system:run(&FallingBox.storage)
-  velocity_system:run(&FallingBox.storage)
+  gravity_system:run(&box)
+  velocity_system:run(&box)
 
   nene:render_clear(Color.Palette.bg)
 
-  rect_painter_system:run(&FallingBox.storage)
+  rect_painter_system:run(&box)
 
   nene:render_present()
 until nene.quit

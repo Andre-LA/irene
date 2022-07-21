@@ -19,7 +19,7 @@ local function position_hierarchy(entity: concepts.an_entity_ptr)
   ## local entity_type = entity.type.subtype
 
   ## for _, child_field in ipairs(entity_type:find_children_fields({Position.value})) do
-    ## local child_pos_field = child_field.type:find_fields_of_type(Position.value)[1]
+    ## local child_pos_field = child_field.type:find_field_of_type(Position.value)
 
     entity.#|child_field.name|#.position.origin_pos = entity.position:final_pos()
     position_hierarchy(&entity.#|child_field.name|#)
