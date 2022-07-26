@@ -23,7 +23,7 @@ local Vec2 = require 'nene.math.vec2'
 local Rect = require 'nene.math.rect'
 local Grid = require 'nene.math.grid'
 
-local Sprite = @component(@record{
+local Sprite <nickname 'Sprite'> = @component(@record{
   active: boolean,
   texture: Texture,
   offset: Vec2,

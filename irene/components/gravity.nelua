@@ -13,7 +13,7 @@
 local Vec2 = require 'nene.math.vec2'
 local component = require 'rotor.component'
 
-local Gravity = @component(@record{
+local Gravity <nickname 'Gravity'> = @component(@record{
   acceleration: number,
   direction: Vec2,
   active: boolean

@@ -16,7 +16,7 @@ local Vec2 = require 'nene.math.vec2'
 
 local component = require 'rotor.component'
 
-local Camera = @component(@record{
+local Camera <nickname 'Camera'> = @component(@record{
   offset: Vec2,
   half_screen_size: Vec2,
 })

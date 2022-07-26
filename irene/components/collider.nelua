@@ -21,7 +21,7 @@ local GenIdx = require 'rotor.gen_idx'
 
 local EntityData = require 'irene.components.entity_data'
 
-local Collider = @component(@record{
+local Collider <nickname 'Collider'> = @component(@record{
   active: boolean,         -- active field, set this to true to make it in the collision system
   hitbox: Rect,            -- collider's hitbox
   collision_mask: uint32,  -- bitmask of all collider ids this collider can collide with!

@@ -224,11 +224,6 @@ function LanderPropulsion.init(): LanderPropulsion
   return propulsion
 end
 
--- local CameraEntity <nickname 'CameraEntity'> = @entity(record{
---   position: Position,
---   camera: Camera,
--- })
-
 local Lander <nickname 'Lander'> = @entity(record{
   position: Position,
   sprite: Sprite,
@@ -240,7 +235,6 @@ local Lander <nickname 'Lander'> = @entity(record{
   controller: LanderController,
 
   propulsion: LanderPropulsion,
-  -- camera: CameraEntity,
   camera: PixelArtCamera,
 })
 

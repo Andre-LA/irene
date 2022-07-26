@@ -15,7 +15,7 @@ local Texture = require 'nene.texture'
 local Tilemap = require 'nene.tilemap'
 local component = require 'rotor.component'
 
-local TilemapComp = @component(@record{
+local TilemapComp <nickname 'TilemapComp'> = @component(@record{
   tileset: Texture,
   tilemap: Tilemap,
   use_tint: boolean,

@@ -14,7 +14,7 @@ local math = require 'math'
 local Vec2 = require 'nene.math.vec2'
 local component = require 'rotor.component'
 
-local Velocity = @component(@record{
+local Velocity <nickname 'Velocity'> = @component(@record{
   active: boolean,
   final_velocity: Vec2,
   max_velocity_per_axis: Vec2,

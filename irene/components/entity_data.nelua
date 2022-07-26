@@ -13,7 +13,7 @@
 local GenIdx = require 'rotor.gen_idx'
 local component = require 'rotor.component'
 
-local EntityData = @component(@record{
+local EntityData <nickname 'EntityData'> = @component(@record{
   id: GenIdx,
   mask: uint32,
 })

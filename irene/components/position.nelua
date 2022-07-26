@@ -13,7 +13,7 @@
 local Vec2 = require 'nene.math.vec2'
 local component = require 'rotor.component'
 
-local Position = @component(@record{
+local Position <nickname 'Position'> = @component(@record{
   origin_pos: Vec2,
   local_pos: Vec2,
 })

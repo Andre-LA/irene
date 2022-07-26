@@ -17,7 +17,7 @@ local Vec2 = require 'nene.math.vec2'
 
 local component = require 'rotor.component'
 
-local LinePainter = @component(@record{
+local LinePainter <nickname 'LinePainter'> = @component(@record{
   start: Vec2,
   _end: Vec2,
   color: Color,

@@ -26,7 +26,7 @@ local Concepts = require 'rotor.concepts'
 local Position = require 'irene.components.position'
 local Camera = require 'irene.components.camera'
 
-local PixelCamera = @component(@record{
+local PixelCamera <nickname 'PixelCamera'> = @component(@record{
   active: boolean,
 
   screen: Texture,
@@ -42,7 +42,7 @@ local PixelCamera = @component(@record{
   flip_v: boolean
 })
 
-local PixelArtCamera = @entity(@record{
+local PixelArtCamera <nickname 'PixelArtCamera'> = @entity(@record{
   position: Position,
   camera: Camera,
   pixel_camera: PixelCamera,

@@ -13,7 +13,7 @@
 local component = require 'rotor.component'
 local GenIdx = require 'rotor.gen_idx'
 
-local TimedCallback = @component(@record{
+local TimedCallback <nickname 'TimedCallback'> = @component(@record{
   active: boolean,
   last_call: uint32,
   call_interval: uint32,

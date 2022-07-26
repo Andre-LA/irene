@@ -14,7 +14,7 @@ local component = require 'rotor.component'
 local storage = require 'rotor.storage'
 local GenIdx = require 'rotor.gen_idx'
 
-local MicroSystem: type = @component(@record{
+local MicroSystem <nickname 'MicroSystem'> = @component(@record{
   active: boolean,
   -- added later -> system: function(self: *MicroSystem, id: GenIdx)
 })

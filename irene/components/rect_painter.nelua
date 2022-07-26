@@ -15,7 +15,7 @@ local Color = require 'nene.color'
 
 local component = require 'rotor.component'
 
-local RectPainter = @component(@record{
+local RectPainter <nickname 'RectPainter'> = @component(@record{
   active: boolean,
   size: Vec2i,
   color: Color,
