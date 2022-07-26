@@ -503,6 +503,7 @@ local GameState = @record{
   },
   -- useful data
   last_startmusic_time: float32,
+  is_paused: boolean,
 }
 
 function GameState:init()
@@ -516,11 +517,12 @@ function GameState:reset()
   local ok, lander = Lander.storage:mget(self.lander_id)
   assert(ok, "Couldn't get lander entity")
   lander:reset()
+
+  self.is_paused = false
 end
 
 function GameState:unload()
   Music.stop()
-  -- self.screen:destroy()
   self.systems.collision_system.data.collidables:destroy()
 end
 
@@ -561,6 +563,7 @@ defer Game_State:unload() end
 
 local landed_txt <close> = TextTexture.init("You Landed!", Resources.res.font)
 local crashed_txt <close> = TextTexture.init("You Crashed!", Resources.res.font)
+local paused_txt <close> = TextTexture.init("Paused", Resources.res.font)
 local fps_txt <close> = TextTexture.init("00", Resources.res.font)
 
 -- game functions --
@@ -602,6 +605,17 @@ local function update()
   assert(ok, "Couldn't get lander entity")
 
   local is_flying = lander.controller.state == LanderState.Flying
+
+  local nene = Nene.instance()
+
+  if nene:get_scancode_down(Scancode.P) and is_flying then
+    Game_State.is_paused = not Game_State.is_paused
+  end
+
+  if Game_State.is_paused then
+    return
+  end
+
   if is_flying then
     flying_systems()
   end
@@ -615,16 +629,19 @@ local function paint_game()
   Game_State:run_system('sprite_painter')
 end
 
-local function draw_stop_flying_text(lander_state: LanderState)
-  local tex_txt: TextTexture = lander_state == LanderState.Landed and landed_txt or crashed_txt
-
+local function draw_text(tex_txt: TextTexture)
   local half_screen: Vec2 = { (SCREEN_WIDTH // 2), (SCREEN_HEIGHT // 2) }
-  local half_tex_size: Vec2 = {tex_txt.texture.width // 2, tex_txt.texture.height // 2}
+  local half_tex_size: Vec2 = { tex_txt.texture.width // 2, tex_txt.texture.height // 2 }
 
   local draw_pos = half_screen - half_tex_size
 
   tex_txt:draw(draw_pos + Vec2{1, 1}, Color.Palette.black)
   tex_txt:draw(draw_pos, Color.Palette.white)
+end
+
+local function draw_stop_flying_text(lander_state: LanderState)
+  local tex_txt: TextTexture = lander_state == LanderState.Landed and landed_txt or crashed_txt
+  draw_text(tex_txt)
 end
 
 local function paint_hud(show_dev_info: boolean)
@@ -635,7 +652,9 @@ local function paint_hud(show_dev_info: boolean)
 
   local is_flying = lander.controller.state == LanderState.Flying
 
-  if not is_flying then
+  if Game_State.is_paused then
+    draw_text(paused_txt)
+  elseif not is_flying then
     draw_stop_flying_text(lander.controller.state)
   end
 
