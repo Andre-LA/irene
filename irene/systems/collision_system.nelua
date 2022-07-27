@@ -36,6 +36,28 @@ local Collidable = @record{
   entity_data: *EntityData,
 }
 
+function Collidable:to_collided_data(): Collider.CollidedData
+  check(self.collider, 'no initialized collider')
+  check(self.entity_data, 'no initialized entity data')
+
+  return Collider.CollidedData.init(self.collider, self.entity_data)
+end
+
+function Collidable:try_call_callback(other_collidable: *Collidable, callback_name: string <comptime>): boolean
+  ##[[
+  local valid_callbacks = { on_collision = true, on_begin_collision = true, on_end_collision = true }
+  static_assert(valid_callbacks[callback_name.value], "tried to call an unexpected callback '%s'", callback_name.value)
+  ]]
+
+  if self.collider.#|callback_name.value|# then
+    local collision_data = Collider.CollisionData.init(self:to_collided_data(), other_collidable:to_collided_data())
+    self.collider.#|callback_name.value|#(collision_data)
+    return true
+  end
+
+  return false
+end
+
 local CollisionSystem = @record{
   collidables: vector(Collidable),
   draw_collisions: boolean,
@@ -56,9 +78,7 @@ local function call_end_collision(intersection_id: GenIdx, self_collidable: *Col
   local ok = self_collidable.collider.intersecting_with:mget(intersection_id)
   self_collidable.collider.intersecting_with:remove(intersection_id)
 
-  if self_collidable.collider.on_end_collision then
-    self_collidable.collider:on_end_collision(other_collidable.collider, self_collidable.entity_data, other_collidable.entity_data)
-  end
+  self_collidable:try_call_callback(other_collidable, 'on_end_collision')
 end
 
 function CollisionSystem:post_run()
@@ -120,9 +140,7 @@ function CollisionSystem:post_run()
           })
           check(ok, "error: failed to push entity id to 'intersecting_with'")
 
-          if i_collidable.collider.on_begin_collision then
-            i_collidable.collider:on_begin_collision(j_collidable.collider, i_collidable.entity_data, j_collidable.entity_data)
-          end
+          i_collidable:try_call_callback(j_collidable, 'on_begin_collision')
 
           if self.draw_collisions then
             draw_collidable(nene, j_collidable, Color.Palette.green)
@@ -131,13 +149,9 @@ function CollisionSystem:post_run()
         end
 
         -- call reaction callback
-        if i_collidable.collider.on_collision then
-          i_collidable.collider:on_collision(j_collidable.collider, i_collidable.entity_data, j_collidable.entity_data)
-
-          if self.draw_collisions then
-            draw_collidable(nene, j_collidable, Color.Palette.green)
-            draw_collidable(nene, i_collidable, Color.Palette.cyan)
-          end
+        if i_collidable:try_call_callback(j_collidable, 'on_collision') and self.draw_collisions then
+          draw_collidable(nene, j_collidable, Color.Palette.green)
+          draw_collidable(nene, i_collidable, Color.Palette.cyan)
         end
 
         -- "physical" collision system

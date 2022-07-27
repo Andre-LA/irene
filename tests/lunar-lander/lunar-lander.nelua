@@ -241,11 +241,11 @@ local Lander <nickname 'Lander'> = @entity(record{
 local Lander.storage: storage(Lander, 1)
 
 -- collision reaction callbacks
-local function on_lander_begin_collision(self: *Collider, other: *Collider, self_data: *EntityData, other_data: *EntityData)
-  local ok, lander = Lander.storage:mget(self_data.id)
+function Lander.on_begin_collision(collision_data: Collider.CollisionData)
+  local ok, lander = Lander.storage:mget(collision_data.self.entity_data.id)
   assert(ok, "Couldn't find lander")
 
-  switch other_data.mask do
+  switch collision_data.other.entity_data.mask do
   case EntityMask.Safe then
     lander.controller.state = LanderState.Landed
     Resources.res.audio.sound_effects.land:play()
@@ -256,11 +256,11 @@ local function on_lander_begin_collision(self: *Collider, other: *Collider, self
   end
 end
 
-local function on_lander_end_collision(self: *Collider, other: *Collider, self_data: *EntityData, other_data: *EntityData)
-  local ok, lander = Lander.storage:mget(self_data.id)
+function Lander.on_end_collision(collision_data: Collider.CollisionData)
+  local ok, lander = Lander.storage:mget(collision_data.self.entity_data.id)
   assert(ok, "Couldn't find lander")
 
-  if other_data.mask  == EntityMask.Safe then
+  if collision_data.other.entity_data.mask  == EntityMask.Safe then
     lander.controller.state = LanderState.Flying
   end
 end
@@ -298,8 +298,8 @@ function Lander.spawn(): GenIdx
       collision_mask = EntityMask.Floor | EntityMask.Safe,
       with_collision = true,
       corner_tolerance = 2,
-      on_begin_collision = on_lander_begin_collision,
-      on_end_collision   = on_lander_end_collision,
+      on_begin_collision = Lander.on_begin_collision,
+      on_end_collision   = Lander.on_end_collision,
     },
 
     entity_data = {

@@ -31,17 +31,44 @@ local Collider <nickname 'Collider'> = @component(@record{
   intersecting_with: storage(EntityData, 8), -- stores the data of the entities from the on going collisions
 
   -- these fields are actually defined, but later in this source file, through meta-programming:
-  -- on_collision: function(self: *Collider, other: *Collider, self_data: *EntityData, other_data: *EntityData)       -- general reaction callback, continuously called per frame while the collider is intersecting other collider
-  -- on_begin_collision: function(self: *Collider, other: *Collider, self_data: *EntityData, other_data: *EntityData) -- begin reaction callback, called when the collider begin intersecting another one
-  -- on_end_collision: function(self: *Collider, other: *Collider, self_data: *EntityData, other_data: *EntityData)   -- end reaction callback, called when the collider stops intersecting another collider
+  -- on_collision: function(CollisionData)       -- general reaction callback, continuously called per frame while the collider is intersecting other collider
+  -- on_begin_collision: function(CollisionData) -- begin reaction callback, called when the collider begin intersecting another one
+  -- on_end_collision: function(CollisionData)   -- end reaction callback, called when the collider stops intersecting another collider
 })
 
-local callback_t = @function(self: *Collider, other: *Collider, self_data: *EntityData, other_data: *EntityData)
+local CollidedData = @record{
+  collider: *Collider,
+  entity_data: *EntityData,
+}
+local Collider.CollidedData = @CollidedData
+
+function CollidedData.init(collider: *Collider, entity_data: *EntityData): CollidedData
+  check(collider, 'got nilptr collider')
+  check(entity_data, 'got nilptr entity_data')
+
+  local collided: CollidedData = {
+    =collider, =entity_data
+  }
+  return collided
+end
+
+local CollisionData = @record{
+  self: CollidedData,
+  other: CollidedData,
+}
+local Collider.CollisionData = @CollisionData
+
+function CollisionData.init(self: CollidedData, other: CollidedData): CollisionData
+  local collision: CollisionData = { =self, =other }
+  return collision
+end
+
+local callback_t = @function(CollisionData)
+local Collider.CollisionCallback = @callback_t
+
 ## Collider.value:add_field('on_collision', callback_t.value)
 ## Collider.value:add_field('on_begin_collision', callback_t.value)
 ## Collider.value:add_field('on_end_collision', callback_t.value)
-
-local Collider.CollisionCallback = callback_t
 
 function Collider:was_already_intersecting_with(id: GenIdx): (boolean, GenIdx)
   for idx, iw in mpairs(self.intersecting_with) do
