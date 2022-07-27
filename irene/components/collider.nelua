@@ -22,10 +22,10 @@ local GenIdx = require 'rotor.gen_idx'
 local EntityData = require 'irene.components.entity_data'
 
 local Collider <nickname 'Collider'> = @component(@record{
-  active: boolean,         -- active field, set this to true to make it in the collision system
-  hitbox: Rect,            -- collider's hitbox
-  collision_mask: uint32,  -- bitmask of all collider ids this collider can collide with!
-  with_collision: boolean, -- if true, this collider will "physically" collide with other colliders, that is, will get it's velocity interrupted.
+  active: boolean,             -- active field, set this to true to make it in the collision system
+  hitbox: Rect,                -- collider's hitbox
+  collision_mask: uint32,      -- bitmask of all collider ids this collider can collide with!
+  with_collision: boolean,     -- if true, this collider will "physically" collide with other colliders, that is, will get it's velocity interrupted.
   corner_tolerance: integer,   -- this adds a bit of tolerance, useful to avoid unwanted collision on corners
   velocity_interrupted: Vec2,  -- used internally by the collision system
   intersecting_with: storage(EntityData, 8), -- stores the data of the entities from the on going collisions
