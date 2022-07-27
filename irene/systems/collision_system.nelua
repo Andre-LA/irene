@@ -40,7 +40,8 @@ function Collidable:to_collided_data(): Collider.CollidedData
   check(self.collider, 'no initialized collider')
   check(self.entity_data, 'no initialized entity data')
 
-  return Collider.CollidedData.init(self.collider, self.entity_data)
+  local hitbox = self.collider:final_hitbox(self.position:final_pos())
+  return Collider.CollidedData.init(self.collider, self.entity_data, hitbox)
 end
 
 function Collidable:try_call_callback(other_collidable: *Collidable, callback_name: string <comptime>): boolean

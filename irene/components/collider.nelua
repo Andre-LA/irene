@@ -39,15 +39,17 @@ local Collider <nickname 'Collider'> = @component(@record{
 local CollidedData = @record{
   collider: *Collider,
   entity_data: *EntityData,
+  hitbox: Rect,
 }
 local Collider.CollidedData = @CollidedData
 
-function CollidedData.init(collider: *Collider, entity_data: *EntityData): CollidedData
+function CollidedData.init(collider: *Collider, entity_data: *EntityData, hitbox: Rect): CollidedData
   check(collider, 'got nilptr collider')
   check(entity_data, 'got nilptr entity_data')
+  check(hitbox.w ~= 0 and hitbox.h ~= 0, "got empty hitbox")
 
   local collided: CollidedData = {
-    =collider, =entity_data
+    =collider, =entity_data, =hitbox
   }
   return collided
 end
