@@ -21,6 +21,8 @@ local GenIdx = require 'rotor.gen_idx'
 
 local EntityData = require 'irene.components.entity_data'
 
+local CollisionData <forwarddecl> = @record{}
+
 local Collider <nickname 'Collider'> = @component(@record{
   active: boolean,             -- active field, set this to true to make it in the collision system
   hitbox: Rect,                -- collider's hitbox
@@ -30,11 +32,12 @@ local Collider <nickname 'Collider'> = @component(@record{
   velocity_interrupted: Vec2,  -- used internally by the collision system
   intersecting_with: storage(EntityData, 8), -- stores the data of the entities from the on going collisions
 
-  -- these fields are actually defined, but later in this source file, through meta-programming:
-  -- on_collision: function(CollisionData)       -- general reaction callback, continuously called per frame while the collider is intersecting other collider
-  -- on_begin_collision: function(CollisionData) -- begin reaction callback, called when the collider begin intersecting another one
-  -- on_end_collision: function(CollisionData)   -- end reaction callback, called when the collider stops intersecting another collider
+  on_collision: function(CollisionData),       -- general reaction callback, continuously called per frame while the collider is intersecting other collider
+  on_begin_collision: function(CollisionData), -- begin reaction callback, called when the collider begin intersecting another one
+  on_end_collision: function(CollisionData),   -- end reaction callback, called when the collider stops intersecting another collider
 })
+
+local Collider.CollisionCallback = @function(CollisionData)
 
 local CollidedData = @record{
   collider: *Collider,
@@ -54,7 +57,7 @@ function CollidedData.init(collider: *Collider, entity_data: *EntityData, hitbox
   return collided
 end
 
-local CollisionData = @record{
+CollisionData = @record{
   self: CollidedData,
   other: CollidedData,
 }
@@ -64,13 +67,6 @@ function CollisionData.init(self: CollidedData, other: CollidedData): CollisionD
   local collision: CollisionData = { =self, =other }
   return collision
 end
-
-local callback_t = @function(CollisionData)
-local Collider.CollisionCallback = @callback_t
-
-## Collider.value:add_field('on_collision', callback_t.value)
-## Collider.value:add_field('on_begin_collision', callback_t.value)
-## Collider.value:add_field('on_end_collision', callback_t.value)
 
 function Collider:was_already_intersecting_with(id: GenIdx): (boolean, GenIdx)
   for idx, iw in mpairs(self.intersecting_with) do
