@@ -1,0 +1,139 @@
+-- minimal example of an walking rectangle --
+
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+-- nene
+local Nene = require 'nene'
+local Vec2 = require 'nene.math.vec2'
+local Color = require 'nene.color'
+
+-- rotor
+local entity = require 'rotor.entity'
+local component = require 'rotor.component'
+local system = require 'rotor.system'
+local storage = require 'rotor.storage'
+local GenIdx = require 'rotor.gen_idx'
+
+-- irene
+local Position = require 'irene.components.position'
+local TimedCallback = require 'irene.components.timed_callback'
+local EntityData = require 'irene.components.entity_data'
+local Velocity = require 'irene.components.velocity'
+local RectPainter = require 'irene.components.rect_painter'
+
+local TimedCallbackSystem = require 'irene.systems.timed_callback_system'
+local VelocitySystem = require 'irene.systems.velocity_system'
+local RectPainterSystem = require 'irene.systems.rect_painter_system'
+
+-- walker entity
+local WalkingDirection = @enum{
+  Up = 0, Left, Down, Right
+}
+
+function WalkingDirection.to_velocity(self: WalkingDirection): Vec2
+  switch self do
+  case WalkingDirection.Up    then return Vec2{   0, -32 }
+  case WalkingDirection.Down  then return Vec2{   0,  32 }
+  case WalkingDirection.Left  then return Vec2{ -32,   0 }
+  case WalkingDirection.Right then return Vec2{  32,   0 }
+  end
+  return Vec2{ 0, 0 }
+end
+
+local Walkable <nickname 'Walkable'> = @component(record{
+  direction: WalkingDirection
+})
+
+function Walkable:next_dir()
+  self.direction = (self.direction + 1) % 4
+end
+
+local Walker <nickname 'Walker'> = @entity(record{
+  position: Position,
+  walkable: Walkable,
+  entity_data: EntityData,
+  timed_callback: TimedCallback,
+  velocity: Velocity,
+  rect_painter: RectPainter,
+})
+local Walker.storage: storage(Walker, 1)
+
+function Walker:go_next_dir()
+  self.walkable:next_dir()
+  self.velocity.final_velocity = self.walkable.direction:to_velocity()
+end
+
+function Walker.spawn(): (boolean, GenIdx)
+  local ok, id, walker = Walker.storage:push({
+    position = {
+      local_pos = { 40, 40 },
+    },
+
+    walkable = {
+      direction = WalkingDirection.Left, -- will be changed to Down below
+    },
+
+    timed_callback = {
+      active = true,
+      call_interval = 5000,
+      callback = function(self: *TimedCallback, id: GenIdx)
+        local ok, walker = Walker.storage:mget(id)
+        check(ok, 'walker not found on storage')
+
+        if ok then
+          walker:go_next_dir()
+        end
+      end
+    },
+
+    velocity = {
+      active = true,
+      use_deltatime = true,
+    },
+
+    rect_painter = {
+      active = true,
+      size = { 16, 16 },
+      color = Color.Palette.yellow,
+    },
+  })
+
+  assert(ok, 'walker could not be spawned')
+
+  walker.entity_data.id = id
+  walker:go_next_dir()
+
+  return ok, id
+end
+
+-- systems
+local timed_callback_system: system(TimedCallbackSystem.run)
+local velocity_system: system(VelocitySystem.run)
+local rect_painter_system: system(RectPainterSystem.run)
+
+-- game
+local ok, nene <close> = Nene.init('Irene - Basic gravity', 256, 256)
+assert(ok, 'error: nene initialization failed.')
+
+Walker.spawn()
+
+repeat
+  nene:poll_events()
+
+  timed_callback_system:run(&Walker.storage)
+  velocity_system:run(&Walker.storage)
+
+  nene:render_clear(Color.Palette.bg)
+
+  rect_painter_system:run(&Walker.storage)
+
+  nene:render_present()
+until nene.quit

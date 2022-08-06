@@ -13,15 +13,14 @@
 local component = require 'rotor.component'
 local GenIdx = require 'rotor.gen_idx'
 
-local TimedCallback <nickname 'TimedCallback'> = @component(@record{
+local TimedCallback <nickname 'TimedCallback'> = @record{
   active: boolean,
   last_call: uint32,
   call_interval: uint32,
-  --callback: function(*TimedCallback, GenIdx), -- (added later through meta-programming)
-})
+  callback: function(*TimedCallback, GenIdx), -- (added later through meta-programming)
+}
 
-local Callback = @function(*TimedCallback, GenIdx)
-## TimedCallback.value:add_field('callback', Callback.value)
+## component.value.impl_is_component(TimedCallback.value)
 
 function TimedCallback:can_call(current_time: uint32)
   return current_time - self.last_call > self.call_interval
