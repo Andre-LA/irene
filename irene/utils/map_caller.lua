@@ -52,20 +52,8 @@ local function map_caller(matrix, fn_all, fn_per_char, fn_per_region)
   -- copy matrix to preserve original
   local matrix = tabler.imap(matrix, tabler.icopy)
 
-  local map_props = {
-    map_max_width = 0,
-    rect_tile_count = 0,
-    tile_count = 0,
-  }
-
   for i, line in ipairs(matrix) do
     for j, char in ipairs(line) do
-      if j > map_props.map_max_width then
-        map_props.map_max_width = j
-      end
-
-      map_props.tile_count = map_props.tile_count + 1
-
       if fn_all then
         fn_all(j, i, char)
       end
@@ -94,10 +82,6 @@ local function map_caller(matrix, fn_all, fn_per_char, fn_per_region)
       end
     end
   end
-
-  map_props.rect_tile_count = #matrix * map_props.map_max_width
-
-  return map_props
 end
 
 return map_caller

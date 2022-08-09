@@ -13,7 +13,11 @@
 local arrmap = {}
 
 function arrmap.arr_to_matrix(array, width)
-  local matrix = {}
+  local matrix = {
+    rect_tile_count = 0,
+    line_count = 0,
+    map_max_width = width,
+  }
 
   local n = 0
 
@@ -26,7 +30,10 @@ function arrmap.arr_to_matrix(array, width)
     end
 
     table.insert(matrix, line)
+    matrix.line_count = matrix.line_count + 1
   end
+
+  matrix.rect_tile_count = matrix.line_count * matrix.map_max_width
 
   return matrix
 end
