@@ -22,24 +22,29 @@ local TilemapComp <nickname 'TilemapComp'> = @component(@record{
   tint: Color,
 })
 
-## function TilemapComp.value.init_from_map_matrix(self, map_matrix, map_props, tile_table)
+## function TilemapComp.value.init_from_map_matrix(self, map_matrix, tile_table)
   -- make self type explicit
   local self: *TilemapComp = #[self]#
   local map_type = @decltype(self.tilemap.map)
 
-  self.tilemap.tilemap_width = #[map_props.map_max_width]#
+  self.tilemap.tilemap_width = #[map_matrix.map_max_width]#
 
   ##[[
   -- reference: https://nelua.io/overview/#preprocessor-macros-emitting-ast-nodes
   local init_list = aster.InitList{
     pattr = {
-      desiredtype = types.ArrayType(map_type.value, map_props.rect_tile_count),
+      desiredtype = types.ArrayType(map_type.value, map_matrix.rect_tile_count),
     }
   }
 
   for _, line in ipairs(map_matrix) do
-    for i = 1, map_props.map_max_width do
-      table.insert(init_list, aster.value(tile_table[ line[i] ] or 0))
+    for i = 1, map_matrix.map_max_width do
+      local tile = line[i]
+      if tile_table then
+        tile = tile_table[ line[i] ] or 0
+      end
+
+      table.insert(init_list, aster.value(tile))
     end
   end
   ]]
