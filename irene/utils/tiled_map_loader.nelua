@@ -123,14 +123,20 @@ function TiledMapLoader.callbacks_per_object(
   tm: *Tilemap,
   data: *MapData,
   layer: string,
-  callbacks: hashmap(string, function(ObjectData))
+  callbacks_by_class: hashmap(string, function(ObjectData)),
+  callbacks_by_name: hashmap(string, function(ObjectData))
 ): boolean
   local ok, layer_data = find_named_layer(layer, &data.object_layers)
   check(ok, "layer not found")
 
   if ok then
     for _, obj in mipairs(layer_data.objects) do
-      local ok, callback = callbacks:has_and_get(obj.className)
+      local ok, callback = callbacks_by_class:has_and_get(obj.className)
+      if ok then
+        callback($obj)
+      end
+
+      local ok, callback = callbacks_by_name:has_and_get(obj.name)
       if ok then
         callback($obj)
       end
