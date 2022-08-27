@@ -48,7 +48,7 @@ end
 
 function Collidable:try_call_callback(other_collidable: *Collidable, callback_name: string <comptime>): boolean
   ##[[
-  local valid_callbacks = { on_collision = true, on_begin_collision = true, on_end_collision = true }
+  local valid_callbacks = { on_intersection = true, on_begin_intersection = true, on_end_intersection = true }
   static_assert(valid_callbacks[callback_name.value], "tried to call an unexpected callback '%s'", callback_name.value)
   ]]
 
@@ -98,11 +98,11 @@ function CollisionSystem:pre_run()
   self.collidables:clear()
 end
 
-local function call_end_collision(intersection_id: GenIdx, self_collidable: *Collidable, other_collidable: *Collidable)
+local function call_end_intersection(intersection_id: GenIdx, self_collidable: *Collidable, other_collidable: *Collidable)
   local ok = self_collidable.collider.intersecting_with:mget(intersection_id)
   self_collidable.collider.intersecting_with:remove(intersection_id)
 
-  self_collidable:try_call_callback(other_collidable, 'on_end_collision')
+  self_collidable:try_call_callback(other_collidable, 'on_end_intersection')
 end
 
 function CollisionSystem:post_run()
@@ -143,8 +143,8 @@ function CollisionSystem:post_run()
 
       local j_collidable = self.collidables[j]
 
-      -- ignores if j's collider isn't included on i's collision mask
-      if i_collidable.collider.collision_mask & j_collidable.entity_data.mask == 0 then
+      -- ignores if j's collider isn't included on i's intersection mask
+      if i_collidable.collider.intersection_mask & j_collidable.entity_data.mask == 0 then
         continue
       end
 
@@ -162,7 +162,7 @@ function CollisionSystem:post_run()
         end
 
         -- "physical" collision system
-        if i_collidable.collider.with_collision then
+        if i_collidable.collider.collision_mask & j_collidable.entity_data.mask ~= 0 then
           i_collidable:apply_physical_collision(i_pos, resolved_hitbox)
         end
 
@@ -174,7 +174,7 @@ function CollisionSystem:post_run()
           })
           check(ok, "error: failed to push entity id to 'intersecting_with'")
 
-          i_collidable:try_call_callback(j_collidable, 'on_begin_collision')
+          i_collidable:try_call_callback(j_collidable, 'on_begin_intersection')
 
           if self.draw_collisions then
             draw_collidable(nene, i_collidable, Color.Palette.blue)
@@ -183,7 +183,7 @@ function CollisionSystem:post_run()
         end
 
         -- call collision callback
-        if i_collidable:try_call_callback(j_collidable, 'on_collision') and self.draw_collisions then
+        if i_collidable:try_call_callback(j_collidable, 'on_intersection') and self.draw_collisions then
           draw_collidable(nene, j_collidable, Color.Palette.green)
           draw_collidable(nene, i_collidable, Color.Palette.cyan)
         end
@@ -191,7 +191,7 @@ function CollisionSystem:post_run()
         local was_already_intersecting_with, iw_id = i_collidable.collider:was_already_intersecting_with(j_collidable.entity_data.id)
 
         if was_already_intersecting_with then -- if it was an on going collision, then call "end" reaction
-          call_end_collision(iw_id, i_collidable, j_collidable)
+          call_end_intersection(iw_id, i_collidable, j_collidable)
 
           if self.draw_collisions then
             draw_collidable(nene, j_collidable, Color.Palette.green)

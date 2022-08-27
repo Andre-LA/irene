@@ -26,15 +26,16 @@ local CollisionData <forwarddecl> = @record{}
 local Collider <nickname 'Collider'> = @component(@record{
   active: boolean,             -- active field, set this to true to make it in the collision system
   hitbox: Rect,                -- collider's hitbox
-  collision_mask: uint32,      -- bitmask of all collider ids this collider can collide with!
-  with_collision: boolean,     -- if true, this collider will "physically" collide with other colliders, that is, will get it's velocity interrupted.
-  corner_tolerance: integer,   -- this adds a bit of tolerance, useful to avoid unwanted collision on corners
-  velocity_interrupted: Vec2,  -- used internally by the collision system
-  intersecting_with: storage(EntityData, 8), -- stores the data of the entities from the on going collisions
+  intersection_mask: uint32,   -- bitmask of all collider ids this collider can collide or just intersect with
+  collision_mask: uint32,      -- bitmask of which ids of intersection_mask should make a "physically" collision.
+  corner_tolerance: integer,   -- this adds some tolerance, useful to avoid unwanted collision on corners
+  intersecting_with: storage(EntityData, 8), -- stores the data of the entities of the on going collisions
 
-  on_collision: function(CollisionData),       -- general reaction callback, continuously called per frame while the collider is intersecting other collider
-  on_begin_collision: function(CollisionData), -- begin reaction callback, called when the collider begin intersecting another one
-  on_end_collision: function(CollisionData),   -- end reaction callback, called when the collider stops intersecting another collider
+  on_intersection: function(CollisionData),       -- general reaction callback, continuously called per frame while the collider is intersecting other collider
+  on_begin_intersection: function(CollisionData), -- begin reaction callback, called when the collider begin intersecting another one
+  on_end_intersection: function(CollisionData),   -- end reaction callback, called when the collider stops intersecting another collider
+
+  velocity_interrupted: Vec2,  -- used internally by the collision system
 })
 
 local Collider.CollisionCallback = @function(CollisionData)

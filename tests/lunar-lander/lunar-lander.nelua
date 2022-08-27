@@ -241,7 +241,7 @@ local Lander <nickname 'Lander'> = @entity(record{
 local Lander.storage: storage(Lander, 1)
 
 -- collision reaction callbacks
-function Lander.on_begin_collision(collision_data: Collider.CollisionData)
+function Lander.on_begin_intersection(collision_data: Collider.CollisionData)
   local ok, lander = Lander.storage:mget(collision_data.self.entity_data.id)
   assert(ok, "Couldn't find lander")
 
@@ -256,7 +256,7 @@ function Lander.on_begin_collision(collision_data: Collider.CollisionData)
   end
 end
 
-function Lander.on_end_collision(collision_data: Collider.CollisionData)
+function Lander.on_end_intersection(collision_data: Collider.CollisionData)
   local ok, lander = Lander.storage:mget(collision_data.self.entity_data.id)
   assert(ok, "Couldn't find lander")
 
@@ -295,11 +295,11 @@ function Lander.spawn(): GenIdx
     collider = {
       active = true,
       hitbox = { 0,0 , 16,16 },
-      collision_mask = EntityMask.Floor | EntityMask.Safe,
-      with_collision = true,
+      intersection_mask = EntityMask.Floor | EntityMask.Safe,
+      collision_mask = EntityMask.Floor,
       corner_tolerance = 2,
-      on_begin_collision = Lander.on_begin_collision,
-      on_end_collision   = Lander.on_end_collision,
+      on_begin_intersection = Lander.on_begin_intersection,
+      on_end_intersection   = Lander.on_end_intersection,
     },
 
     entity_data = {
