@@ -62,7 +62,7 @@ let ireneMapFormat = {
           let object = {
             name = obj.name,
             pos = obj.pos,
-            className = obj.className,
+            class_name = obj.className,
             properties = {},
           }
 
