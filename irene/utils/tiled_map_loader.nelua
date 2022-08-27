@@ -43,8 +43,8 @@ local TileLayerData = @record{
 
 local ObjectData = @record{
   name: string,
-  className: string,
-  pos: record{ x: integer, y: integer },
+  class_name: string,
+  pos: record{ x: number, y: number },
   properties: hashmap(string, integer),
 }
 
@@ -75,7 +75,7 @@ local function find_named_layer(
 end
 
 function TiledMapLoader.load_map_file(filepath: string): (boolean, MapData, string)
-  ## local function check_and_return_on_error()
+  ## local function check_and_return_on_error(extra_err)
     check(#err == 0, err)
     if #err > 0 then return false, (@MapData)(), err end
   ## end
@@ -86,7 +86,14 @@ function TiledMapLoader.load_map_file(filepath: string): (boolean, MapData, stri
   local file_content, err = file:read('a')
   ## check_and_return_on_error()
 
-  local data, err = json.parse(file_content, MapData)
+  local data, err, chars_parsed = json.parse(file_content, MapData)
+  ## if IRENE_EXTENDED_ERRMSG then
+  if #err > 0 then
+    require 'string'
+    local m = require 'math'
+    print(file_content:subview(m.max(1_isize, chars_parsed-150_isize), chars_parsed))
+  end
+  ## end
   ## check_and_return_on_error()
 
   return true, data
@@ -99,8 +106,7 @@ function TiledMapLoader.apply_map_to_tilemap(
   tile_callback: function(x: integer, y: integer, i: isize, tile: integer)
 ): boolean
   local ok, layer_data = find_named_layer(layer, &data.tile_layers)
-  check(ok, "layer not found")
-
+  
   if ok then
     tm.tilemap_width = layer_data.width
     tm.map:reserve(#layer_data.data)
@@ -131,7 +137,7 @@ function TiledMapLoader.callbacks_per_object(
 
   if ok then
     for _, obj in mipairs(layer_data.objects) do
-      local ok, callback = callbacks_by_class:has_and_get(obj.className)
+      local ok, callback = callbacks_by_class:has_and_get(obj.class_name)
       if ok then
         callback($obj)
       end
