@@ -15,6 +15,7 @@ local math = require 'math'
 local Nene = require 'nene'
 local Color = require 'nene.color'
 local Texture = require 'nene.texture'
+local TextureAtlas = require 'nene.texture_atlas'
 local AnimationRange = require 'nene.animation'
 
 local component = require 'rotor.component'
@@ -25,13 +26,12 @@ local Grid = require 'nene.math.grid'
 
 local Sprite <nickname 'Sprite'> = @component(@record{
   active: boolean,
-  texture: Texture,
+  spritesheet: TextureAtlas,
   offset: Vec2,
   angle: number,
-  center: Vec2,
+  rotation_center: Vec2,
   flip_h: boolean,
   flip_v: boolean,
-  frame_rect: Rect,
   current_animation: AnimationRange,
   current_frame: usize,
   last_frame_change: uint32,
@@ -45,21 +45,9 @@ local function is_frame_done(diff_time: uint32, anim_speed: number, fps: number)
   return diff_time * anim_speed > 1000 / fps
 end
 
-function Sprite:update_frame_rect()
-  check(self.frame_rect.w > 0)
-  check(self.frame_rect.w > 0)
-
-  local frames_per_line = math.ifloor(self.texture.width / self.frame_rect.w)
-
-  local spritesheet_grid: Grid = {cell_size = { self.frame_rect.w, self.frame_rect.h }}
-  local frame_x, frame_y = Grid.get_nth_cell_column_row(self.current_frame, frames_per_line)
-  self.frame_rect = spritesheet_grid:gen_rect(frame_x, frame_y)
-end
-
 function Sprite:update_frame(current_frame_is_last_frame: boolean, current_time: uint32)
   self.current_frame = current_frame_is_last_frame and self.current_animation.from or self.current_frame + 1
   self.last_frame_change = current_time
-  self:update_frame_rect()
 end
 
 function Sprite:set_animation(animation: AnimationRange, current_time: uint32, only_set_if_last_frame: facultative(boolean)): boolean
@@ -124,13 +112,15 @@ function Sprite:update_animation()
 end
 
 function Sprite:draw(pos: Vec2, color: Color)
-  local nene = Nene.instance()
-
-  local src = self.frame_rect
-  check(src.w > 0 and src.h > 0, 'frame_rect contains zeroed dimensions')
-
-  local dest = Rect.from_vec2(pos + self.offset, {src.w, src.h})
-  self.texture:draw(color, src, dest, self.angle, self.center, self.flip_h, self.flip_v)
+  self.spritesheet:draw_nth_sub_texture(
+    self.current_frame,
+    pos + self.offset,
+    color,
+    self.angle,
+    self.rotation_center,
+    self.flip_h,
+    self.flip_v
+  )
 end
 
 return Sprite

@@ -19,11 +19,13 @@ local Font = require 'nene.font'
 local Texture = require 'nene.texture'
 local TextTexture = require 'nene.text_texture'
 local Tilemap = require 'nene.tilemap'
+local TextureAtlas = require 'nene.texture_atlas'
 
 local Music = require 'nene.audio.music'
 local Sound = require 'nene.audio.sound'
 
 local Vec2 = require 'nene.math.vec2'
+local Vec2i = require 'nene.math.vec2i'
 local Rect = require 'nene.math.rect'
 local Grid = require 'nene.math.grid'
 
@@ -84,6 +86,9 @@ local WINDOW_HEIGHT <comptime> = 624
 local SCREEN_WIDTH <comptime> = (WINDOW_WIDTH // 2)
 local SCREEN_HEIGHT <comptime> = (WINDOW_HEIGHT // 2)
 
+local SPRITE_SIZE: Vec2i <const>  = { 16, 16 }
+local BG_TILE_SIZE: Vec2i <const> = { 32, 32 }
+
 local ok, nene <close> = Nene.init("Lunar lander test", WINDOW_WIDTH, WINDOW_HEIGHT)
 assert(ok, 'error: nene initialization failed')
 
@@ -93,7 +98,17 @@ local Resources = @record{
 
   sprites_and_bg: Texture,
 
+  atlases: record{
+    sprites: TextureAtlas,
+    bg: TextureAtlas,
+  },
+
   maps: record{
+    surfaces: vector(uint16),
+    bg: vector(uint16),
+  },
+
+  tilemaps: record{
     map: Tilemap,
     bgmap: Tilemap,
   },
@@ -111,8 +126,8 @@ function Resources:unload()
   self.font:destroy()
   self.sprites_and_bg:destroy()
 
-  self.maps.map:destroy()
-  self.maps.bgmap:destroy()
+  self.maps.surfaces:destroy()
+  self.maps.bg:destroy()
 
   self.audio.sound_effects.land:destroy()
   self.audio.sound_effects.hit:destroy()
@@ -214,8 +229,7 @@ function LanderPropulsion.init(): LanderPropulsion
 
     sprite = {
       active = true,
-      texture = Resources.res.sprites_and_bg,
-      frame_rect = { 0,0 , 16,16 },
+      spritesheet = Resources.res.atlases.sprites,
       animation_running = true,
       current_animation = animations.prop_inactive,
     },
@@ -275,8 +289,8 @@ function Lander.spawn(): GenIdx
 
     sprite = {
       active = true,
-      texture = Resources.res.sprites_and_bg,
-      frame_rect = { 64,16, 16,16 },
+      spritesheet = Resources.res.atlases.sprites,
+      current_frame = 9,
     },
 
     velocity = {
@@ -341,7 +355,6 @@ function LunarMap.init(pos: Vec2, tilemap: Tilemap): LunarMap
 
     tilemap = {
       =tilemap,
-      tileset = Resources.res.sprites_and_bg
     },
   }
 
@@ -368,12 +381,25 @@ function Resources:load()
   assert(ok, 'Could not load "sprites" texture')
   self.sprites_and_bg = texture
 
+  -- atlases
+  self.atlases.sprites = {
+    width = 5,
+    texture = self.sprites_and_bg,
+    grid = { cell_size = SPRITE_SIZE },
+  }
+
+  self.atlases.bg = {
+    width = 2,
+    texture = self.sprites_and_bg,
+    grid = { cell_size = BG_TILE_SIZE },
+  }
+
   -- font
   local ok, font = Font.load('nene/resources/monogram_extended.ttf', 16)
   self.font = font
 
   do --maps
-    local _map: vector(isize) = {}
+    ## local map_array = {}
 
     ##[[
       local function from_cr_to_pos(column, row) return (column - 1) * 16, (row - 1) * 16 end
@@ -382,9 +408,11 @@ function Resources:load()
       local level_map = require 'tests.lunar-lander.assets.map'
     ]]
 
-    ## local function fn_all(column, row, char)
-      _map:push(#[charframe[char] or -1]#)
-    ## end
+    ##[[
+    local function fn_all(column, row, char)
+      table.insert(map_array, (charframe[char] or 0))
+    end
+    ]]
 
     ## local function set_lander_start_pos (column, row)
       ## local pos_x, pos_y = from_cr_to_pos(column, row)
@@ -408,38 +436,43 @@ function Resources:load()
       map_caller(map, fn_all, { L = set_lander_start_pos }, { f = create_floor, s = create_safe })
     ]]
 
-    self.maps.map = {
-      tilemap_width = 50,
-      tileset_width = 5,
-      grid = { cell_size = { 16, 16 } },
-      map = _map,
+    self.maps.surfaces = #[aster.value(map_array)]#
+    self.maps.bg = {
+      --0                 1                   2
+      --1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
     }
 
-    self.maps.bgmap = {
-      tilemap_width = 25,
-      tileset_width = 5,
-      grid = { cell_size = { 32, 32 } },
-      map = {
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-        2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-      }
+    self.tilemaps.map = {
+      tileset = Resources.res.atlases.sprites,
+      width = 50,
+      grid = { cell_size = SPRITE_SIZE },
+      map = self.maps.surfaces,
+    }
+
+    self.tilemaps.bgmap = {
+      tileset = Resources.res.atlases.bg,
+      width = 25,
+      grid = { cell_size = BG_TILE_SIZE },
+      map = Resources.res.maps.bg
     }
   end
 end
@@ -507,9 +540,8 @@ local GameState = @record{
 }
 
 function GameState:init()
-  self.lunarmaps.bgmap = LunarMap.init({0,16}, Resources.res.maps.bgmap)
-  self.lunarmaps.map =  LunarMap.init({0,0}, Resources.res.maps.map)
-
+  self.lunarmaps.bgmap = LunarMap.init({0,16}, Resources.res.tilemaps.bgmap)
+  self.lunarmaps.map =  LunarMap.init({0,0}, Resources.res.tilemaps.map)
   self.lander_id = Lander.spawn()
 end
 

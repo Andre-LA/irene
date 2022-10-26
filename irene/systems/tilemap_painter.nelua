@@ -18,7 +18,7 @@ local TilemapPainter = @record{}
 
 function TilemapPainter:run(c: record{ tm: *TilemapComp, position: *Position })
   local color = c.tm.use_tint and c.tm.tint or Color.Palette.white
-  c.tm.tilemap:draw(c.tm.tileset, c.position:final_pos(), color)
+  c.tm.tilemap:draw(c.position:final_pos(), color)
 end
 
 return TilemapPainter
