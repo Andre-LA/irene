@@ -48,7 +48,7 @@ local function erase_column(matrix, pos_x, pos_y, count)
   end
 end
 
-local function map_caller(matrix, fn_all, fn_per_char, fn_per_region)
+local function map_caller(matrix, fn_all, fn_per_tile, fn_per_region)
   -- copy matrix to preserve original
   local matrix = tabler.imap(matrix, tabler.icopy)
 
@@ -58,8 +58,8 @@ local function map_caller(matrix, fn_all, fn_per_char, fn_per_region)
         fn_all(j, i, char)
       end
 
-      if fn_per_char and fn_per_char[char] then
-        fn_per_char[char](j, i)
+      if fn_per_tile and fn_per_tile[char] then
+        fn_per_tile[char](j, i)
       end
     end
   end

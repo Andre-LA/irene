@@ -1,0 +1,35 @@
+local lua_applier = @record{}
+
+## function lua_applier.value.init_tilemap_from_map_matrix(tilemap, map_matrix, tile_table)
+  local Tilemap = require 'nene.tilemap'
+
+  -- make self type explicit
+  local map_type = #[Tilemap.value.fields.map.type]#
+
+  #[tilemap]#.tilemap_width = #[map_matrix.map_max_width]#
+
+  ##[[
+  -- reference: https://nelua.io/overview/#preprocessor-macros-emitting-ast-nodes
+  local init_list = aster.InitList{
+    pattr = {
+      desiredtype = types.ArrayType(map_type.value, map_matrix.rect_tile_count),
+    }
+  }
+
+  for _, line in ipairs(map_matrix) do
+    for i = 1, map_matrix.map_max_width do
+      local tile = line[i]
+      if tile_table then
+        tile = tile_table[ line[i] ] or 0
+      end
+
+      table.insert(init_list, aster.value(tile))
+    end
+  end
+  ]]
+
+  local tm: *Tilemap = #[tilemap]#
+  tm.map = #[init_list]#
+## end
+
+return lua_applier

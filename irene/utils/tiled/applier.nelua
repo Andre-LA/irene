@@ -1,0 +1,125 @@
+-- nelua
+local hashmap = require 'hashmap'
+
+-- irene
+## local tiledmap = require 'irene.utils.tiled.tiledmap'
+## local map_caller = require 'irene.utils.map_caller'
+
+local TiledMapLoader = require 'irene.utils.tiled.tiled_map_loader'
+local tiled_lua_applier = require 'irene.utils.tiled.lua_applier'
+
+## local tiled_lua_applier = tiled_lua_applier
+
+-- tiled_applier
+local tiled_applier = @record{}
+
+##[[
+local json_applier = {}
+local lua_applier  = {}
+]]
+
+## function json_applier.apply_tilemap(map, callback_group)
+  ## local callback_data = callback_group[1]
+  ## if callback_data.per_tile then
+    TiledMapLoader.apply_map_to_tilemap(
+      #[callback_data.tilemap_ptr]#,
+      #[map]#,
+      #[callback_group.from_layer]#,
+      #[callback_data.per_tile]#
+    )
+  ## else
+    TiledMapLoader.apply_map_to_tilemap(
+      #[callback_data.tilemap_ptr]#,
+      #[map]#,
+      #[callback_group.from_layer]#
+    )
+  ## end
+## end
+
+## function json_applier.apply_objects(map, callback_group, callbacks)
+  local callbacks_by_class: hashmap(string, function(TiledMapLoader.ObjectData)) <close>
+  local callbacks_by_name: hashmap(string, function(TiledMapLoader.ObjectData)) <close>
+
+  ## for class_name, fn in pairs(callbacks.per_class) do
+    callbacks_by_class[#[class_name]#] = #[fn]#
+  ## end
+
+  ## for name, fn in pairs(callbacks.per_name) do
+    callbacks_by_name[#[name]#] = #[fn]#
+  ## end
+
+  TiledMapLoader.callbacks_per_object(#[map]#, #[callback_group.from_layer]#, callbacks_by_class, callbacks_by_name)
+## end
+
+## function json_applier.apply(map_file, callbacks)
+  local ok, map, err = TiledMapLoader.load_map_file(#[map_file]#)
+  check(ok, err)
+
+  if ok then
+    ##[[
+    for _, callback_group in ipairs(callbacks) do
+      if callback_group.type == 'objects' then
+        for _, callbacks_unit in ipairs(callback_group) do
+          json_applier.apply_objects(map, callback_group, callbacks_unit)
+        end
+
+      elseif callback_group.type == 'tilemap' then
+        json_applier.apply_tilemap(map, callback_group)
+      end
+    end
+    ]]
+  end
+## end
+
+##[[
+function lua_applier.apply_tilemap(map, callback_group)
+  local callback_data = callback_group[1]
+
+  local map_matrix = static_assert(
+    tiledmap.from_tile_layer(map, callback_group.from_layer),
+    "Couldn't create map_matrix from tile layer '%s'",
+    callback_group.from_layer
+  )
+
+  map_caller(map_matrix, nil, nil, callback_data.per_region)
+
+  tiled_lua_applier.value.init_tilemap_from_map_matrix(callback_data.tilemap_ptr, map_matrix)
+end
+
+function lua_applier.apply_objects(map, callback_group, callbacks)
+  static_assert(
+    tiledmap.call_per_object(map, callback_group.from_layer, callbacks.per_class, callbacks.per_name),
+    "Couldn't run `tiledmap.call_per_object` from layer '%s'",
+    callback_group.from_layer
+  )
+end
+
+function lua_applier.apply(map_file, callbacks)
+  local map = require (map_file)
+
+  for _, callback_group in ipairs(callbacks) do
+    if callback_group.type == 'objects' then
+      for _, callbacks_unit in ipairs(callback_group) do
+        lua_applier.apply_objects(map, callback_group, callbacks_unit)
+      end
+
+    elseif callback_group.type == 'tilemap' then
+      lua_applier.apply_tilemap(map, callback_group)
+    end
+  end
+end
+]]
+
+##[[
+function tiled_applier.value.apply_map(map_file, callbacks)
+  local is_runtime_file = string.match(map_file, '.json$') ~= nil
+
+  if is_runtime_file then
+    json_applier.apply(map_file, callbacks)
+  else
+    lua_applier.apply(map_file, callbacks)
+  end
+end
+]]
+
+return tiled_applier
