@@ -29,6 +29,7 @@ local Position = require 'irene.components.position'
 local Velocity = require 'irene.components.velocity'
 local EntityData = require 'irene.components.entity_data'
 local RectPainter = require 'irene.components.rect_painter'
+local Painter = require 'irene.components.painter'
 
 local VelocitySystem = require 'irene.systems.velocity_system'
 local RectPainterSystem = require 'irene.systems.rect_painter_system'
@@ -44,6 +45,7 @@ assert(ok, 'error: nene initialization failed.')
 local Particle <nickname 'Particle'> = @entity(record{
   position: Position,
   velocity: Velocity,
+  painter: Painter,
   rect_painter: RectPainter,
   entity_data: EntityData,
 })
@@ -59,10 +61,15 @@ function Particle.init(): Particle
       },
       use_deltatime = true,
     },
-    rect_painter = {
+
+    painter = {
       active = true,
+      use_tint = true,
+      tint = Color.Palette.yellow,
+    },
+    
+    rect_painter = {
       size = { 2, 2 },
-      color = Color.Palette.yellow,
     }
   }
   return particle

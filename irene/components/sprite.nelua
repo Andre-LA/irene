@@ -10,22 +10,26 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
+-- nelua
 local math = require 'math'
 
+-- nene
 local Nene = require 'nene'
 local Color = require 'nene.color'
 local Texture = require 'nene.texture'
 local TextureAtlas = require 'nene.texture_atlas'
 local AnimationRange = require 'nene.animation'
 
-local component = require 'rotor.component'
-
 local Vec2 = require 'nene.math.vec2'
 local Rect = require 'nene.math.rect'
 local Grid = require 'nene.math.grid'
 
+-- rotor
+local component = require 'rotor.component'
+
+-- sprite
+
 local Sprite <nickname 'Sprite'> = @component(@record{
-  active: boolean,
   spritesheet: TextureAtlas,
   offset: Vec2,
   angle: number,
@@ -37,8 +41,6 @@ local Sprite <nickname 'Sprite'> = @component(@record{
   last_frame_change: uint32,
   animation_extra_speed: number,
   animation_running: boolean,
-  use_tint: boolean,
-  tint: Color,
 })
 
 local function is_frame_done(diff_time: uint32, anim_speed: number, fps: number): boolean

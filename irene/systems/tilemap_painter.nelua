@@ -10,15 +10,25 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
+-- nene
 local Color = require 'nene.color'
+
+-- irene
+local Painter = require 'irene.components.painter'
 local Position = require 'irene.components.position'
 local TilemapComp = require 'irene.components.tilemap'
 
-local TilemapPainter = @record{}
+-- tilemap painter
+local TilemapPainter = @record{
+  active_layer: byte,
+}
 
-function TilemapPainter:run(c: record{ tm: *TilemapComp, position: *Position })
-  local color = c.tm.use_tint and c.tm.tint or Color.Palette.white
-  c.tm.tilemap:draw(c.position:final_pos(), color)
+function TilemapPainter:run(c: record{ painter: *Painter, tm: *TilemapComp, position: *Position })
+  if not c.painter:should_run(self.active_layer) then
+    return
+  end
+
+  c.tm.tilemap:draw(c.position:final_pos(), c.painter:get_color())
 end
 
 return TilemapPainter

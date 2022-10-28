@@ -10,15 +10,28 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
-local Nene = require 'nene'
+-- nelua
 local math = require 'math'
+
+-- nene
+local Nene = require 'nene'
+
+-- irene
+local Painter = require 'irene.components.painter'
 local LinePainter = require 'irene.components.line_painter'
 
-local LinePainterSystem = @record{}
+-- line painter system
+local LinePainterSystem = @record{
+  active_layer: byte,
+}
 
-function LinePainterSystem:run(c: record{ line_painter: *LinePainter })
+function LinePainterSystem:run(c: record{ painter: *Painter, line_painter: *LinePainter })
+  if not c.painter:should_run(self.active_layer) then
+    return
+  end
+
   local nene = Nene.instance()
-  nene:render_draw_line(c.line_painter.start, c.line_painter._end, c.line_painter.color)
+  nene:render_draw_line(c.line_painter.start, c.line_painter._end, c.painter:get_color())
 end
 
 return LinePainterSystem

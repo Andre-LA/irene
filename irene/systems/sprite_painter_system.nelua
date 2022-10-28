@@ -10,27 +10,30 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
-local Color = require 'nene.color'
+-- nene
 local Nene = require 'nene'
+local Color = require 'nene.color'
 local Vec2 = require 'nene.math.vec2'
 
+-- irene
 local Position = require 'irene.components.position'
 local Sprite = require 'irene.components.sprite'
+local Painter = require 'irene.components.painter'
 
+-- sprite painter system
 local SpritePainterSystem = @record{
   draw_origins: boolean,
+  active_layer: byte,
 }
 
-function SpritePainterSystem:run(c: record{position: *Position, sprite: *Sprite})
-  if not c.sprite.active then
+function SpritePainterSystem:run(c: record{painter: *Painter, position: *Position, sprite: *Sprite})
+  if not c.painter:should_run(self.active_layer) then
     return
   end
-  
-  local color = c.sprite.use_tint and c.sprite.tint or Color.Palette.white
-  
+
   local pos = c.position:final_pos()
-  c.sprite:draw(pos, color)
-  
+  c.sprite:draw(pos, c.painter:get_color())
+
   if self.draw_origins then
     local nene = Nene.instance()
     nene:render_draw_line(pos + Vec2{-1, 0}, pos + Vec2{1, 0})

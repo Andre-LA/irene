@@ -23,6 +23,7 @@ local storage = require 'rotor.storage'
 local GenIdx = require 'rotor.gen_idx'
 
 -- irene
+local Painter = require 'irene.components.painter'
 local Position = require 'irene.components.position'
 local TimedCallback = require 'irene.components.timed_callback'
 local EntityData = require 'irene.components.entity_data'
@@ -62,6 +63,7 @@ local Walker <nickname 'Walker'> = @entity(record{
   entity_data: EntityData,
   timed_callback: TimedCallback,
   velocity: Velocity,
+  painter: Painter,
   rect_painter: RectPainter,
 })
 local Walker.storage: storage(Walker, 1)
@@ -99,10 +101,14 @@ function Walker.spawn(): (boolean, GenIdx)
       use_deltatime = true,
     },
 
-    rect_painter = {
+    painter = {
       active = true,
+      use_tint = true,
+      tint = Color.Palette.yellow,
+    },
+
+    rect_painter = {
       size = { 16, 16 },
-      color = Color.Palette.yellow,
     },
   })
 

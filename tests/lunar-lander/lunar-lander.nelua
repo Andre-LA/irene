@@ -46,6 +46,7 @@ local Gravity = require 'irene.components.gravity'
 local EntityData = require 'irene.components.entity_data'
 local Sprite = require 'irene.components.sprite'
 local Camera = require 'irene.components.camera'
+local Painter = require 'irene.components.painter'
 local TilemapComp = require 'irene.components.tilemap'
 
 local GravitySystem = require 'irene.systems.gravity_system'
@@ -218,6 +219,7 @@ end
 
 local LanderPropulsion <nickname 'LanderPropulsion'> = @entity(record{
   position: Position,
+  painter: Painter,
   sprite: Sprite,
 })
 
@@ -227,8 +229,11 @@ function LanderPropulsion.init(): LanderPropulsion
       local_pos = { 0, 16 },
     },
 
-    sprite = {
+    painter = {
       active = true,
+    },
+
+    sprite = {
       spritesheet = Resources.res.atlases.sprites,
       animation_running = true,
       current_animation = animations.prop_inactive,
@@ -240,13 +245,15 @@ end
 
 local Lander <nickname 'Lander'> = @entity(record{
   position: Position,
-  sprite: Sprite,
   velocity: Velocity,
   gravity: Gravity,
   collider: Collider,
   entity_data: EntityData,
 
   controller: LanderController,
+
+  painter: Painter,
+  sprite: Sprite,
 
   propulsion: LanderPropulsion,
   camera: PixelArtCamera,
@@ -287,8 +294,11 @@ function Lander.spawn(): GenIdx
       local_pos = Lander_Start_Position,
     },
 
-    sprite = {
+    painter = {
       active = true,
+    },
+
+    sprite = {
       spritesheet = Resources.res.atlases.sprites,
       current_frame = 9,
     },
@@ -344,6 +354,7 @@ end
 
 local LunarMap <nickname 'LunarMap'> = @entity(record{
   position: Position,
+  painter: Painter,
   tilemap: TilemapComp,
 })
 
@@ -351,6 +362,10 @@ function LunarMap.init(pos: Vec2, tilemap: Tilemap): LunarMap
   local lunarmap: LunarMap = {
     position = {
       local_pos = pos
+    },
+
+    painter = {
+      active = true,
     },
 
     tilemap = {
@@ -717,7 +732,7 @@ local function draw()
 end
 
 -- Main Loop --
-Resources.res.audio.music:play()
+-- Resources.res.audio.music:play()
 
 repeat
   nene:poll_events()

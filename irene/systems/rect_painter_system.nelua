@@ -10,21 +10,27 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
+-- nene
 local Nene = require 'nene'
 local Rect = require 'nene.math.rect'
 
+-- irene
 local Position = require 'irene.components.position'
+local Painter = require 'irene.components.painter'
 local RectPainter = require 'irene.components.rect_painter'
 
-local RectPainterSystem = @record{}
+-- rect painter system
+local RectPainterSystem = @record{
+  active_layer: byte,
+}
 
-function RectPainterSystem:run(c: record{ position: *Position, rect_painter: *RectPainter })
-  if not c.rect_painter.active then
+function RectPainterSystem:run(c: record{ painter: *Painter, position: *Position, rect_painter: *RectPainter })
+  if not c.painter:should_run(self.active_layer) then
     return
   end
 
   local nene = Nene.instance()
-  nene:render_draw_rect(Rect.from_vec2(c.position:final_pos(), c.rect_painter.size), false, c.rect_painter.color)
+  nene:render_draw_rect(Rect.from_vec2(c.position:final_pos(), c.rect_painter.size), false, c.painter:get_color())
 end
 
 return RectPainterSystem

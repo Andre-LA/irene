@@ -10,15 +10,15 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
+-- nene
 local Vec2i = require 'nene.math.vec2i'
-local Color = require 'nene.color'
 
+-- rotor
 local component = require 'rotor.component'
 
+-- rect painter
 local RectPainter <nickname 'RectPainter'> = @component(@record{
-  active: boolean,
   size: Vec2i,
-  color: Color,
 })
 
 return RectPainter

@@ -20,6 +20,7 @@ local storage = require 'rotor.storage'
 local system = require 'rotor.system'
 
 -- irene
+local Painter = require 'irene.components.painter'
 local Position = require 'irene.components.position'
 local Gravity = require 'irene.components.gravity'
 local Velocity = require 'irene.components.velocity'
@@ -36,6 +37,7 @@ local FallingBox <nickname 'FallingBox'> = @entity(record{
   gravity: Gravity,
   velocity: Velocity,
 
+  painter: Painter,
   rect_painter: RectPainter,
 })
 
@@ -61,10 +63,14 @@ local box: FallingBox = {
     direction = { 0, 1 },
   },
 
-  rect_painter = {
+  painter = {
     active = true,
+    use_tint = true,
+    tint = Color.Palette.yellow,
+  },
+
+  rect_painter = {
     size = { 16, 16 },
-    color = Color.Palette.yellow,
   },
 }
 
