@@ -10,17 +10,23 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
+-- nelua
+require 'iterators'
 local math = require 'math'
 
+-- nene
 local Rect = require 'nene.math.rect'
 local Vec2 = require 'nene.math.vec2'
 
+-- rotor
 local component = require 'rotor.component'
 local storage = require 'rotor.storage'
 local GenIdx = require 'rotor.gen_idx'
 
+-- irene
 local EntityData = require 'irene.components.entity_data'
 
+-- collider
 local CollisionData <forwarddecl> = @record{}
 
 local Collider <nickname 'Collider'> = @component(@record{
@@ -69,9 +75,11 @@ function CollisionData.init(self: CollidedData, other: CollidedData): CollisionD
   return collision
 end
 
-function Collider:was_already_intersecting_with(id: GenIdx): (boolean, GenIdx)
+function Collider:was_already_intersecting_with(id: GenIdx, mask: uint32): (boolean, GenIdx)
+  check(mask ~= 0, "Cannot compare with `0` mask")
+
   for idx, iw in mpairs(self.intersecting_with) do
-    if iw.id == id then
+    if iw.id == id and iw.mask == mask then
       return true, GenIdx{ idx, self.intersecting_with.generations[idx] }
     end
   end

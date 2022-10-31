@@ -152,6 +152,7 @@ function CollisionSystem:post_run()
       local j_pos = j_collidable.position:final_pos()
 
       local is_intersecting, resolved_hitbox, intersection = i_collidable.collider:simple_collision(i_pos, j_collidable.collider, j_pos)
+      local ih, jh = i_collidable.collider:final_hitbox(i_pos), j_collidable.collider:final_hitbox(j_pos)
 
       if is_intersecting then
         local corner_tolerance = i_collidable.collider.corner_tolerance
@@ -167,7 +168,7 @@ function CollisionSystem:post_run()
         end
 
         -- if it isn't a ongoing collision, then call the "begin" callback
-        if not (i_collidable.collider:was_already_intersecting_with(j_collidable.entity_data.id)) then
+        if not (i_collidable.collider:was_already_intersecting_with(j_collidable.entity_data.id, j_collidable.entity_data.mask)) then
           local ok, id = i_collidable.collider.intersecting_with:push({
             id = j_collidable.entity_data.id,
             mask = j_collidable.entity_data.mask,
@@ -188,7 +189,7 @@ function CollisionSystem:post_run()
           draw_collidable(nene, i_collidable, Color.Palette.cyan)
         end
       else
-        local was_already_intersecting_with, iw_id = i_collidable.collider:was_already_intersecting_with(j_collidable.entity_data.id)
+        local was_already_intersecting_with, iw_id = i_collidable.collider:was_already_intersecting_with(j_collidable.entity_data.id, j_collidable.entity_data.mask)
 
         if was_already_intersecting_with then -- if it was an on going collision, then call "end" reaction
           call_end_intersection(iw_id, i_collidable, j_collidable)
