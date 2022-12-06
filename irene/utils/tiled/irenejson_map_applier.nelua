@@ -1,11 +1,11 @@
 --[[
-Tiled Map Loader library, an utility that helps creating tilemaps and objects by reading a json
+IreneJson Map Applier library, an utility that helps creating tilemaps and objects by reading a json
 file exported from Tiled using the irene_export extension (it's on the `utils` directory
 in the root path of the project).
 
 > Note: It's recommended to only use this library for fast iteration during development;
         this library is not ready to deal with untrusted sources and it's runtime-only, if possible
-        use the lua export of Tiled and use `arrmap` and `map_caller` libraries in order to
+        use the lua export of Tiled and use `tiled_map_matrix` and `map_caller` libraries in order to
         import maps at compile-time.
 ]]
 
@@ -20,10 +20,10 @@ in the root path of the project).
 ]]
 
 -- nelua
+require 'iterators'
 local io = require 'io'
 local vector = require 'vector'
 local hashmap = require 'hashmap'
-require 'iterators'
 
 -- nelua-batteries
 local json = require 'json'
@@ -32,7 +32,7 @@ local json = require 'json'
 local Tilemap = require 'nene.tilemap'
 
 -- tile map loader
-local TiledMapLoader = @record{}
+local irenejson_map_applier = @record{}
 
 local TileLayerData = @record{
   name: string,
@@ -74,7 +74,7 @@ local function find_named_layer(
   return false
 end
 
-function TiledMapLoader.load_map_file(filepath: string): (boolean, MapData, string)
+function irenejson_map_applier.load_map_file(filepath: string): (boolean, MapData, string)
   ## local function check_and_return_on_error(extra_err)
     check(#err == 0, err)
     if #err > 0 then return false, (@MapData)(), err end
@@ -88,25 +88,25 @@ function TiledMapLoader.load_map_file(filepath: string): (boolean, MapData, stri
 
   local data, err, chars_parsed = json.parse(file_content, MapData)
   ## if IRENE_EXTENDED_ERRMSG then
-  if #err > 0 then
-    require 'string'
-    local m = require 'math'
-    print(file_content:subview(m.max(1_isize, chars_parsed-150_isize), chars_parsed))
-  end
+    if #err > 0 then
+      require 'string'
+      local m = require 'math'
+      print(file_content:subview(m.max(1_isize, chars_parsed-150_isize), chars_parsed))
+    end
   ## end
   ## check_and_return_on_error()
 
   return true, data
 end
 
-function TiledMapLoader.apply_map_to_tilemap(
+function irenejson_map_applier.apply_map_to_tilemap(
   tm: *Tilemap,
   data: *MapData,
   layer: string,
   tile_callback: function(x: integer, y: integer, i: isize, tile: integer)
 ): boolean
   local ok, layer_data = find_named_layer(layer, &data.tile_layers)
-  
+
   if ok then
     tm.tilemap_width = layer_data.width
     tm.map:reserve(#layer_data.data)
@@ -125,8 +125,7 @@ function TiledMapLoader.apply_map_to_tilemap(
   return false
 end
 
-function TiledMapLoader.callbacks_per_object(
-  tm: *Tilemap,
+function irenejson_map_applier.callbacks_per_object(
   data: *MapData,
   layer: string,
   callbacks_by_class: hashmap(string, function(ObjectData)),
@@ -153,9 +152,9 @@ function TiledMapLoader.callbacks_per_object(
   return false
 end
 
-local TiledMapLoader.TileLayerData = @TileLayerData
-local TiledMapLoader.ObjectData = @ObjectData
-local TiledMapLoader.ObjectLayerData = @ObjectLayerData
-local TiledMapLoader.MapData = @MapData
+local irenejson_map_applier.TileLayerData = @TileLayerData
+local irenejson_map_applier.ObjectData = @ObjectData
+local irenejson_map_applier.ObjectLayerData = @ObjectLayerData
+local irenejson_map_applier.MapData = @MapData
 
-return TiledMapLoader
+return irenejson_map_applier

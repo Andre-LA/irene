@@ -1,4 +1,4 @@
--- tiled map, reads tiled lua export flie and converts to a map matrix; also helps to
+-- tiled map matrix, reads tiled lua export flie and converts to a map matrix; also helps to
 -- generate code for objects by calling macros.
 
 --[[
@@ -23,7 +23,9 @@ end
 
 function tiledmap.from_tile_layer(tbl, layer_name)
   local layer = find_layer(tbl, 'tilelayer', layer_name)
-  if not layer then return nil end
+  if not layer then
+    return nil, string.format('could not find "%s" layer', layer)
+  end
 
   local matrix = {
     rect_tile_count = layer.width * layer.height,
@@ -47,7 +49,9 @@ end
 
 function tiledmap.call_per_object(tbl, layer_name, callback_by_class, callback_by_name)
   local layer = find_layer(tbl, 'objectgroup', layer_name)
-  if not layer then return nil end
+  if not layer then
+    return nil, string.format('could not find "%s" layer', layer)
+  end
 
   for i, obj in ipairs(layer.objects) do
     if callback_by_class[obj.class] then
@@ -58,6 +62,8 @@ function tiledmap.call_per_object(tbl, layer_name, callback_by_class, callback_b
       callback_by_name[obj.name](obj)
     end
   end
+
+  return true
 end
 
 return tiledmap
