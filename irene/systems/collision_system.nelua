@@ -62,14 +62,12 @@ function Collidable:try_call_callback(other_collidable: *Collidable, callback_na
 end
 
 function Collidable:apply_physical_collision(pos: Vec2, resolved_hitbox: Rect)
+  local pos: Vec2i = { x = math.ifloor(pos.x), y = math.ifloor(pos.y) }
+  
   local resolved_pos: Vec2i = { resolved_hitbox.x, resolved_hitbox.y }
   local hitbox_pos: Vec2i = { self.collider.hitbox.x,  self.collider.hitbox.y }
 
-  local ipos: Vec2i
-  ipos.x = math.ifloor(pos.x)
-  ipos.y = math.ifloor(pos.y)
-
-  local diff = resolved_pos - hitbox_pos - ipos
+  local diff = resolved_pos - hitbox_pos - pos
 
   if diff.x ~= 0 then
     self.position.local_pos.x = self.position.local_pos.x + diff.x - math.sign(diff.x)
@@ -86,6 +84,10 @@ local CollisionSystem = @record{
   collidables: vector(Collidable),
   draw_collisions: boolean,
 }
+
+function CollisionSystem:clear()
+  self.collidables:clear()
+end
 
 function CollisionSystem:run(c: Collidable)
   c.collider.velocity_interrupted.x = 0

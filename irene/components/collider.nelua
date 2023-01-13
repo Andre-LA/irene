@@ -1,7 +1,7 @@
 -- Collider component
 
 --[[
-  Copyright (c) 2020-2022 André Luiz Alvares
+  Copyright (c) 2020-2023 André Luiz Alvares
 
   This Source Code Form is subject to the terms of the Mozilla Public
   License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -73,6 +73,10 @@ local Collider.CollisionData = @CollisionData
 function CollisionData.init(self: CollidedData, other: CollidedData): CollisionData
   local collision: CollisionData = { =self, =other }
   return collision
+end
+
+function Collider:clear()
+  self.intersecting_with:clear()
 end
 
 function Collider:was_already_intersecting_with(id: GenIdx, mask: uint32): (boolean, GenIdx)
