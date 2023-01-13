@@ -1,0 +1,47 @@
+--[ dependencies ]--
+-- nene
+local Color = require 'nene.color'
+local Tilemap = require 'nene.tilemap'
+local TextureAtlas = require 'nene.texture_atlas'
+local Vec2 = require 'nene.math.vec2'
+local Rect = require 'nene.math.rect'
+local Grid = require 'nene.math.grid'
+
+-- rotor
+local entity = require 'rotor.entity'
+
+-- irene
+local Position = require 'irene.components.position'
+local Painter = require 'irene.components.painter'
+local TilemapComp = require 'irene.components.tilemap'
+
+--[ Map entity ]--
+local Map <nickname 'Map'> = @entity(record{
+  position: Position,
+  painter: Painter,
+  tilemap: TilemapComp,
+})
+
+function Map.init(tileset: TextureAtlas, tilemap_grid: Grid, color: facultative(Color)): Map
+  local map: Map = {
+    painter = {
+      active = true,
+    },
+
+    tilemap = {
+      tilemap = {
+        =tileset,
+        grid = tilemap_grid
+      }
+    },
+  }
+
+  ## if not color.type.is_niltype then
+    map.painter.use_tint = true
+    map.painter.tint = color
+  ## end
+
+  return map
+end
+
+return Map

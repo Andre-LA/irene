@@ -1,0 +1,43 @@
+-- Base Entity
+
+--[[
+  Copyright (c) 2020-2022 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+--[ Dependencies ]--
+-- rotor
+local entity = require 'rotor.entity'
+local GenIdx = require 'rotor.gen_idx'
+local rotor_concepts = require 'rotor.concepts'
+
+-- irene
+local EntityData = require 'irene.components.entity_data'
+
+--[ Base Entity ]-- 
+local BaseEntity = @entity(record{
+  entity_data: EntityData,
+})
+
+local an_base_entity_ptr = #[rotor_concepts.value.an_entity_ptr_with{ EntityData.value }]#
+
+local BaseEntity.Inputs = @record{
+  entity_data: record{
+    id: GenIdx,
+    mask: uint32,
+  }
+}
+
+function BaseEntity.derived_init(base_entity: an_base_entity_ptr, inputs: BaseEntity.Inputs)
+  base_entity.entity_data = {
+    id = inputs.entity_data.id,
+    mask = inputs.entity_data.mask,
+  }
+end
+
+return BaseEntity
