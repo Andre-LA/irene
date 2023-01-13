@@ -1,0 +1,76 @@
+--[ dependencies ]--
+-- nelua
+local io = require 'io'
+local string = require 'string'
+local hashmap = require 'hashmap'
+
+-- nene
+local Vec2 = require 'nene.math.vec2'
+
+--[ CSV Entity ]--
+local CsvEntity = @record{
+  name: string,
+  class_name: string,
+  pos: Vec2,
+  properties: hashmap(string, string),
+}
+
+function CsvEntity.init(name: string, class_name: string, pos: Vec2, properties: hashmap(string, string))
+  return CsvEntity{
+    =name, =class_name, =pos, =properties
+  }
+end
+
+function CsvEntity:destroy()
+  self.name = ''
+  self.class_name = ''
+  self.pos = {}
+  self.properties:destroy()
+end
+
+##[[
+function CsvEntity.value.pattern(with_captures)
+  local pattern = '"([%w%s]+)","([%w%s]+)",(%d+),(%d+),"([%w:%.,_%-]-)"'
+  
+  if not with_captures then
+    pattern = pattern:gsub('%(', ''):gsub('%)', '')
+  end
+
+  return pattern
+end
+]]
+
+function CsvEntity.init_from_string(csv_entry: string): (boolean, CsvEntity, string)
+  local result: CsvEntity
+
+  local ok, captures = string.match(csv_entry, #[CsvEntity.value.pattern(true)]#)
+
+  if not ok or #captures < 5 then
+    return false, result, "Couldn't match the csv_entry as a entity CSV entry"
+  end
+  
+  result.name = captures[1]
+  result.class_name = captures[2]
+  result.pos.x = tonumber(captures[3])
+  result.pos.y = tonumber(captures[4])
+
+  if #result.name == 0 then
+    return false, result, 'CSV entry contains no name'
+  end
+  
+  if #result.class_name == 0 then
+    return false, result, 'CSV entry contains no class name'
+  end
+
+  for _, properties_captures in string.gmatch(captures[5], '(%w+):(%w+),?') do
+    if #properties_captures == 2 then
+      result.properties[properties_captures[0]] = properties_captures[1]
+    else
+      return false, result, "unexpected number of attributes"
+    end
+  end
+
+  return true, result
+end
+
+return CsvEntity

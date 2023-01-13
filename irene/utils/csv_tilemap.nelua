@@ -1,0 +1,231 @@
+-- CSV Tilemap
+
+--[[
+  Copyright (c) 2020-2023 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+--[ dependencies ]--
+-- nelua
+require 'iterators'
+local io = require 'io'
+local string = require 'string'
+local vector = require 'vector'
+
+-- nene
+local Tilemap = require 'nene.tilemap'
+local Rect = require 'nene.math.rect'
+
+--[ Simple CSV Reader ]--
+local CsvTilemap = @record{
+  data: vector(uint16),
+  width: uint16,
+  height: uint16,
+}
+
+function CsvTilemap:destroy()
+  self.data:destroy()
+  self.width = 0
+  self.height = 0
+end
+
+function CsvTilemap:get_cell_index(x: usize, y: usize): usize
+  check(x < self.width, "invalid x position, CsvTilemap doesn't has enough width")
+  check(y < self.height, "invalid y position, CsvTilemap doesn't has enough height")
+  
+  local idx = x + y * self.width
+  check(idx < #self.data, "invalid position, CsvTilemap doesn't has enough tiles")
+  
+  return idx
+end
+
+function CsvTilemap:get_cell(x: usize, y: usize): uint16
+  return self.data[self:get_cell_index(x, y)]
+end
+
+function CsvTilemap:get_matrix(): vector(vector(uint16))
+  local matrix: vector(vector(uint16))
+  matrix:resize(self.height)
+
+  for y = 0, < self.height do
+    matrix[y]:resize(self.width)
+    
+    for x = 0, < self.width do
+      matrix[y][x] = self:get_cell(x, y)
+    end
+    
+    check(#matrix[y] == self.width, "something gone wrong: #matrix[y] ~= self.width")
+  end
+
+  check(#matrix == self.height, "something gone wrong: #matrix ~= self.height")
+  return matrix
+end
+
+function CsvTilemap:get_regions(): vector(Rect)
+  local regions: vector(Rect)
+  local matrix = self:get_matrix()
+
+  -- destroy the matrix at the end of this function
+  defer
+    for i = 0, < #matrix do
+      matrix[i]:destroy()
+    end
+    matrix:destroy()
+  end
+  
+  local current_region: Rect
+  local prev_cell: uint16, next_cell: uint16
+
+  ## local function reset_state()
+    prev_cell = 0
+    current_region = {}
+  ## end
+  
+  ## local function push_region()
+    if current_region.w > 1 or current_region.h > 1 then
+      -- push the current_region to the result
+      regions:push(current_region)
+    end
+
+    -- reset our state
+    ## reset_state()
+  ## end
+
+  ## local function collect_body(direction)
+    ## local growing_axis  = direction == 'horizontal' and 'x' or 'y'
+    ## local growing_field = direction == 'horizontal' and 'w' or 'h'
+    
+    local cell = matrix[y][x]
+    local is_last_cell = x == self.width-1 and y == self.height-1
+    local is_first_column = #|growing_axis|# == 0
+
+    if prev_cell > 0 and is_first_column then
+      ## push_region()
+    end
+    
+    -- if there is a cell
+    if cell > 0 then
+      -- if the previous cell isn't empty
+      if prev_cell > 0 then
+        -- grow width of current_region
+        current_region.#|growing_field|# = current_region.#|growing_field|# + 1
+        -- make this cell now empty
+        matrix[y][x] = 0
+      else
+        -- initialize current_region with xy position, wh = 1
+        current_region = { =x, =y, w = 1, h = 1 }
+        -- if there's a next cell, then make this cell now empty
+        if next_cell > 0 then
+          matrix[y][x] = 0
+        end
+      end
+      
+      -- push last region if it's the last cell
+      if is_last_cell then
+        ## push_region()
+      end
+    else
+      -- if the previous cell isn't empty
+      if prev_cell > 0 then
+        ## push_region()
+      end
+    end
+
+    -- update prev_cell
+    prev_cell = cell
+  ## end
+  
+  -- get horizontal regions
+  for y = 0, < self.height do
+    for x = 0, < self.width do
+      next_cell = x < self.width - 1 and matrix[y][x+1] or 0
+      ## collect_body'horizontal'
+    end
+  end
+
+  -- reset our state
+  ## reset_state()
+
+  -- get vertical regions
+  for x = 0, < self.width do
+    for y = 0, < self.height do
+      next_cell = y < self.height - 1 and matrix[y+1][x] or 0
+      ## collect_body'vertical'
+    end
+  end
+
+  -- get unit regions
+  for y = 0, < self.height do
+    for x = 0, < self.width do
+      if matrix[y][x] > 0 then
+        regions:push({=x, =y, w=1, h=1})
+      end
+    end
+  end
+
+  return regions
+end
+
+function CsvTilemap:apply_on_tilemap(tilemap: *Tilemap)
+  tilemap.width = self.width
+  tilemap.map   = self.data
+end
+
+function CsvTilemap.init_from_string(csv: string): (boolean, CsvTilemap, string)
+  local result: CsvTilemap;
+  local iter_width = 0
+
+  for _, captures in string.gmatch(csv, '(%-?%d+)([,\n]?)') do
+    if #captures > 1 then
+      local value = tointeger(captures[0]) + 1
+
+      if value >= 0 then
+        result.data:push(value)
+
+        iter_width = iter_width + 1
+
+        if captures[1] == '\n' then
+          result.height = result.height + 1
+
+          if iter_width > result.width then
+            result.width = iter_width
+          end
+
+          iter_width = 0
+        end
+      else
+        return false, result, "invalid number on CSV: expected value greater or equal than -1"
+      end
+    else
+      return false, result, "Something gone wrong on pattern capture of the CSV, the file might contains unexpected content."
+    end
+  end
+
+  if unlikely(#result.data == 0) then
+    return false, result, "got 0 values from CSV, are you sure the file contains the expected content?"
+  end
+
+  return true, result
+end
+
+function CsvTilemap.init_from_file(csv_filepath: string): (boolean, CsvTilemap, string)
+  local file = io.open(csv_filepath)
+
+  if likely(file:isopen()) then
+    defer file:close() end
+
+    local file_content <close> = file:read('a')
+
+    local ok, result, msg = CsvTilemap.init_from_string(file_content)
+    return ok, result, msg
+  else
+    return false, {}, "CSV file not opened"
+  end
+end
+
+return CsvTilemap

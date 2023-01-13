@@ -1,0 +1,59 @@
+--[ dependencies ]--
+-- nelua
+local io = require 'io'
+local string = require 'string'
+local hashmap = require 'hashmap'
+
+-- nene
+local Vec2 = require 'nene.math.vec2'
+
+-- irene
+local CsvEntity = require 'irene.utils.csv_entity'
+
+--[ Simple CSV Entities Map ]--
+local CsvEntitiesMap = @record{
+  csv_entities: vector(CsvEntity),
+}
+
+function CsvEntitiesMap:destroy()
+  self.csv_entities:destroy()
+end
+
+function CsvEntitiesMap.init_from_string(csv: string): (boolean, CsvEntitiesMap, string)
+  local result: CsvEntitiesMap;
+
+  for csv_entry, _ in string.gmatch(csv, #[CsvEntity.value.pattern(false)..'\n']#) do
+    local ok, csv_entity, err = CsvEntity.init_from_string(csv_entry)
+
+    if not ok then
+      return false, result, err
+    end
+
+    result.csv_entities:push(csv_entity)
+  end
+
+  if #result.csv_entities == 0 then
+    return false, result, 'No data was obtained, the CSV may have formatting problems.'
+  end
+
+  return true, result
+end
+
+function CsvEntitiesMap.init_from_file(csv_filepath: string): (boolean, CsvEntitiesMap, string)
+  local file = io.open(csv_filepath)
+
+  if likely(file:isopen()) then
+    defer file:close() end
+
+    local file_content <close> = file:read('a')
+
+    local ok, result, msg = CsvEntitiesMap.init_from_string(file_content)
+    return ok, result, msg
+  else
+    return false, {}, "CSV file not opened"
+  end
+end
+
+
+
+return CsvEntitiesMap
