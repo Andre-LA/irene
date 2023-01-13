@@ -1,0 +1,114 @@
+-- Level Manager
+
+--[[
+  Copyright (c) 2020-2023 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+--[ dependencies ]--
+-- nelua
+local vector = require 'vector'
+
+-- irene
+local Level = require 'irene.managers.level'
+local EntitiesRemoved = require 'irene.managers.entities_removed'
+
+--[ Level Manager ]--
+local LevelManager = @record{
+  levels: vector(Level),
+  cur_level: uint16,
+  should_open_level: uint16,
+}
+local instance: LevelManager
+
+function LevelManager.terminate()
+  for i = 0, < #instance.levels do
+    instance.levels[i]:destroy()
+  end
+  
+  instance.levels:destroy()
+  instance.cur_level = 0
+  instance.should_open_level = 0
+end
+
+function LevelManager.init(levels: vector(Level))
+  instance = {
+    =levels,
+  }
+end
+
+local function level_index(level: uint16): uint16
+  check(level ~= 0, "`level` cannot be 0")
+  return level - 1
+end
+
+local function is_valid_level(level: uint16): (boolean, string)
+  return level_index(level) < #instance.levels, "cannot get the level with `level` value < count of levels"
+end
+
+function LevelManager.has_open_level(): boolean
+  return instance.cur_level > 0
+end
+
+function LevelManager.get_level(level: uint16): (*Level)
+  assert(is_valid_level(level))
+  
+  level = level_index(level)
+  return &instance.levels[level]
+end
+
+function LevelManager.get_open_level(): (boolean, *Level)
+  if LevelManager.has_open_level() then
+    return true, LevelManager.get_level(instance.cur_level)
+  else
+    return false
+  end
+end
+
+function LevelManager.get_open_level_id(): uint16
+  return instance.cur_level
+end
+
+function LevelManager.close_level(level: uint16)
+  LevelManager.get_level(level):close()
+  
+  EntitiesRemoved.clear()
+  
+  instance.cur_level = 0
+end
+
+function LevelManager.close_open_level()
+  if LevelManager.has_open_level() then
+    LevelManager.close_level(instance.cur_level)
+  end
+end
+
+function LevelManager.open_level(level: uint16)  
+  assert(is_valid_level(level))
+  instance.should_open_level = level
+end
+
+function LevelManager.reopen_level()
+  LevelManager.open_level(instance.cur_level)
+end
+
+local function open_level(level: uint16)
+  instance.should_open_level = 0
+  
+  LevelManager.close_open_level()
+  instance.cur_level = level
+  LevelManager.get_level(level):open()
+end
+
+function LevelManager.update()
+  if instance.should_open_level > 0 then
+    open_level(instance.should_open_level)
+  end
+end
+
+return LevelManager

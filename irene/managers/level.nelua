@@ -1,0 +1,102 @@
+-- General level manager
+
+--[[
+  Copyright (c) 2020-2023 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+--[ dependencies ]--
+-- nelua
+local string = require 'string'
+local vector = require 'vector'
+local hashmap = require 'hashmap'
+
+-- rotor
+local GenIdx = require 'rotor.gen_idx'
+
+-- irene
+local Layer = require 'irene.managers.layer'
+local Map = require 'irene.entities.map'
+
+--[ Level ]--
+local Level <forwarddecl> = @record{}
+
+local LevelCallback: type = @function(*Level): void
+
+Level = @record{
+  name    : string,
+  id      : uint16,
+  opened  : boolean,
+  layers  : vector(Layer),
+  entities: hashmap(string, GenIdx),
+  on_open : LevelCallback,
+  on_close: LevelCallback,
+}
+
+function Level:destroy()
+  self.layers:destroy()
+  self.entities:destroy()
+  $self = (@Level)()
+end
+
+function Level.init(name: string <comptime>, id: uint16, layers_csv: string <comptime>, on_open: LevelCallback, on_close: LevelCallback): Level
+  local level: Level = {
+    =name,
+    =id,
+    =on_open,
+    =on_close,
+  }
+
+  ## for layer_name in string.gmatch(layers_csv.value, "(%w+),?") do
+    level.layers:push(Layer.init( #[layer_name]# ))
+  ## end
+
+  return level
+end
+
+function Level:open()
+  self.opened = true
+
+  if self.on_open then   
+    self:on_open()
+  end
+end
+
+function Level:close()
+  self.opened = false
+
+  if self.on_close then
+    self:on_close()
+  end
+end
+
+function Level:get_entity_layer(layer_name: string): (boolean, *Layer)
+  if not self.opened then
+    return false
+  end
+
+  for i = 0, < #self.layers do
+    local layer = &self.layers[i]
+    if layer.name == layer_name then
+      return true, layer
+    end
+  end
+
+  return false
+end
+
+function Level:get_entity_id(entity_name: string): (boolean, GenIdx)
+  if not self.opened then
+    return false
+  end
+
+  return self.entities:has_and_get(entity_name)
+end
+
+return Level
+

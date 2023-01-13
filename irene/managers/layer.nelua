@@ -1,0 +1,62 @@
+  -- General layer manager
+
+--[[
+  Copyright (c) 2020-2023 André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+--[ dependencies ]--
+-- nene
+local Color = require 'nene.color'
+local Grid = require 'nene.math.grid'
+local TextureAtlas = require 'nene.texture_atlas'
+
+-- irene
+local CsvTilemap = require 'irene.utils.csv_tilemap'
+local Map = require 'irene.entities.map'
+
+--[ Layer ]--
+local Layer = @record{
+  name  : string,
+  data  : CsvTilemap,
+  map   : Map,
+  loaded: boolean,
+}
+
+function Layer.init(name: string): Layer
+  check(#name > 0, "'name' wasn't set")
+
+  return Layer{
+    name = string.copy(name),
+  }
+end
+
+function Layer:unload()
+  self.map = {}
+  self.loaded = false
+  self.data:destroy()
+end
+
+function Layer:load(csv_data: CsvTilemap, tileset: TextureAtlas, tilemap_grid: Grid, color: facultative(Color))
+  if self.loaded then
+    self:unload()
+  end
+
+  self.data = csv_data
+  self.map = Map.init(tileset, tilemap_grid, color)
+  self.data:apply_on_tilemap(self.map.tilemap.tilemap)
+
+  self.loaded = true
+end
+
+function Layer:destroy()
+  self:unload()
+  self.name:destroy()
+end
+
+return Layer
