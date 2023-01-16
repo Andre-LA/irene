@@ -180,7 +180,7 @@ function CsvTilemap.init_from_string(csv: string): (boolean, CsvTilemap, string)
   local result: CsvTilemap;
   local iter_width = 0
 
-  for _, captures in string.gmatch(csv, '(%-?%d+)([,\n]?)') do
+  for _, captures in string.gmatchview(csv, '(%-?%d+)([,\n]?)') do
     if #captures > 1 then
       local value = tointeger(captures[0]) + 1
 
@@ -199,33 +199,32 @@ function CsvTilemap.init_from_string(csv: string): (boolean, CsvTilemap, string)
           iter_width = 0
         end
       else
-        return false, result, "invalid number on CSV: expected value greater or equal than -1"
+        result:destroy()
+        return false, (@CsvTilemap)(), "invalid number on CSV: expected value greater or equal than -1"
       end
     else
-      return false, result, "Something gone wrong on pattern capture of the CSV, the file might contains unexpected content."
+      result:destroy()
+      return false, (@CsvTilemap)(), "Something gone wrong on pattern capture of the CSV, the file might contains unexpected content."
     end
   end
 
   if unlikely(#result.data == 0) then
-    return false, result, "got 0 values from CSV, are you sure the file contains the expected content?"
+    result:destroy()
+    return false, (@CsvTilemap)(), "got 0 values from CSV, are you sure the file contains the expected content?"
   end
 
   return true, result
 end
 
 function CsvTilemap.init_from_file(csv_filepath: string): (boolean, CsvTilemap, string)
-  local file = io.open(csv_filepath)
+  local file <close> = io.open(csv_filepath)
 
   if likely(file:isopen()) then
-    defer file:close() end
-
     local file_content <close> = file:read('a')
-
-    local ok, result, msg = CsvTilemap.init_from_string(file_content)
-    return ok, result, msg
-  else
-    return false, {}, "CSV file not opened"
+    return CsvTilemap.init_from_string(file_content)
   end
+  
+  return false, {}, "CSV file not opened"
 end
 
 return CsvTilemap

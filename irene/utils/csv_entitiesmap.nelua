@@ -1,5 +1,6 @@
 --[ dependencies ]--
 -- nelua
+require 'iterators'
 local io = require 'io'
 local string = require 'string'
 local hashmap = require 'hashmap'
@@ -16,13 +17,17 @@ local CsvEntitiesMap = @record{
 }
 
 function CsvEntitiesMap:destroy()
+  for i, csv_entity in mipairs(self.csv_entities) do
+    csv_entity:destroy()
+  end
+  
   self.csv_entities:destroy()
 end
 
 function CsvEntitiesMap.init_from_string(csv: string): (boolean, CsvEntitiesMap, string)
   local result: CsvEntitiesMap;
 
-  for csv_entry, _ in string.gmatch(csv, #[CsvEntity.value.pattern(false)..'\n']#) do
+  for csv_entry, _ in string.gmatchview(csv, #[CsvEntity.value.pattern(false)..'\n']#) do
     local ok, csv_entity, err = CsvEntity.init_from_string(csv_entry)
 
     if not ok then

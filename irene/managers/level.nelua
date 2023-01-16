@@ -12,6 +12,7 @@
 
 --[ dependencies ]--
 -- nelua
+require 'iterators'
 local string = require 'string'
 local vector = require 'vector'
 local hashmap = require 'hashmap'
@@ -39,8 +40,13 @@ Level = @record{
 }
 
 function Level:destroy()
+  for i, layer in mipairs(self.layers) do
+    layer:destroy()
+  end
+  
   self.layers:destroy()
   self.entities:destroy()
+  
   $self = (@Level)()
 end
 
@@ -52,7 +58,7 @@ function Level.init(name: string <comptime>, id: uint16, layers_csv: string <com
     =on_close,
   }
 
-  ## for layer_name in string.gmatch(layers_csv.value, "(%w+),?") do
+  ## for layer_name in string.gmatch(layers_csv.value, "([%w_]+),?") do
     level.layers:push(Layer.init( #[layer_name]# ))
   ## end
 
@@ -61,7 +67,7 @@ end
 
 function Level:open()
   self.opened = true
-
+  
   if self.on_open then   
     self:on_open()
   end
