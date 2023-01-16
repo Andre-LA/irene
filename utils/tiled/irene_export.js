@@ -1,12 +1,14 @@
 // Just put this script on the "extensions" directory
 
-//  Copyright (c) 2022 André Luiz Alvares
-//
-//  This Source Code Form is subject to the terms of the Mozilla Public
-//  License, v. 2.0. If a copy of the MPL was not distributed with this
-//  file, You can obtain one at https://mozilla.org/MPL/2.0/.
-//
-//  SPDX-License-Identifier: MPL-2.0
+/*
+  Copyright (c) 2020-present André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+*/
 
 function get_prop_name(prefix, prop) {
   let result = {name: prefix, value: prop.value}
