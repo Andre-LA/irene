@@ -18,13 +18,14 @@ local rotor_concepts = require 'rotor.concepts'
 
 -- irene
 local EntityData = require 'irene.components.entity_data'
+local EntitiesRemoved = require 'irene.managers.entities_removed'
 
 --[ Base Entity ]-- 
 local BaseEntity = @entity(record{
   entity_data: EntityData,
 })
 
-local an_base_entity_ptr = #[rotor_concepts.value.an_entity_ptr_with{ EntityData.value }]#
+local an_base_entity_ptr = #[rotor_concepts.value.an_entity_subset_ptr(BaseEntity.value)]#
 
 local BaseEntity.Inputs = @record{
   entity_data: record{
@@ -38,6 +39,10 @@ function BaseEntity.derived_init(base_entity: an_base_entity_ptr, inputs: BaseEn
     id = inputs.entity_data.id,
     mask = inputs.entity_data.mask,
   }
+end
+
+function BaseEntity.derived_destroy(base_entity: an_base_entity_ptr)
+  EntitiesRemoved.push_removal(base_entity.entity_data.id, base_entity.entity_data.mask)
 end
 
 return BaseEntity
