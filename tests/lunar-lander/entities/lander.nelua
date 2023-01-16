@@ -1,0 +1,244 @@
+--[[
+  Copyright (c) 2020-present André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+--[ dependencies ]--
+-- nene
+local Nene = require 'nene'
+local Vec2 = require 'nene.math.vec2'
+local AnimationRange = require 'nene.animation'
+
+-- rotor
+local entity = require 'rotor.entity'
+local derived_entity = require 'rotor.derived_entity'
+local component = require 'rotor.component'
+local storage = require 'rotor.storage'
+local GenIdx = require 'rotor.gen_idx'
+
+-- irene
+local Position = require 'irene.components.position'
+local Collider = require 'irene.components.collider'
+local Velocity = require 'irene.components.velocity'
+local Gravity = require 'irene.components.gravity'
+local Painter = require 'irene.components.painter'
+local Sprite = require 'irene.components.sprite'
+
+local PixelArtCamera = require 'irene.entities.pixelart_camera'
+
+-- lunar lander
+local BaseEntity = require '.base_entity'
+local EntityMask = require '.mask'
+local Resources = require '..resources'
+local GameState = require '..game_state'
+
+--[ Lander ]--
+local LANDER_MAX_VELOCITY <comptime> = 300
+
+local animations: record{
+  prop_active: AnimationRange,
+  prop_inactive: AnimationRange,
+} = {
+  prop_active   = { fps = 12, from = 0, to = 1, loop = true, },
+  prop_inactive = { fps =  1, from = 4, to = 4, },
+}
+
+local LanderState = @enum{
+  Flying = 1,
+  Landed,
+  Crashed,
+}
+
+local LanderController <nickname 'LanderController'> = @component(record{
+  start_pos: Vec2,
+  propulsion_force: number,
+  state: LanderState
+})
+
+local LanderPropulsion <nickname 'LanderPropulsion'> = @entity(record{
+  position: Position,
+  painter: Painter,
+  sprite: Sprite,
+})
+
+function LanderPropulsion.init(): LanderPropulsion
+  local propulsion: LanderPropulsion = {
+    position = {
+      local_pos = { 0, 16 },
+    },
+
+    painter = {
+      active = true,
+    },
+
+    sprite = {
+      spritesheet = Resources.instance().atlases.sprites,
+      animation_running = true,
+      current_animation = animations.prop_inactive,
+      current_frame = animations.prop_inactive.from,
+    },
+  }
+
+  return propulsion
+end
+
+local Lander <nickname 'Lander'> = @derived_entity(BaseEntity, record{
+  velocity: Velocity,
+  gravity: Gravity,
+
+  controller: LanderController,
+
+  painter: Painter,
+  sprite: Sprite,
+
+  propulsion: LanderPropulsion,
+  camera: PixelArtCamera,
+})
+
+local Lander.storage: storage(Lander, 1)
+local Lander.State = LanderState
+
+-- collision reaction callbacks
+function Lander.on_begin_intersection(collision_data: Collider.CollisionData)
+  local ok, lander = Lander.storage:mget(collision_data.self.entity_data.id)
+  assert(ok, "Couldn't find lander")
+
+  switch collision_data.other.entity_data.mask do
+  case EntityMask.Safe then
+    lander.controller.state = LanderState.Landed
+    GameState.set(GameState.IsLanded)
+    Resources.instance().audio.sound_effects.land:play()
+
+  case EntityMask.Floor then
+    lander.controller.state = LanderState.Crashed
+    GameState.set(GameState.IsCrashed)
+    Resources.instance().audio.sound_effects.hit:play()
+  end
+end
+
+function Lander.on_end_intersection(collision_data: Collider.CollisionData)
+  local ok, lander = Lander.storage:mget(collision_data.self.entity_data.id)
+  assert(ok, "Couldn't find lander")
+
+  if collision_data.other.entity_data.mask  == EntityMask.Safe then
+    lander.controller.state = LanderState.Flying
+  end
+end
+
+function Lander.spawn(local_pos: Vec2): GenIdx
+  local gravity_acceleration <comptime> = 30
+
+  local ok, id, lander = Lander.storage:push()
+  assert(ok, 'could not create lander entity')
+  
+  BaseEntity.derived_init(lander, {
+    base = {
+      entity_data = {
+        mask = EntityMask.Lander,
+        =id,
+      },
+    },
+    position = {
+      =local_pos,
+    },
+    collider = {
+      hitbox = { 0,0 , 16,16 },
+      intersection_mask = EntityMask.Floor | EntityMask.Safe,
+      collision_mask = EntityMask.Floor,
+      on_begin_intersection = Lander.on_begin_intersection,
+      on_end_intersection   = Lander.on_end_intersection,
+    },
+  })
+
+  lander.painter = {
+    active = true,
+  }
+
+  lander.sprite = {
+    spritesheet = Resources.instance().atlases.sprites,
+    current_frame = 9,
+  }
+
+  lander.velocity = {
+    active = true,
+    max_velocity = LANDER_MAX_VELOCITY,
+    velocity_is_limited = true,
+    use_deltatime = true,
+  }
+
+  lander.gravity = {
+    active = true,
+    acceleration = gravity_acceleration,
+    direction = { 0, 1 },
+  }
+  
+  lander.controller = {
+    start_pos = lander.position.local_pos,
+    propulsion_force = gravity_acceleration * 2.5,
+    state = LanderState.Flying,
+  }
+
+  lander.propulsion = LanderPropulsion.init()
+
+  lander.camera = PixelArtCamera.init({}, {8, 8}, 2)
+
+  return id
+end
+
+function Lander.clear()
+  Lander.storage:clear(function(lander: *Lander)
+    lander.collider:clear()
+  end)
+end
+
+function Lander:reset()
+--   local start_pos = self.position.local_pos
+  
+--   self:clear()
+  
+--   self.controller.state = LanderState.Flying
+--   self.position.local_pos = start_pos
+end
+
+function Lander:destroy()
+  BaseEntity.derived_destroy(self)
+end
+
+-- system
+local Lander.System = @record{}
+
+local Lander.System.Filter = @record{
+  sprite: *Sprite,
+  lander_controller: *LanderController,
+  propulsion: *LanderPropulsion,
+  velocity: *Velocity,
+}
+
+function Lander.System:run(e: Lander.System.Filter)
+  local nene = Nene.instance()
+  
+  local is_right_down = nene:get_scancode(Nene.Scancode.Right)
+  local is_left_down  = nene:get_scancode(Nene.Scancode.Left)
+  local is_up_down    = nene:get_scancode(Nene.Scancode.Up)
+
+  e.propulsion.sprite:set_animation(is_up_down and animations.prop_active or animations.prop_inactive)
+
+  if is_right_down or is_up_down or is_left_down then
+    local direction: Vec2 = { y = is_up_down and -1 or 0 }
+
+    if is_right_down then
+      direction.x = 1
+    elseif is_left_down then
+      direction.x = -1
+    end
+
+    e.velocity:add_velocity(direction * e.lander_controller.propulsion_force * nene.delta_time)
+  end
+end
+
+return Lander

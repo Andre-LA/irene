@@ -1,0 +1,76 @@
+--[ dependencies ]--
+-- nene
+local Nene = require 'nene'
+local Vec2 = require 'nene.math.vec2'
+local Rect = require 'nene.math.rect'
+
+-- rotor
+local storage = require 'rotor.storage'
+local derived_entity = require 'rotor.derived_entity'
+local GenIdx = require 'rotor.gen_idx'
+
+-- lunar lander
+local BaseEntity = require '.base_entity'
+local EntityMask = require '.mask'
+
+--[ Surfaces ]--
+local Surfaces = @record{}
+
+local SafeLanding <nickname 'SafeLanding'> = @derived_entity(BaseEntity, record{})
+local SafeLanding.storage: storage(SafeLanding, 11)
+
+local Floor <nickname 'Floor'> = @derived_entity(BaseEntity, record{})
+local Floor.storage: storage(Floor, 32)
+
+local Surfaces.Floor = Floor
+local Surfaces.SafeLanding = SafeLanding
+
+local function init(ground: overload(*Floor, *SafeLanding), rect: Rect, mask: EntityMask, id: GenIdx)
+  BaseEntity.derived_init(ground, {
+    base = {
+      entity_data = {
+        =mask,
+        =id,
+      }
+    },
+    
+    position = {
+      local_pos = { rect.x, rect.y },
+    },
+
+    collider = {
+      hitbox = { 0,0 , rect.w, rect.h },
+    },
+  })
+end
+
+function SafeLanding.spawn(rect: Rect)
+  local ok, id, safe_landing = SafeLanding.storage:push()
+  assert(ok, "Couldn't add a safe landing entity")
+  init(safe_landing, rect, EntityMask.Safe, id)
+end
+
+function SafeLanding:clear()
+  SafeLanding.storage:clear(function(safe_landing: *SafeLanding)
+    safe_landing.collider:clear()
+  end)
+end
+
+function Floor.spawn(rect: Rect)
+  local ok, id, floor = Floor.storage:push()
+  assert(ok, "Couldn't add a floor entity")
+  init(floor, rect, EntityMask.Floor, id)
+end
+
+function Floor:clear()
+  Floor.storage:clear(function(floor: *Floor)
+    floor.collider:clear()
+  end)
+end
+
+function Surfaces.clear()
+  SafeLanding.clear()
+  Floor.clear()
+end
+
+return Surfaces

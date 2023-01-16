@@ -1,0 +1,132 @@
+--[[
+  Copyright (c) 2020-present André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+--[ dependencies ]--
+-- nene
+local Grid = require 'nene.math.grid'
+
+-- irene 
+local Level = require 'irene.managers.level'
+local CsvTilemap = require 'irene.utils.csv_tilemap'
+
+-- lunar lander
+local GameState = require '.game_state'
+local Resources = require '.resources'
+local Surfaces = require '.entities.surfaces'
+local Lander = require '.entities.lander'
+local Music = require 'nene.audio.music'
+local Systems = require '.systems'
+local Settings = require '.settings'
+
+--[ Levels Setup ]--
+local MainLevel = @record{}
+local instance: Level
+local initialized: boolean
+
+local function on_open_level(level: *Level)
+  check(initialized, "main level isn't initialized")
+  GameState.reset()
+
+  -- init layers
+  for i, layer in mipairs(level.layers) do
+    local layer_filepath <close> = string.format("tests/lunar-lander/assets/%s.csv", layer.name)
+    local ok, layer_csv, err = CsvTilemap.init_from_file(layer_filepath)
+    assert(ok, err)
+
+    local tileset = layer.name == 'bg' and Resources.instance().atlases.bg or Resources.instance().atlases.sprites
+    local tilemap_grid: Grid = { cell_size = Settings.TILE_SIZE }
+    
+    if layer.name == 'bg' then
+      tilemap_grid.cell_size = tilemap_grid.cell_size * 2
+    end
+    
+    level.layers[i]:load(layer_csv, tileset, tilemap_grid)
+  end
+
+  -- init surface colliders
+  local ok, layer = level:get_entity_layer('floor')
+  assert(ok, 'floor layer not found')
+  
+  local regions <close> = layer.data:get_regions()
+
+  for _, region in mipairs(regions) do
+    Surfaces.Floor.spawn(
+      region:with_position(region:get_position() * Settings.TILE_SIZE)
+            :with_size(region:get_size() * Settings.TILE_SIZE)
+    )
+  end
+
+  local ok, layer = level:get_entity_layer('safe_landing')
+  assert(ok, 'safe_landing layer not found')
+  
+  local regions <close> = layer.data:get_regions()
+
+  for _, region in mipairs(regions) do
+    Surfaces.SafeLanding.spawn(
+      region:with_position(region:get_position() * Settings.TILE_SIZE)
+            :with_size(region:get_size() * Settings.TILE_SIZE)
+    )
+  end
+
+  for _, entity in mipairs(Resources.instance().entities.csv_entities) do    
+    if entity.name == 'Lander' then
+      check(not level.entities:peek(), "Lander it's already spawned")
+      level.entities['lander'] = Lander.spawn(entity.pos)
+    end
+  end
+end
+
+local function on_close_level(level: *Level)
+  check(initialized, "main level isn't initialized")
+  Music.stop()
+
+  Surfaces.clear()
+  Lander.clear()
+  
+  level.entities:remove('lander')
+
+  local systems = Systems.instance()
+  systems.collision_system.data.collidables:destroy()
+end
+
+function MainLevel.instance(): *Level
+  check(initialized, "main level isn't initialized")
+  return &instance
+end
+
+function MainLevel.reset()
+  check(initialized, "main level isn't initialized")
+  local main_level = MainLevel.instance()
+  main_level:close()
+  main_level:open()
+end
+
+function MainLevel.init()
+  check(not initialized, "can't initialize the already initialized main level")
+
+  instance = Level.init(
+    'main_level',
+    1,
+    'bg,floor,safe_landing',
+    on_open_level,
+    on_close_level
+  )
+
+  initialized = true
+end
+
+function MainLevel.terminate()
+  check(initialized, "main level isn't initialized")
+  instance:destroy()
+  initialized = false
+end
+
+return MainLevel
+

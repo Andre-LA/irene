@@ -1,0 +1,35 @@
+local GameState = @enum(byte){
+  IsRunning = 1 << 0,
+  IsPaused  = 1 << 1,
+  IsCrashed = 1 << 2,
+  IsLanded  = 1 << 3,
+}
+
+local instance: GameState
+
+function GameState.is(value: GameState): boolean
+  return instance == value
+end
+
+function GameState.is_not(value: GameState): boolean
+  return not GameState.is(value)
+end
+
+function GameState.is_either(value: byte): boolean
+  return (instance & value) ~= 0
+end
+
+function GameState.is_neither(value: byte): boolean
+  return not GameState.is_either(value)
+end
+
+function GameState.set(value: GameState)
+  instance = value
+end
+
+function GameState.reset()
+  instance = GameState.IsRunning
+end
+
+return GameState
+

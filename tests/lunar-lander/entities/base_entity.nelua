@@ -1,0 +1,72 @@
+--[[
+  Copyright (c) 2020-present André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+--[ dependencies ]--
+-- nene
+local Vec2 = require 'nene.math.vec2'
+local Rect = require 'nene.math.rect'
+
+-- rotor
+local derived_entity = require 'rotor.derived_entity'
+local rotor_concepts = require 'rotor.concepts'
+
+-- irene
+local Base = require 'irene.entities.base'
+
+local Position = require 'irene.components.position'
+local Collider = require 'irene.components.collider'
+
+--[ Game's Base Entity ]--
+local BaseEntity = @derived_entity(Base, record{
+  position: Position,
+  collider: Collider,
+})
+
+local an_base_entity_ptr = #[rotor_concepts.value.an_entity_subset_ptr(BaseEntity.value)]#
+
+local BaseEntity.Inputs = @record{
+  base: Base.Inputs,
+  position: record{
+    local_pos: Vec2,
+  },
+  collider: record{
+    hitbox: Rect,
+    intersection_mask: uint32,
+    collision_mask: uint32,
+    on_intersection: function(Collider.CollisionData),       
+    on_begin_intersection: function(Collider.CollisionData), 
+    on_end_intersection: function(Collider.CollisionData),   
+  }
+}
+
+function BaseEntity.derived_init(base: an_base_entity_ptr, inputs: BaseEntity.Inputs)
+  Base.derived_init(base, inputs.base)
+
+  base.position = {
+    local_pos = inputs.position.local_pos
+  }
+
+  base.collider = {
+    active = true,
+    corner_tolerance = 2,
+    hitbox = inputs.collider.hitbox,
+    intersection_mask = inputs.collider.intersection_mask,
+    collision_mask = inputs.collider.collision_mask,
+    on_intersection = inputs.collider.on_intersection,
+    on_begin_intersection = inputs.collider.on_begin_intersection,
+    on_end_intersection = inputs.collider.on_end_intersection,
+  }
+end
+
+function BaseEntity.derived_destroy(base: an_base_entity_ptr)
+  Base.derived_destroy(base)
+end
+
+return BaseEntity

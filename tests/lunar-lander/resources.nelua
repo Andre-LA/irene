@@ -1,0 +1,165 @@
+--[[
+  Copyright (c) 2020-present André Luiz Alvares
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+  SPDX-License-Identifier: MPL-2.0
+]]
+
+--[ dependencies ]--
+-- nelua
+local vector = require 'vector'
+
+-- nene
+local Vec2i = require 'nene.math.vec2i'
+local Font = require 'nene.font'
+local Texture = require 'nene.texture'
+local TextTexture = require 'nene.text_texture'
+local TextureAtlas = require 'nene.texture_atlas'
+local Tilemap = require 'nene.tilemap'
+local Music = require 'nene.audio.music'
+local Sound = require 'nene.audio.sound'
+
+-- irene
+local CsvTilemap = require 'irene.utils.csv_tilemap'
+local CsvEntitiesMap = require 'irene.utils.csv_entitiesmap'
+
+-- lunar lander
+local Settings = require '.settings'
+
+--[ Resources ]--
+local Resources = @record{
+  initialized: boolean,
+  font: Font,
+
+  sprites_and_bg: Texture,
+
+  atlases: record{
+    -- note: Don't destroy them, because it doesn't owns the texture, sprites_and_bg does
+    sprites: TextureAtlas,
+    bg: TextureAtlas,
+  },
+
+  entities: CsvEntitiesMap,
+
+  audio: record{
+    music: Music,
+    sound_effects: record{
+      land: Sound,
+      hit: Sound
+    }
+  },
+
+  texts: record{
+    landed_txt: TextTexture,
+    crashed_txt: TextTexture,
+    paused_txt: TextTexture,
+    fps_txt: TextTexture,
+  },
+}
+
+local instance: Resources
+
+function Resources.instance(): *Resources
+  check(instance.initialized, "Resources aren't loaded yet")
+  return &instance
+end
+
+function Resources.load()
+  check(not instance.initialized, "Cannot load resources because it's already loaded")
+  
+  local function load_music(filepath: string): Music
+    local ok, music = Music.load(filepath)
+    assert(ok, 'Could not load music')
+    return music
+  end
+
+  local function load_sound(filepath: string): Sound
+    local ok, sound = Sound.load(filepath)
+    assert(ok, 'Could not load sound')
+    return sound
+  end
+
+  local function load_texture(filepath: string): Texture
+    local ok, texture = Texture.load(filepath)
+    assert(ok, 'Could not load texture')
+    return texture
+  end
+
+  local function load_font(filepath: string, size: cint): Font
+    local ok, font = Font.load(filepath, size)
+    assert(ok, 'Could not load font')
+    return font
+  end
+
+  local function load_csv_tilemap(filepath: string): CsvTilemap
+    local ok, csv_tilemap, err = CsvTilemap.init_from_file(filepath)
+    assert(ok, err)
+    return csv_tilemap
+  end
+
+  local function load_csv_entities(csv: string): CsvEntitiesMap
+    local ok, csv_entities, err = CsvEntitiesMap.init_from_string(csv)
+    assert(ok, err)
+    return csv_entities
+  end
+
+  -- audio
+  instance.audio.music = load_music('tests/lunar-lander/assets/lunar-lander-music.ogg')
+  instance.audio.sound_effects.land = load_sound('tests/lunar-lander/assets/land.wav')
+  instance.audio.sound_effects.hit = load_sound('tests/lunar-lander/assets/hit.wav')
+  
+  -- texture sprites
+  instance.sprites_and_bg = load_texture('tests/lunar-lander/assets/figures/sprites.png')
+
+  -- atlases
+  instance.atlases.sprites = {
+    width = 5,
+    texture = instance.sprites_and_bg,
+    grid = { cell_size = Settings.TILE_SIZE },
+  }
+
+  instance.atlases.bg = {
+    width = 2,
+    texture = instance.sprites_and_bg,
+    grid = { cell_size = Settings.BG_TILE_SIZE },
+  }
+
+  -- font
+  instance.font = load_font('nene/resources/monogram_extended.ttf', 16)
+
+  -- maps
+  instance.entities = load_csv_entities('"Lander","Lander",32,32,""\n')
+  
+  instance.texts.landed_txt  = TextTexture.init("You Landed!", instance.font)
+  instance.texts.crashed_txt = TextTexture.init("You Crashed!", instance.font)
+  instance.texts.paused_txt  = TextTexture.init("Paused", instance.font)
+  instance.texts.fps_txt     = TextTexture.init("00", instance.font)
+  
+  instance.initialized = true
+end
+
+function Resources.unload()
+  check(instance.initialized, "Cannot unload resources because it's not loaded")
+  
+  instance.font:destroy()
+  instance.sprites_and_bg:destroy()
+
+  instance.entities:destroy()
+
+  instance.audio.sound_effects.land:destroy()
+  instance.audio.sound_effects.hit:destroy()
+
+  instance.texts.landed_txt:destroy()
+  instance.texts.crashed_txt:destroy()
+  instance.texts.paused_txt:destroy()
+  instance.texts.fps_txt:destroy()
+
+  instance.audio.music:destroy()
+
+  instance.initialized = false
+end
+
+return Resources
