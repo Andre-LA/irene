@@ -176,6 +176,22 @@ function CsvTilemap:apply_on_tilemap(tilemap: *Tilemap)
   tilemap.map   = self.data
 end
 
+function CsvTilemap.init_from_span(csv: span(uint16), width: uint16, height: uint16): CsvTilemap
+  local result: CsvTilemap = { 
+    =width,
+    =height,
+  }
+
+  check(#csv == width * height, "The count of csv elements doesn't match the dimensions of passed width and height.")
+  result.data:resize(width * height)
+
+  for i = 0, < #csv do
+    result.data[i] = csv[i]
+  end
+
+  return result
+end
+
 function CsvTilemap.init_from_string(csv: string): (boolean, CsvTilemap, string)
   local result: CsvTilemap;
   local iter_width = 0
