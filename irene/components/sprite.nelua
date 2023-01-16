@@ -47,12 +47,14 @@ local function is_frame_done(diff_time: uint32, anim_speed: number, fps: number)
   return diff_time * anim_speed > 1000 / fps
 end
 
-function Sprite:update_frame(current_frame_is_last_frame: boolean, current_time: uint32)
+function Sprite:update_frame(current_frame_is_last_frame: boolean)
+  local nene = Nene.instance()
   self.current_frame = current_frame_is_last_frame and self.current_animation.from or self.current_frame + 1
-  self.last_frame_change = current_time
+  self.last_frame_change = nene.current_time
 end
 
-function Sprite:set_animation(animation: AnimationRange, current_time: uint32, only_set_if_last_frame: facultative(boolean)): boolean
+function Sprite:set_animation(animation: AnimationRange, only_set_if_last_frame: facultative(boolean)): boolean
+  local nene = Nene.instance()
   ## if not only_set_if_last_frame.type.is_niltype then
     if only_set_if_last_frame then
       if self.current_frame ~= self.current_animation.to then
@@ -60,7 +62,7 @@ function Sprite:set_animation(animation: AnimationRange, current_time: uint32, o
       else
         local anim_speed = self.animation_extra_speed + 1
 
-        local diff_time = current_time - self.last_frame_change
+        local diff_time = nene.current_time - self.last_frame_change
 
         local current_frame_is_last_frame = self.current_frame >= self.current_animation.to
         if not is_frame_done(diff_time, anim_speed, self.current_animation.fps) then
@@ -72,7 +74,7 @@ function Sprite:set_animation(animation: AnimationRange, current_time: uint32, o
 
   if self.current_animation ~= animation then
     self.current_animation = animation
-    self:update_frame(true, current_time)
+    self:update_frame(true)
     return true
   end
 
@@ -87,7 +89,7 @@ function Sprite:update_animation()
   end
 
   if self.current_frame < self.current_animation.from then
-    self:update_frame(false, nene.current_time)
+    self:update_frame(false)
   end
 
   local anim_speed = 1 + self.animation_extra_speed
@@ -109,7 +111,7 @@ function Sprite:update_animation()
   end)
 
   if should_change_frame then
-    self:update_frame(current_frame_is_last_frame, nene.current_time)
+    self:update_frame(current_frame_is_last_frame)
   end
 end
 
