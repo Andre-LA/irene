@@ -212,11 +212,8 @@ function CollisionSystem:draw_hitboxes()
   for i = 0, < #self.collidables do
     local col = self.collidables[i]
 
-    local hitbox = col.collider.hitbox
     local pos = col.position:final_pos()
-
-    hitbox.x = math.floor(hitbox.x + pos.x)
-    hitbox.y = math.floor(hitbox.y + pos.y)
+    local hitbox = col.collider.hitbox:add_position(pos)
 
     nene:render_draw_rect(hitbox, true, Color.Palette.green)
   end

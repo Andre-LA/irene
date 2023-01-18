@@ -24,7 +24,6 @@ local Camera <nickname 'Camera'> = @component(@record{
 function Camera.get_screen_size(scale: cint): (cint, cint)
   local nene = Nene.instance()
   local win_w, win_h = nene:get_window_size()
-
   return math.ifloor(win_w / scale), math.ifloor(win_h / scale)
 end
 
@@ -34,7 +33,7 @@ function Camera.get_half_screen_point(scale_or_size: overload(cint, Vec2)): Vec2
   local scale_or_size = Vec2{ w, h }
   ## end
 
-  return scale_or_size / Vec2{2,2}
+  return scale_or_size * 0.5
 end
 
 function Camera:set_render_offset(pos: Vec2)
