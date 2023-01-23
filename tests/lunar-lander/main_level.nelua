@@ -51,7 +51,7 @@ local function on_open_level(level: *Level)
   end
 
   -- init surface colliders
-  local ok, layer = level:get_entity_layer('floor')
+  local ok, layer = level:get_layer('floor')
   assert(ok, 'floor layer not found')
   
   local regions <close> = layer.data:get_regions()
@@ -63,7 +63,7 @@ local function on_open_level(level: *Level)
     )
   end
 
-  local ok, layer = level:get_entity_layer('safe_landing')
+  local ok, layer = level:get_layer('safe_landing')
   assert(ok, 'safe_landing layer not found')
   
   local regions <close> = layer.data:get_regions()
