@@ -40,19 +40,21 @@ Level = @record{
 }
 
 function Level:destroy()
-  for i, layer in mipairs(self.layers) do
-    layer:destroy()
+  self.name:destroy()
+
+  for i = 0, < #self.layers do
+    self.layers[i]:destroy()
   end
-  
   self.layers:destroy()
+  
   self.entities:destroy()
   
   $self = (@Level)()
 end
 
-function Level.init(name: string <comptime>, id: uint16, layers_csv: string <comptime>, on_open: LevelCallback, on_close: LevelCallback): Level
+function Level.init(name: string, id: uint16, layers_csv: string <comptime>, on_open: LevelCallback, on_close: LevelCallback): Level
   local level: Level = {
-    =name,
+    name = string.copy(name),
     =id,
     =on_open,
     =on_close,
@@ -81,7 +83,7 @@ function Level:close()
   end
 end
 
-function Level:get_entity_layer(layer_name: string): (boolean, *Layer)
+function Level:get_layer(layer_name: string): (boolean, *Layer)
   if not self.opened then
     return false
   end
