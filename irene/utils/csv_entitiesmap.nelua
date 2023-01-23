@@ -55,18 +55,14 @@ function CsvEntitiesMap.init_from_string(csv: string): (boolean, CsvEntitiesMap,
 end
 
 function CsvEntitiesMap.init_from_file(csv_filepath: string): (boolean, CsvEntitiesMap, string)
-  local file = io.open(csv_filepath)
+  local file <close> = io.open(csv_filepath)
 
   if likely(file:isopen()) then
-    defer file:close() end
-
     local file_content <close> = file:read('a')
-
-    local ok, result, msg = CsvEntitiesMap.init_from_string(file_content)
-    return ok, result, msg
-  else
-    return false, {}, "CSV file not opened"
+    return CsvEntitiesMap.init_from_string(file_content)
   end
+  
+  return false, {}, "CSV file not opened"
 end
 
 
