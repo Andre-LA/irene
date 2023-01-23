@@ -10,7 +10,6 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
-local Position = require 'irene.components.position'
 local Velocity = require 'irene.components.velocity'
 local Collider = require 'irene.components.collider'
 

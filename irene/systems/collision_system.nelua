@@ -64,8 +64,8 @@ end
 function Collidable:apply_physical_collision(pos: Vec2, resolved_hitbox: Rect)
   local pos: Vec2i = { x = math.ifloor(pos.x), y = math.ifloor(pos.y) }
   
-  local resolved_pos: Vec2i = { resolved_hitbox.x, resolved_hitbox.y }
-  local hitbox_pos: Vec2i = { self.collider.hitbox.x,  self.collider.hitbox.y }
+  local resolved_pos: Vec2i = resolved_hitbox:get_position()
+  local hitbox_pos: Vec2i = self.collider.hitbox:get_position()
 
   local diff = resolved_pos - hitbox_pos - pos
 
