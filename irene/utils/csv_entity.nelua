@@ -63,7 +63,7 @@ function CsvEntity.init_from_string(csv_entry: string): (boolean, CsvEntity, str
 
   local properties: hashmap(string, string)
   
-  for _, properties_captures in string.gmatchview(captures[5], '(%w+):(%w+),?') do
+  for _, properties_captures in string.gmatchview(captures[5], '([%w_]+):([%w%._%-]+),?') do
     if #properties_captures == 2 then
       properties[properties_captures[0]] = properties_captures[1]
     else
@@ -89,6 +89,22 @@ function CsvEntity.init_from_string(csv_entry: string): (boolean, CsvEntity, str
   end
 
   return true, result
+end
+
+function CsvEntity:has_and_get_number_property(property: string, base: facultative(integer)): (boolean, number)
+  local property = self.properties:peek(property)
+  if property ~= nilptr then
+    return true, tonumber($property, base)
+  end
+  return false
+end
+
+function CsvEntity:has_and_get_integer_property(property: string, base: facultative(integer)): (boolean, integer)
+  local property = self.properties:peek(property)
+  if property ~= nilptr then
+    return true, tointeger($property, base)
+  end
+  return false
 end
 
 return CsvEntity
