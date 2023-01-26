@@ -65,7 +65,9 @@ function CsvEntity.init_from_string(csv_entry: string): (boolean, CsvEntity, str
   
   for _, properties_captures in string.gmatchview(captures[5], '([%w_]+):([%w%._%-]+),?') do
     if #properties_captures == 2 then
-      properties[properties_captures[0]] = properties_captures[1]
+      local key = string.copy(properties_captures[0])
+      local value = string.copy(properties_captures[1])
+      properties[key] = value
     else
       return false, (@CsvEntity)(), "unexpected number of attributes"
     end
