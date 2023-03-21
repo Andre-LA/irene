@@ -10,10 +10,11 @@
 
 --[ dependencies ]--
 -- nene
-local Nene = require 'nene'
+local Nene = require 'nene.core'
 local Color = require 'nene.color'
-local TextTexture = require 'nene.text_texture'
 local Vec2 = require 'nene.math.vec2'
+local Font = require 'nene.font'
+local Texture = require 'nene.texture'
 
 -- rotor
 local system = require 'rotor.system'
@@ -27,7 +28,6 @@ local SpritePainterSystem = require 'irene.systems.sprite_painter_system'
 local TilemapPainter = require 'irene.systems.tilemap_painter'
 local CameraSystem = require 'irene.systems.camera_system'
 local PositionHierarchySystem = require 'irene.systems.position_hierarchy'
-local InterruptVelocityByCollisionSystem = require 'irene.systems.interrupt_velocity_by_collision_system'
 
 local Level = require 'irene.managers.level'
 
@@ -61,11 +61,12 @@ local Systems = @record{
   velocity_system: system(VelocitySystem.run),
   sprite_animation: system(SpriteAnimation.run),
   sprite_painter: system(SpritePainterSystem.run),
+  collision_context_system: system(CollisionSystem.CollisionContextSystem.run),
   collision_system: system(CollisionSystem.run),
+  collision_response_system: system(CollisionSystem.run),
   tilemap_painter: system(TilemapPainter.run),
   camera_system: system(CameraSystem.run),
   position_hierarchy: system(PositionHierarchySystem.run),
-  interrupt_velocity_by_collision_system: system(InterruptVelocityByCollisionSystem.run),
 
   pixelcamera_render_begin: system(PixelArtCamera.System.render_begin),
   pixelcamera_render_end: system(PixelArtCamera.System.render_end),
@@ -131,9 +132,11 @@ end
 -- game functions --
 function Systems:paint_dev_info()
   local nene = Nene.instance()
+
+  local screen_center = Nene.get_screen_center()
   
-  nene:render_draw_line({Settings.SCREEN_WIDTH // 2, 0}, {Settings.SCREEN_WIDTH // 2, Settings.SCREEN_HEIGHT}, Color.Palette.yellow)
-  nene:render_draw_line({0, Settings.SCREEN_HEIGHT // 2}, {Settings.SCREEN_WIDTH, Settings.SCREEN_HEIGHT // 2}, Color.Palette.yellow)
+  Nene.render_draw_line({ x = screen_center.x}, {screen_center.x, Settings.SCREEN_HEIGHT}, Color.yellow)
+  Nene.render_draw_line({ y = screen_center.y}, {Settings.SCREEN_WIDTH, screen_center.y}, Color.yellow)
 
   local fps = 1 / nene.delta_time
   local fps_str <close> = (do
@@ -144,8 +147,8 @@ function Systems:paint_dev_info()
 
   local res = Resources.instance()
   local fps_txt = &res.texts.fps_txt
-  fps_txt:update_text(fps_str, Resources.instance().font)
-  fps_txt:draw({8, 8}, Color.Palette.red)
+  res.font:update_text(fps_txt, fps_str, Font.TextQuality.Solid, Color.red)
+  fps_txt:draw_to_point({}, {8, 8})
 end
 
 function Systems:flying_systems()
@@ -154,8 +157,9 @@ function Systems:flying_systems()
   self:run('gravity_system')
   self:run('lander_ctrl_system')
 
-  self:run('collision_system', true, true)
-  self:run('interrupt_velocity_by_collision_system')
+  self:run('collision_context_system', true)
+  self.collision_system.data:update_context(self.collision_context_system.data)
+  self:run('collision_system', nil, true)
 
   self:run('velocity_system')
 
@@ -167,19 +171,22 @@ end
 function Systems:paint_game(level: *Level)
   ## prof('paint game')
   check(level, "level not passed")
+  local nene = Nene.instance()
   self:run('camera_system')
   self:run_layers(level, 'tilemap_painter')
   self:run('sprite_painter')
 end
 
-function Systems:draw_text(tex_txt: TextTexture)
+function Systems:draw_text(tex_txt: Texture)
   local half_screen: Vec2 = { (Settings.SCREEN_WIDTH // 2), (Settings.SCREEN_HEIGHT // 2) }
-  local half_tex_size: Vec2 = { tex_txt.texture.width // 2, tex_txt.texture.height // 2 }
+  local half_tex_size: Vec2 = { tex_txt.width // 2, tex_txt.height // 2 }
 
   local draw_pos = half_screen - half_tex_size
 
-  tex_txt:draw(draw_pos + Vec2{1, 1}, Color.Palette.black)
-  tex_txt:draw(draw_pos, Color.Palette.white)
+  tex_txt:set_color_mod(Color.black)
+  tex_txt:draw_to_point({}, draw_pos + Vec2{1, 1})
+  tex_txt:set_color_mod(Color.white)
+  tex_txt:draw_to_point({}, draw_pos)
 end
 
 function Systems:draw_stop_flying_text()
@@ -209,8 +216,8 @@ end
 function Systems:update()
   ## prof('processing systems')
   local nene = Nene.instance()
-
-  if nene:get_scancode_down(Nene.Scancode.P) then
+  
+  if Nene.is_scancode_pressed(SDL_SCANCODE_P) then
     if GameState.is(GameState.IsPaused) then
       GameState.set(GameState.IsRunning)
     elseif GameState.is(GameState.IsRunning) then
@@ -229,15 +236,15 @@ function Systems:draw(level: *Level)
   
   local nene = Nene.instance()
 
-  nene:render_clear()
+  Nene.render_clear()
 
   self:run('pixelcamera_render_begin')
 
   self:paint_game(level)
 
-  local show_dev_info = nene:get_scancode(Nene.Scancode.I)
+  local show_dev_info = Nene.is_scancode_held(SDL_SCANCODE_I)
   if show_dev_info then
-    self.collision_system.data:draw_hitboxes()
+    self.collision_context_system.data:draw_hitboxes()
   end
 
   nene.render_offset = {}

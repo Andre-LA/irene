@@ -15,14 +15,14 @@
 local math = require 'math'
 
 -- nene
-local Nene = require 'nene'
+local Nene = require 'nene.core'
 local Color = require 'nene.color'
 
 -- rotor
-local storage   = require 'rotor.storage'
-local entity    = require 'rotor.entity'
-local system    = require 'rotor.system'
-local GenIdx    = require 'rotor.gen_idx'
+local storage = require 'rotor.storage'
+local entity  = require 'rotor.entity'
+local system  = require 'rotor.system'
+local GenIdx  = require 'rotor.gen_idx'
 
 -- irene
 local Position = require 'irene.components.position'
@@ -54,22 +54,24 @@ local Particle.storage: storage(Particle, E_COUNT)
 
 function Particle.init(): Particle
   local particle: Particle = {
+    position = {
+      local_pos = { -384, 288 }
+    },
     velocity = {
       active = true,
       final_velocity = {
-        math.random(25, 50), math.random(25, 50)
+        math.random(25, 50), -math.random(25, 50)
       },
       use_deltatime = true,
     },
 
     painter = {
       active = true,
-      use_tint = true,
-      tint = Color.Palette.yellow,
     },
     
     rect_painter = {
       size = { 2, 2 },
+      color = Color.yellow,
     }
   }
   return particle
@@ -102,11 +104,11 @@ local CycleOrDestroySystem.Filter = @record{ position: *Position, entity_data: *
 function CycleOrDestroySystem:run(e: CycleOrDestroySystem.Filter)
   local pos = e.position:final_pos()
 
-  if pos.x > 800 or pos.y > 600 then
+  if pos.x > 384 or pos.y < -288 then
     if math.random() < 0.4 then
       Particle.remove(e.entity_data.id)
     else
-      e.position.local_pos.x, e.position.local_pos.y = 0, 0
+      e.position.local_pos.x, e.position.local_pos.y = -384, 288
     end
   end
 end
@@ -116,7 +118,8 @@ local rect_painter_system: system(RectPainterSystem.run)
 local cycle_or_destroy_system: system(CycleOrDestroySystem.run)
 
 local function frame()
-  nene:poll_events()
+  local nene = Nene.instance()
+  Nene.update()
 
   for i = 1, E_DELTA do
     if e_count < E_COUNT then
@@ -127,7 +130,7 @@ local function frame()
   velocity_system:run(&Particle.storage)
   cycle_or_destroy_system:run(&Particle.storage)
 
-  nene:render_clear(Color.Palette.bg)
+  Nene.render_clear(Color.bg)
 
   do
     ## if not NODRAW then
@@ -143,9 +146,9 @@ local function frame()
     ## end
   end
 
-  nene:render_present()
+  Nene.render_present()
 end
 
 repeat
   frame()
-until nene.quit
+until Nene.should_quit()

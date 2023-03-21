@@ -34,7 +34,7 @@ local Map <nickname 'Map'> = @entity(record{
   tilemap: TilemapComp,
 })
 
-function Map.init(tileset: TextureAtlas, tilemap_grid: Grid, color: facultative(Color)): Map
+function Map.init(tileset: TextureAtlas, tilemap_grid: Grid, tilemap_tiles_span: span(uint16)): Map
   local map: Map = {
     painter = {
       active = true,
@@ -44,14 +44,11 @@ function Map.init(tileset: TextureAtlas, tilemap_grid: Grid, color: facultative(
       tilemap = {
         =tileset,
         grid = tilemap_grid
-      }
+      },
     },
   }
 
-  ## if not color.type.is_niltype then
-    map.painter.use_tint = true
-    map.painter.tint = color
-  ## end
+  map.tilemap:set_tiles_span(tilemap_tiles_span)
 
   return map
 end

@@ -10,7 +10,7 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
-local Nene = require 'nene'
+local Nene = require 'nene.core'
 local Color = require 'nene.color'
 local Vec2 = require 'nene.math.vec2'
 local Rect = require 'nene.math.rect'
@@ -35,9 +35,6 @@ local PixelCamera <nickname 'PixelCamera'> = @component(@record{
   use_destination: boolean,
   draw_destination: Rect,
 
-  use_tint: boolean,
-  tint: Color,
-
   flip_h: boolean,
   flip_v: boolean
 })
@@ -51,8 +48,8 @@ local PixelArtCamera <nickname 'PixelArtCamera'> = @entity(@record{
 local PixelArtCamera.PixelCamera = PixelCamera
 
 function PixelArtCamera.init(pos: Vec2, offset: Vec2, scale: cint, dest: facultative(Rect)): PixelArtCamera
-  local sw, sh = Camera.get_screen_size(scale)
-  local ok, screen = Texture.create_texture(sw, sh, nil, Texture.Access.Target)
+  local screen_size = Camera.get_screen_size(scale)
+  local ok, screen = Texture.create_with_access(screen_size.x, screen_size.y, SDL_TEXTUREACCESS_TARGET)
   assert(ok, "Couldn't create screen texture for pixel art camera")
 
   local camera: PixelArtCamera = {
@@ -93,12 +90,14 @@ end
 local PixelArtCamera.System = @record{}
 
 function PixelArtCamera.System:render_begin(c: record{ position: *Position, pixel_camera: *PixelCamera })
+  check(c.position)
+  check(c.pixel_camera)
+
   if not c.pixel_camera.active then
     return
   end
-  local nene = Nene.instance()
-  nene:set_render_target(c.pixel_camera.screen:get_raw())
-  nene:render_clear(c.pixel_camera.clear_color)
+  Nene.set_render_target(c.pixel_camera.screen:get_raw())
+  Nene.render_clear(c.pixel_camera.clear_color)
 end
 
 function PixelArtCamera.System:render_end(c: record{ position: *Position, pixel_camera: *PixelCamera })
@@ -106,8 +105,7 @@ function PixelArtCamera.System:render_end(c: record{ position: *Position, pixel_
     return
   end
 
-  local nene = Nene.instance()
-  nene:set_render_target(nilptr)
+  Nene.set_render_target(nilptr)
 end
 
 function PixelArtCamera.System:draw_screens(c: record{ position: *Position, pixel_camera: *PixelCamera })
@@ -115,25 +113,20 @@ function PixelArtCamera.System:draw_screens(c: record{ position: *Position, pixe
     return
   end
 
-  local tint = c.pixel_camera.use_tint and c.pixel_camera.tint or Color.Palette.white
-
-  ## local function paint(dest)
-    c.pixel_camera.screen:draw(
-      tint,
-      nil,
-      #[dest]#,
-      nil,
-      nil,
-      c.pixel_camera.flip_h,
-      c.pixel_camera.flip_v
-    )
-  ## end
+  local draw_destination: Rect
 
   if c.pixel_camera.use_destination then
-    paint!(c.pixel_camera.draw_destination)
-  else
-    paint!()
+    draw_destination = c.pixel_camera.draw_destination
   end
+  
+  c.pixel_camera.screen:draw_to_rect_ex(
+    {},
+    draw_destination,
+    0,
+    {},
+    c.pixel_camera.flip_h,
+    c.pixel_camera.flip_v
+  )
 end
 
 return PixelArtCamera

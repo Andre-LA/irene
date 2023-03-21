@@ -11,7 +11,7 @@
 ]]
 
 -- nene
-local Nene = require 'nene'
+local Nene = require 'nene.core'
 local Vec2 = require 'nene.math.vec2'
 local Color = require 'nene.color'
 
@@ -35,16 +35,19 @@ local VelocitySystem = require 'irene.systems.velocity_system'
 local RectPainterSystem = require 'irene.systems.rect_painter_system'
 
 -- walker entity
+local WIN_W <comptime>, WIN_H <comptime> = 256, 256
+
 local WalkingDirection = @enum{
   Up = 0, Left, Down, Right
 }
 
 function WalkingDirection.to_velocity(self: WalkingDirection): Vec2
+  local SPEED <comptime> = 32
   switch self do
-  case WalkingDirection.Up    then return Vec2{   0, -32 }
-  case WalkingDirection.Down  then return Vec2{   0,  32 }
-  case WalkingDirection.Left  then return Vec2{ -32,   0 }
-  case WalkingDirection.Right then return Vec2{  32,   0 }
+  case WalkingDirection.Up    then return Vec2{ 0, -SPEED }
+  case WalkingDirection.Down  then return Vec2{ 0,  SPEED }
+  case WalkingDirection.Left  then return Vec2{ -SPEED, 0 }
+  case WalkingDirection.Right then return Vec2{  SPEED, 0 }
   end
   return Vec2{ 0, 0 }
 end
@@ -76,7 +79,7 @@ end
 function Walker.spawn(): (boolean, GenIdx)
   local ok, id, walker = Walker.storage:push({
     position = {
-      local_pos = { 40, 40 },
+      local_pos = { (-WIN_W/2) + 2, (-WIN_H/2) + 18 },
     },
 
     walkable = {
@@ -85,7 +88,7 @@ function Walker.spawn(): (boolean, GenIdx)
 
     timed_callback = {
       active = true,
-      call_interval = 5000,
+      call_interval = 7300,
       callback = function(self: *TimedCallback, id: GenIdx)
         local ok, walker = Walker.storage:mget(id)
         check(ok, 'walker not found on storage')
@@ -103,12 +106,11 @@ function Walker.spawn(): (boolean, GenIdx)
 
     painter = {
       active = true,
-      use_tint = true,
-      tint = Color.Palette.yellow,
     },
 
     rect_painter = {
       size = { 16, 16 },
+      color = Color.yellow,
     },
   })
 
@@ -126,20 +128,20 @@ local velocity_system: system(VelocitySystem.run)
 local rect_painter_system: system(RectPainterSystem.run)
 
 -- game
-local ok, nene <close> = Nene.init('Irene - Basic gravity', 256, 256)
+local ok = Nene.init('Irene - Basic gravity', WIN_W, WIN_H)
 assert(ok, 'error: nene initialization failed.')
 
 Walker.spawn()
 
 repeat
-  nene:poll_events()
+  Nene.update()
 
   timed_callback_system:run(&Walker.storage)
   velocity_system:run(&Walker.storage)
 
-  nene:render_clear(Color.Palette.bg)
+  Nene.render_clear(Color.bg)
 
   rect_painter_system:run(&Walker.storage)
 
-  nene:render_present()
-until nene.quit
+  Nene.render_present()
+until Nene.should_quit()

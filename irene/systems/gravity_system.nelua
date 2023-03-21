@@ -10,7 +10,7 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
-local Nene = require 'nene'
+local Nene = require 'nene.core'
 
 local Position = require 'irene.components.position'
 local Gravity = require 'irene.components.gravity'

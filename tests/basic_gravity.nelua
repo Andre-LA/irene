@@ -11,7 +11,7 @@
 ]]
 
 -- nene
-local Nene = require 'nene'
+local Nene = require 'nene.core'
 local Color = require 'nene.color'
 
 -- rotor
@@ -49,7 +49,7 @@ local rect_painter_system: system(RectPainterSystem.run)
 -- basic gravity --
 local box: FallingBox = {
   position = {
-    local_pos = {120, 16},
+    local_pos = {-8, 48},
   },
 
   velocity = {
@@ -60,32 +60,31 @@ local box: FallingBox = {
   gravity = {
     active = true,
     acceleration = 10,
-    direction = { 0, 1 },
+    direction = { 0, -1 },
   },
 
   painter = {
     active = true,
-    use_tint = true,
-    tint = Color.Palette.yellow,
   },
 
   rect_painter = {
     size = { 16, 16 },
+    color = Color.yellow,
   },
 }
 
-local ok, nene <close> = Nene.init('Irene - Basic gravity', 256, 256)
+local ok = Nene.init('Irene - Basic gravity', 256, 256)
 assert(ok, 'error: nene initialization failed.')
 
 repeat
-  nene:poll_events()
+  Nene.update()
 
   gravity_system:run(&box)
   velocity_system:run(&box)
 
-  nene:render_clear(Color.Palette.bg)
+  Nene.render_clear(Color.bg)
 
   rect_painter_system:run(&box)
 
-  nene:render_present()
-until nene.quit
+  Nene.render_present()
+until Nene.should_quit()

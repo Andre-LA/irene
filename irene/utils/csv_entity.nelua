@@ -42,7 +42,7 @@ end
 
 ##[[
 function CsvEntity.value.pattern(with_captures)
-  local pattern = '"([%w%s]+)","([%w%s]+)",(%d+),(%d+),"([%w:%.,_%-]-)"'
+  local pattern = '"([%w%s]+)","([%w%s]+)",(%-?%d+),(%-?%d+),"([%w:%.,_%-]-)"'
   
   if not with_captures then
     pattern = pattern:gsub('%(', ''):gsub('%)', '')

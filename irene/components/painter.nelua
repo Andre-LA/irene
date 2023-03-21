@@ -20,13 +20,7 @@ local component = require 'rotor.component'
 local Painter <nickname 'Painter'> = @component(record{
   active: boolean,
   layer: byte,
-  use_tint: boolean,
-  tint: Color
 })
-
-function Painter:get_color()
-  return self.use_tint and self.tint or Color.Palette.white
-end
 
 function Painter:should_run(active_layer: byte)
   return self.active and self.layer == active_layer

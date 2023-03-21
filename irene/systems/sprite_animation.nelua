@@ -10,9 +10,13 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
-local Nene = require 'nene'
+-- nene
+local Nene = require 'nene.core'
+
+-- irene
 local Sprite = require 'irene.components.sprite'
 
+-- sprite animation system
 local SpriteAnimationSystem = @record{}
 
 function SpriteAnimationSystem:run(c: record{sprite: *Sprite})

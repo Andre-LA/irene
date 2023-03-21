@@ -11,7 +11,7 @@
 ]]
 
 -- nene
-local Nene = require 'nene'
+local Nene = require 'nene.core'
 local Rect = require 'nene.math.rect'
 
 -- irene
@@ -29,8 +29,12 @@ function RectPainterSystem:run(c: record{ painter: *Painter, position: *Position
     return
   end
 
-  local nene = Nene.instance()
-  nene:render_draw_rect(Rect.from_vec2(c.position:final_pos(), c.rect_painter.size), false, c.painter:get_color())
+  Nene.render_draw_rect(
+    {pos = c.position:final_pos():to_vec2i(), size = c.rect_painter.size},
+    false,
+    c.rect_painter.color,
+    true
+  )
 end
 
 return RectPainterSystem

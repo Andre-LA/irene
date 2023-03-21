@@ -11,7 +11,7 @@
 ]]
 
 -- nene
-local Nene = require 'nene'
+local Nene = require 'nene.core'
 local Color = require 'nene.color'
 local Vec2 = require 'nene.math.vec2'
 
@@ -32,12 +32,11 @@ function SpritePainterSystem:run(c: record{painter: *Painter, position: *Positio
   end
 
   local pos = c.position:final_pos()
-  c.sprite:draw(pos, c.painter:get_color())
+  c.sprite:draw(pos)
 
   if self.draw_origins then
-    local nene = Nene.instance()
-    nene:render_draw_line(pos + Vec2{-1, 0}, pos + Vec2{1, 0})
-    nene:render_draw_line(pos + Vec2{0, -1}, pos + Vec2{0, 1})
+    Nene.render_draw_line(pos + Vec2{-1, 0}, pos + Vec2{1, 0})
+    Nene.render_draw_line(pos + Vec2{0, -1}, pos + Vec2{0, 1})
   end
 end
 

@@ -14,7 +14,7 @@
 local math = require 'math'
 
 -- nene
-local Nene = require 'nene'
+local Nene = require 'nene.core'
 
 -- irene
 local Painter = require 'irene.components.painter'
@@ -31,7 +31,7 @@ function LinePainterSystem:run(c: record{ painter: *Painter, line_painter: *Line
   end
 
   local nene = Nene.instance()
-  nene:render_draw_line(c.line_painter.start, c.line_painter._end, c.painter:get_color())
+  nene:render_draw_line(c.line_painter.start, c.line_painter._end, c.painter:get_color(), true)
 end
 
 return LinePainterSystem

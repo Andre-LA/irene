@@ -10,16 +10,17 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
--- nelua --
+-- nelua
 local vector = require 'vector'
 local math = require 'math'
 
--- nene --
-local Nene = require 'nene'
+-- nene
+local Nene = require 'nene.core'
 local Rect = require 'nene.math.rect'
 local Vec2 = require 'nene.math.vec2'
 local Vec2i = require 'nene.math.vec2i'
 local Color = require 'nene.color'
+local Collision = require 'nene.collision'
 
 -- rotor --
 local GenIdx = require 'rotor.gen_idx'
@@ -28,15 +29,40 @@ local GenIdx = require 'rotor.gen_idx'
 local Position = require 'irene.components.position'
 local Collider = require 'irene.components.collider'
 local EntityData = require 'irene.components.entity_data'
+local Velocity = require 'irene.components.velocity'
 local EntitiesRemoved = require 'irene.managers.entities_removed'
 
 -- Collision System --
-
 local Collidable = @record{
   position: *Position,
   collider: *Collider,
   entity_data: *EntityData,
 }
+
+local MovingCollidable = @record{
+  position: *Position,
+  collider: *Collider,
+  entity_data: *EntityData,
+  velocity: *Velocity,
+}
+
+function MovingCollidable:as_collidable(color: Color): Collidable
+  local collidable: Collidable
+  ## for _, field in ipairs(Collidable.value.fields) do
+  collidable.#|field.name|# = self.#|field.name|#
+  ## end
+  return collidable
+end
+
+function Collidable:draw(color: Color)
+  local pos = self.position:final_pos()
+  local hitbox = self.collider:final_hitbox(pos)
+  Nene.render_draw_rect(hitbox:to_rect(), true, color, true)
+end
+
+function MovingCollidable:draw(color: Color)
+  self:as_collidable():draw(color)
+end
 
 function Collidable:to_collided_data(): Collider.CollidedData
   check(self.collider, 'no initialized collider')
@@ -46,14 +72,16 @@ function Collidable:to_collided_data(): Collider.CollidedData
   return Collider.CollidedData.init(self.collider, self.entity_data, hitbox)
 end
 
-function Collidable:try_call_callback(other_collidable: *Collidable, callback_name: string <comptime>): boolean
+function MovingCollidable:try_callback(other_collidable: *Collidable, callback_name: string <comptime>): boolean
+  check(other_collidable)
+
   ##[[
   local valid_callbacks = { on_intersection = true, on_begin_intersection = true, on_end_intersection = true }
   static_assert(valid_callbacks[callback_name.value], "tried to call an unexpected callback '%s'", callback_name.value)
   ]]
 
   if self.collider.#|callback_name.value|# then
-    local collision_data = Collider.CollisionData.init(self:to_collided_data(), other_collidable:to_collided_data())
+    local collision_data = Collider.CollisionData.init(self:as_collidable():to_collided_data(), other_collidable:to_collided_data())
     self.collider.#|callback_name.value|#(collision_data)
     return true
   end
@@ -61,162 +89,160 @@ function Collidable:try_call_callback(other_collidable: *Collidable, callback_na
   return false
 end
 
-function Collidable:apply_physical_collision(pos: Vec2, resolved_hitbox: Rect)
-  local pos: Vec2i = { x = math.ifloor(pos.x), y = math.ifloor(pos.y) }
+function MovingCollidable:apply_collision_response(collision: Collision)
+  if collision.delta.x * self.velocity.final_velocity.x < 0 then
+    self.velocity.final_velocity.x = 0
+  end
+  if collision.delta.y * self.velocity.final_velocity.y < 0 then
+    self.velocity.final_velocity.y = 0
+  end
   
-  local resolved_pos: Vec2i = resolved_hitbox:get_position()
-  local hitbox_pos: Vec2i = self.collider.hitbox:get_position()
-
-  local diff = resolved_pos - hitbox_pos - pos
-
-  if diff.x ~= 0 then
-    self.position.local_pos.x = self.position.local_pos.x + diff.x - math.sign(diff.x)
-    self.collider.velocity_interrupted.x = math.sign(diff.x)
-  end
-
-  if diff.y ~= 0 then
-    self.position.local_pos.y = self.position.local_pos.y + diff.y - math.sign(diff.y)
-    self.collider.velocity_interrupted.y = math.sign(-diff.y)
-  end
+  self.position.local_pos = self.position.local_pos + collision.delta
 end
 
-local CollisionSystem = @record{
+local CollisionContextSystem = @record{
   collidables: vector(Collidable),
-  draw_collisions: boolean,
+  draw_collidables: boolean,
 }
 
-function CollisionSystem:clear()
+function CollisionContextSystem:clear()
   self.collidables:clear()
 end
 
-function CollisionSystem:run(c: Collidable)
-  c.collider.velocity_interrupted.x = 0
-  c.collider.velocity_interrupted.y = 0
-
-  self.collidables:push(c)
+function CollisionContextSystem:pre_run()
+  self:clear()
 end
 
-function CollisionSystem:pre_run()
-  self.collidables:clear()
-end
-
-local function call_end_intersection(intersection_id: GenIdx, self_collidable: *Collidable, other_collidable: *Collidable)
-  local ok = self_collidable.collider.intersecting_with:mget(intersection_id)
-  self_collidable.collider.intersecting_with:remove(intersection_id)
-
-  self_collidable:try_call_callback(other_collidable, 'on_end_intersection')
-end
-
-function CollisionSystem:post_run()
-  local function draw_collidable(nene: *Nene, collidable: Collidable, color: Color)
-    local pos = collidable.position:final_pos()
-    local hitbox = collidable.collider.hitbox
-
-    hitbox.x, hitbox.y = hitbox.x + math.ifloor(pos.x), hitbox.y + math.ifloor(pos.y)
-
-    nene:render_draw_rect(hitbox, true, color)
-  end
-
-  local nene = Nene.instance()
-
-  for i = 0, < #self.collidables do
-    local i_collidable = self.collidables[i]
-
-    -- ignore if the collider isn't active
-    if not i_collidable.collider.active then
-      continue
-    end
-
-    -- remove removed entities from intersecting_with
-    for idx, iw in mpairs(i_collidable.collider.intersecting_with) do
-      local gen_id = GenIdx{ idx, i_collidable.collider.intersecting_with.generations[idx] }
-
-      if EntitiesRemoved.try_find_entity(iw.id, iw.mask) then
-        i_collidable.collider.intersecting_with:remove(gen_id)
-      end
-    end
-
-    -- iterate over other colliders of the game (this is unoptimized)
-    for j = 0, < #self.collidables do
-      -- ignore if j and i refers to the same collider
-      if j == i then
-        continue
-      end
-
-      local j_collidable = self.collidables[j]
-
-      -- ignores if j's collider isn't included on i's intersection mask
-      if i_collidable.collider.intersection_mask & j_collidable.entity_data.mask == 0 then
-        continue
-      end
-
-      local i_pos = i_collidable.position:final_pos()
-      local j_pos = j_collidable.position:final_pos()
-
-      local is_intersecting, resolved_hitbox, intersection = i_collidable.collider:simple_collision(i_pos, j_collidable.collider, j_pos)
-      local ih, jh = i_collidable.collider:final_hitbox(i_pos), j_collidable.collider:final_hitbox(j_pos)
-
-      if is_intersecting then
-        local corner_tolerance = i_collidable.collider.corner_tolerance
-
-        -- ignore if doesn't pass the corner tolerance
-        if intersection.w < corner_tolerance and intersection.h < corner_tolerance then
-          continue
-        end
-
-        -- "physical" collision system
-        if i_collidable.collider.collision_mask & j_collidable.entity_data.mask ~= 0 then
-          i_collidable:apply_physical_collision(i_pos, resolved_hitbox)
-        end
-
-        -- if it isn't a ongoing collision, then call the "begin" callback
-        if not (i_collidable.collider:was_already_intersecting_with(j_collidable.entity_data.id, j_collidable.entity_data.mask)) then
-          local ok, id = i_collidable.collider.intersecting_with:push({
-            id = j_collidable.entity_data.id,
-            mask = j_collidable.entity_data.mask,
-          })
-          check(ok, "error: failed to push entity id to 'intersecting_with'")
-
-          i_collidable:try_call_callback(j_collidable, 'on_begin_intersection')
-
-          if self.draw_collisions then
-            draw_collidable(nene, i_collidable, Color.Palette.blue)
-            draw_collidable(nene, j_collidable, Color.Palette.green)
-          end
-        end
-
-        -- call collision callback
-        if i_collidable:try_call_callback(j_collidable, 'on_intersection') and self.draw_collisions then
-          draw_collidable(nene, j_collidable, Color.Palette.green)
-          draw_collidable(nene, i_collidable, Color.Palette.cyan)
-        end
-      else
-        local was_already_intersecting_with, iw_id = i_collidable.collider:was_already_intersecting_with(j_collidable.entity_data.id, j_collidable.entity_data.mask)
-
-        if was_already_intersecting_with then -- if it was an on going collision, then call "end" reaction
-          call_end_intersection(iw_id, i_collidable, j_collidable)
-
-          if self.draw_collisions then
-            draw_collidable(nene, j_collidable, Color.Palette.green)
-            draw_collidable(nene, i_collidable, Color.Palette.red)
-          end
-        end
-      end
-    end
+function CollisionContextSystem:run(c: Collidable)
+  -- ignore if the collider isn't active
+  if c.collider.active then
+    self.collidables:push(c)
   end
 end
 
-function CollisionSystem:draw_hitboxes()
-  local nene = Nene.instance()
-
+function CollisionContextSystem:draw_hitboxes()
   for i = 0, < #self.collidables do
     local col = self.collidables[i]
 
     local pos = col.position:final_pos()
-    local hitbox = col.collider.hitbox:add_position(pos)
+    local hitbox = col.collider:final_hitbox(pos)
 
-    nene:render_draw_rect(hitbox, true, Color.Palette.green)
+    Nene.render_draw_rect(hitbox:to_rect(), true, Color.green, true)
   end
 end
+
+local function call_end_intersection(intersection_id: GenIdx, self_collidable: *MovingCollidable, other_collidable: *Collidable)
+  check(self_collidable)
+  check(other_collidable)
+  
+  local ok = self_collidable.collider.intersecting_with:mget(intersection_id)
+  check(ok)
+  
+  self_collidable.collider.intersecting_with:remove(intersection_id)
+
+  self_collidable:try_callback(other_collidable, 'on_end_intersection')
+end
+
+local CollisionSystem = @record{
+  collidables: *vector(Collidable),
+  draw_collisions: boolean,
+}
+
+function CollisionSystem:update_context(context: *CollisionContextSystem)
+  check(context)
+  
+  self.collidables = &context.collidables
+end
+
+function CollisionSystem:run(mc: MovingCollidable)
+  -- if no context is set, return
+  if not self.collidables then
+    return
+  end
+
+  -- ignore if the collider isn't active
+  if not mc.collider.active then
+    return
+  end
+
+  -- remove removed entities from intersecting_with
+  for idx, iw in mpairs(mc.collider.intersecting_with) do
+    local gen_id = GenIdx{ idx, mc.collider.intersecting_with.generations[idx] }
+
+    if EntitiesRemoved.try_find_entity(iw.id, iw.mask) then
+      mc.collider.intersecting_with:remove(gen_id)
+    end
+  end
+
+  for i = 0, < #self.collidables do
+    local ic = self.collidables[i]
+    
+    -- ignore iteration if ic and mc refers to the same collidables
+    if ic.entity_data == mc.entity_data then
+      continue
+    end
+
+    -- ignore iteration if ic's collider isn't included on mc's intersection mask
+    if (mc.collider.intersection_mask & ic.entity_data.mask) == 0 then
+      continue
+    end
+
+    -- calculate final world position and final world hitbox of ic and mc
+    local mc_pos, ic_pos = mc.position:final_pos(),
+                           ic.position:final_pos()
+
+    local mc_hb, ic_hb = mc.collider:final_hitbox(mc_pos),
+                         ic.collider:final_hitbox(ic_pos)
+
+    -- calculate collision using mc's velocity.
+    local collision = mc.collider:simple_collision(mc_pos, mc.velocity.final_velocity, ic.collider, ic_pos)
+
+    -- if a collision happened, then go to the collision algorithm, 
+    -- otherwise, go to possible end collision algorithm
+    if collision.collided then
+      -- only apply collision response if ic it's included on mc's collision mask
+      if (mc.collider.collision_mask & ic.entity_data.mask) ~= 0 then
+        mc:apply_collision_response(collision)
+      end
+
+      -- if it isn't a ongoing collision, then call the "begin" callback
+      if not mc.collider:was_already_intersecting_with($ic.entity_data) then
+        local ok, id = mc.collider.intersecting_with:push($ic.entity_data)
+        check(ok, "error: failed to push entity id to 'intersecting_with'")
+
+
+      -- call begin collision callback and draw collisions if needed
+        if mc:try_callback(ic, 'on_begin_intersection') and self.draw_collisions then
+          mc:draw(Color.blue)
+          ic:draw(Color.green)
+        end
+      end
+
+      -- call collision callback and draw collisions if needed
+      if mc:try_callback(ic, 'on_intersection') and self.draw_collisions then
+        mc:draw(Color.blue)
+        ic:draw(Color.green)
+      end
+    else
+      local was_already_intersecting_with, iw_id = mc.collider:was_already_intersecting_with($ic.entity_data)
+
+      -- if it was an on going collision, then call "end" reaction and draw end collision if needed
+      if was_already_intersecting_with then 
+        call_end_intersection(iw_id, mc, ic)
+
+        if self.draw_collisions then
+          mc:draw(Color.red)
+          ic:draw(Color.green)
+        end
+      end
+    end
+  end
+end
+
+function CollisionSystem:post_run()
+  self.collidables = nilptr
+end
+
+local CollisionSystem.CollisionContextSystem = @CollisionContextSystem
 
 return CollisionSystem

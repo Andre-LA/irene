@@ -10,9 +10,11 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
+-- rotor
 local component = require 'rotor.component'
 local GenIdx = require 'rotor.gen_idx'
 
+-- timed callback component
 local TimedCallback <nickname 'TimedCallback'> = @record{
   active: boolean,
   last_call: uint32,

@@ -10,9 +10,13 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
+-- nelua
 local math = require 'math'
-local Nene = require 'nene'
+
+-- nene
+local Nene = require 'nene.core'
 local Vec2 = require 'nene.math.vec2'
+local Vec2i = require 'nene.math.vec2i'
 
 local component = require 'rotor.component'
 
@@ -21,24 +25,25 @@ local Camera <nickname 'Camera'> = @component(@record{
   half_screen_size: Vec2,
 })
 
-function Camera.get_screen_size(scale: cint): (cint, cint)
-  local nene = Nene.instance()
-  local win_w, win_h = nene:get_window_size()
-  return math.ifloor(win_w / scale), math.ifloor(win_h / scale)
+function Camera.get_screen_size(scale: number): Vec2
+  local win_size = Vec2.from_vec2i(Nene.get_window_size())
+  local scalar: number = 1.0 / scale
+  return win_size * scalar
 end
 
-function Camera.get_half_screen_point(scale_or_size: overload(cint, Vec2)): Vec2
+function Camera.get_half_screen_point(scale_or_size: overload(number, Vec2)): Vec2
   ## if not scale_or_size.type.is_vec2 then
-  local w, h = Camera.get_screen_size(scale_or_size)
-  local scale_or_size = Vec2{ w, h }
+  local scale_or_size = Camera.get_screen_size(scale_or_size)
   ## end
-
+  
   return scale_or_size * 0.5
 end
 
 function Camera:set_render_offset(pos: Vec2)
   local nene = Nene.instance()
-  nene.render_offset = -(pos + self.offset - self.half_screen_size)
+  local offset = pos + self.offset
+  offset.x = -offset.x
+  nene.render_offset = offset
 end
 
 return Camera

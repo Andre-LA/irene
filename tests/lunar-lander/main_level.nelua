@@ -32,7 +32,11 @@ local initialized: boolean
 
 local function on_open_level(level: *Level)
   check(initialized, "main level isn't initialized")
+  check(level)
+
   GameState.reset()
+
+  local res = Resources.instance()
 
   -- init layers
   for i, layer in mipairs(level.layers) do
@@ -40,13 +44,13 @@ local function on_open_level(level: *Level)
     local ok, layer_csv, err = CsvTilemap.init_from_file(layer_filepath)
     assert(ok, err)
 
-    local tileset = layer.name == 'bg' and Resources.instance().atlases.bg or Resources.instance().atlases.sprites
+    local tileset = layer.name == 'bg' and res.atlases.bg or res.atlases.sprites
     local tilemap_grid: Grid = { cell_size = Settings.TILE_SIZE }
-    
+
     if layer.name == 'bg' then
       tilemap_grid.cell_size = tilemap_grid.cell_size * 2
     end
-    
+
     level.layers[i]:load(layer_csv, tileset, tilemap_grid)
   end
 
@@ -57,10 +61,10 @@ local function on_open_level(level: *Level)
   local regions <close> = layer.data:get_regions()
 
   for _, region in mipairs(regions) do
-    Surfaces.Floor.spawn(
-      region:with_position(region:get_position() * Settings.TILE_SIZE)
-            :with_size(region:get_size() * Settings.TILE_SIZE)
-    )
+    Surfaces.Floor.spawn({
+      pos = region.pos * Settings.TILE_SIZE,
+      size = region.size * Settings.TILE_SIZE,
+    })
   end
 
   local ok, layer = level:get_layer('safe_landing')
@@ -69,13 +73,13 @@ local function on_open_level(level: *Level)
   local regions <close> = layer.data:get_regions()
 
   for _, region in mipairs(regions) do
-    Surfaces.SafeLanding.spawn(
-      region:with_position(region:get_position() * Settings.TILE_SIZE)
-            :with_size(region:get_size() * Settings.TILE_SIZE)
-    )
+    Surfaces.SafeLanding.spawn({
+      pos = region.pos * Settings.TILE_SIZE,
+      size = region.size * Settings.TILE_SIZE,
+    })
   end
 
-  for _, entity in mipairs(Resources.instance().entities.csv_entities) do    
+  for _, entity in mipairs(res.entities.csv_entities) do    
     if entity.name == 'Lander' then
       check(not level.entities:peek(), "Lander it's already spawned")
       level.entities['lander'] = Lander.spawn(entity.pos)
@@ -93,7 +97,7 @@ local function on_close_level(level: *Level)
   level.entities:remove('lander')
 
   local systems = Systems.instance()
-  systems.collision_system.data.collidables:destroy()
+  systems.collision_context_system.data.collidables:destroy()
 end
 
 function MainLevel.instance(): *Level

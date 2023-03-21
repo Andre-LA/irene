@@ -29,7 +29,7 @@ function Velocity:add_velocity(velocity: Vec2)
 end
 
 function Velocity.get_limited_velocity(velocity: Vec2, limit: overload(number, Vec2)): Vec2
-  ## if limit.type.is_vec2 then
+  ## if limit.type == Vec2.value then
     local vel: Vec2 = {
       x = math.clamp(velocity.x, -limit.x, limit.x),
       y = math.clamp(velocity.y, -limit.y, limit.y),
@@ -37,7 +37,7 @@ function Velocity.get_limited_velocity(velocity: Vec2, limit: overload(number, V
 
     return vel
   ## else
-    local velocity_len = #velocity
+    local velocity_len = velocity:len()
 
     if velocity_len > limit then
       return velocity * (limit / velocity_len)

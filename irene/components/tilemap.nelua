@@ -21,6 +21,13 @@ local component = require 'rotor.component'
 -- tilemap component
 local TilemapComp <nickname 'TilemapComp'> = @component(@record{
   tilemap: Tilemap,
+  _tiles_span: span(uint16), -- use set_tiles_span function to set this value
 })
+
+function TilemapComp:set_tiles_span(tiles_span: span(uint16))
+  check(self)
+  self.tilemap.tile_count = #tiles_span
+  self._tiles_span = tiles_span
+end
 
 return TilemapComp

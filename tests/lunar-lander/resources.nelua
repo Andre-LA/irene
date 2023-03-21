@@ -16,11 +16,11 @@ local vector = require 'vector'
 local Vec2i = require 'nene.math.vec2i'
 local Font = require 'nene.font'
 local Texture = require 'nene.texture'
-local TextTexture = require 'nene.text_texture'
 local TextureAtlas = require 'nene.texture_atlas'
 local Tilemap = require 'nene.tilemap'
 local Music = require 'nene.audio.music'
 local Sound = require 'nene.audio.sound'
+local Color = require 'nene.color'
 
 -- irene
 local CsvTilemap = require 'irene.utils.csv_tilemap'
@@ -53,10 +53,10 @@ local Resources = @record{
   },
 
   texts: record{
-    landed_txt: TextTexture,
-    crashed_txt: TextTexture,
-    paused_txt: TextTexture,
-    fps_txt: TextTexture,
+    landed_txt: Texture,
+    crashed_txt: Texture,
+    paused_txt: Texture,
+    fps_txt: Texture,
   },
 }
 
@@ -131,19 +131,33 @@ function Resources.load()
   instance.font = load_font('nene/resources/monogram_extended.ttf', 16)
 
   -- maps
-  instance.entities = load_csv_entities('"Lander","Lander",32,32,""\n')
+  instance.entities = load_csv_entities('"Lander","Lander",32,-32,""\n')
   
-  instance.texts.landed_txt  = TextTexture.init("You Landed!", instance.font)
-  instance.texts.crashed_txt = TextTexture.init("You Crashed!", instance.font)
-  instance.texts.paused_txt  = TextTexture.init("Paused", instance.font)
-  instance.texts.fps_txt     = TextTexture.init("00", instance.font)
+  local ok, landed_txt = instance.font:render("You Landed!", Font.TextQuality.Solid, Color.white)
+  assert(ok, "couldn't render 'You Landed!' text")
+
+  local ok, crashed_txt = instance.font:render("You Crashed!", Font.TextQuality.Solid, Color.white)
+  assert(ok, "couldn't render 'You Crashed!' text")
+
+  local ok, paused_txt = instance.font:render("Paused", Font.TextQuality.Solid, Color.white)
+  assert(ok, "couldn't render 'Paused' text")
+
+  local ok, fps_txt = instance.font:render("00", Font.TextQuality.Solid, Color.white)
+  assert(ok, "couldn't render '00' text")
+
+  instance.texts = {
+    =landed_txt, 
+    =crashed_txt,
+    =paused_txt, 
+    =fps_txt,    
+  }
   
   instance.initialized = true
 end
 
 function Resources.unload()
   check(instance.initialized, "Cannot unload resources because it's not loaded")
-  
+
   instance.font:destroy()
   instance.sprites_and_bg:destroy()
 

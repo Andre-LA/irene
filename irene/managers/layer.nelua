@@ -48,7 +48,7 @@ function Layer:load(csv_data: CsvTilemap, tileset: TextureAtlas, tilemap_grid: G
   end
 
   self.data = csv_data
-  self.map = Map.init(tileset, tilemap_grid, color)
+  self.map = Map.init(tileset, tilemap_grid, self.data.data)
   self.data:apply_on_tilemap(self.map.tilemap.tilemap)
 
   self.loaded = true

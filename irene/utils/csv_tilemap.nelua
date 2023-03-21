@@ -18,8 +18,10 @@ local string = require 'string'
 local vector = require 'vector'
 
 -- nene
+local Nene = require 'nene.core'
 local Tilemap = require 'nene.tilemap'
 local Rect = require 'nene.math.rect'
+local Vec2i = require 'nene.math.vec2i'
 
 --[ Simple CSV Reader ]--
 local CsvTilemap = @record{
@@ -87,7 +89,7 @@ function CsvTilemap:get_regions(): vector(Rect)
   ## end
   
   ## local function push_region()
-    if current_region.w > 1 or current_region.h > 1 then
+    if current_region.size.x > 1 or current_region.size.y > 1 then
       -- push the current_region to the result
       regions:push(current_region)
     end
@@ -98,7 +100,6 @@ function CsvTilemap:get_regions(): vector(Rect)
 
   ## local function collect_body(direction)
     ## local growing_axis  = direction == 'horizontal' and 'x' or 'y'
-    ## local growing_field = direction == 'horizontal' and 'w' or 'h'
     
     local cell = matrix[y][x]
     local is_last_cell = x == self.width-1 and y == self.height-1
@@ -113,12 +114,12 @@ function CsvTilemap:get_regions(): vector(Rect)
       -- if the previous cell isn't empty
       if prev_cell > 0 then
         -- grow width of current_region
-        current_region.#|growing_field|# = current_region.#|growing_field|# + 1
+        current_region.size.#|growing_axis|# = current_region.size.#|growing_axis|# + 1
         -- make this cell now empty
         matrix[y][x] = 0
       else
-        -- initialize current_region with xy position, wh = 1
-        current_region = { =x, =y, w = 1, h = 1 }
+        -- initialize current_region with xy position, size = one
+        current_region = { pos = {=x, y=-y}, size = Vec2i.one() }
         -- if there's a next cell, then make this cell now empty
         if next_cell > 0 then
           matrix[y][x] = 0
@@ -163,7 +164,7 @@ function CsvTilemap:get_regions(): vector(Rect)
   for y = 0, < self.height do
     for x = 0, < self.width do
       if matrix[y][x] > 0 then
-        regions:push({=x, =y, w=1, h=1})
+        regions:push({ pos = {=x, =y}, size = Vec2i.one() })
       end
     end
   end
@@ -173,7 +174,7 @@ end
 
 function CsvTilemap:apply_on_tilemap(tilemap: *Tilemap)
   tilemap.width = self.width
-  tilemap.map   = self.data
+  tilemap.tile_count = #self.data
 end
 
 function CsvTilemap.init_from_span(csv: span(uint16), width: uint16, height: uint16): CsvTilemap

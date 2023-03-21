@@ -24,11 +24,11 @@ local TilemapPainter = @record{
 }
 
 function TilemapPainter:run(c: record{ painter: *Painter, tm: *TilemapComp, position: *Position })
-  if not c.painter:should_run(self.active_layer) then
+  if not c.painter:should_run(self.active_layer) or c.tm._tiles_span:empty() then
     return
   end
-
-  c.tm.tilemap:draw(c.position:final_pos(), c.painter:get_color())
+  local p = c.position:final_pos()
+  c.tm.tilemap:draw(c.position:final_pos(), true, c.tm._tiles_span.data, #c.tm._tiles_span)
 end
 
 return TilemapPainter

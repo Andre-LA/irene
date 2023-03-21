@@ -10,7 +10,7 @@
 
 --[ dependencies ]--
 -- nene
-local Nene = require 'nene'
+local Nene = require 'nene.core'
 local Vec2 = require 'nene.math.vec2'
 local AnimationRange = require 'nene.animation'
 
@@ -40,12 +40,14 @@ local GameState = require '..game_state'
 --[ Lander ]--
 local LANDER_MAX_VELOCITY <comptime> = 300
 
+## local function fps(n) return math.floor(1000 / n) end
+
 local animations: record{
   prop_active: AnimationRange,
   prop_inactive: AnimationRange,
 } = {
-  prop_active   = { fps = 12, from = 0, to = 1, loop = true, },
-  prop_inactive = { fps =  1, from = 4, to = 4, },
+  prop_active   = { interval = #[fps(12)]#, from = 0, to = 1, loop = true, },
+  prop_inactive = { interval = #[fps(1)]#, from = 4, to = 4, },
 }
 
 local LanderState = @enum{
@@ -69,7 +71,7 @@ local LanderPropulsion <nickname 'LanderPropulsion'> = @entity(record{
 function LanderPropulsion.init(): LanderPropulsion
   local propulsion: LanderPropulsion = {
     position = {
-      local_pos = { 0, 16 },
+      local_pos = { 0, -16 },
     },
 
     painter = {
@@ -104,7 +106,7 @@ local Lander.storage: storage(Lander, 1)
 local Lander.State = LanderState
 
 -- collision reaction callbacks
-function Lander.on_begin_intersection(collision_data: Collider.CollisionData)
+function Lander.on_begin_intersection(collision_data: Collider.CollisionData)  
   local ok, lander = Lander.storage:mget(collision_data.self.entity_data.id)
   assert(ok, "Couldn't find lander")
 
@@ -147,7 +149,7 @@ function Lander.spawn(local_pos: Vec2): GenIdx
       =local_pos,
     },
     collider = {
-      hitbox = { 0,0 , 16,16 },
+      hitbox = { size = {16, 16} },
       intersection_mask = EntityMask.Floor | EntityMask.Safe,
       collision_mask = EntityMask.Floor,
       on_begin_intersection = Lander.on_begin_intersection,
@@ -174,7 +176,7 @@ function Lander.spawn(local_pos: Vec2): GenIdx
   lander.gravity = {
     active = true,
     acceleration = gravity_acceleration,
-    direction = { 0, 1 },
+    direction = { y = -1 },
   }
   
   lander.controller = {
@@ -185,7 +187,7 @@ function Lander.spawn(local_pos: Vec2): GenIdx
 
   lander.propulsion = LanderPropulsion.init()
 
-  lander.camera = PixelArtCamera.init({}, {8, 8}, 2)
+  lander.camera = PixelArtCamera.init({}, {8, -8}, 2)
 
   return id
 end
@@ -222,14 +224,14 @@ local Lander.System.Filter = @record{
 function Lander.System:run(e: Lander.System.Filter)
   local nene = Nene.instance()
   
-  local is_right_down = nene:get_scancode(Nene.Scancode.Right)
-  local is_left_down  = nene:get_scancode(Nene.Scancode.Left)
-  local is_up_down    = nene:get_scancode(Nene.Scancode.Up)
+  local is_right_down = Nene.is_scancode_held(SDL_SCANCODE_RIGHT)
+  local is_left_down  = Nene.is_scancode_held(SDL_SCANCODE_LEFT)
+  local is_up_down    = Nene.is_scancode_held(SDL_SCANCODE_UP)
 
   e.propulsion.sprite:set_animation(is_up_down and animations.prop_active or animations.prop_inactive)
 
   if is_right_down or is_up_down or is_left_down then
-    local direction: Vec2 = { y = is_up_down and -1 or 0 }
+    local direction: Vec2 = { y = is_up_down and 1 or 0 }
 
     if is_right_down then
       direction.x = 1

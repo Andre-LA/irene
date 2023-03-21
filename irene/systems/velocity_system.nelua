@@ -10,10 +10,14 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
-local Nene = require 'nene'
+-- nene
+local Nene = require 'nene.core'
+
+-- irene
 local Position = require 'irene.components.position'
 local Velocity = require 'irene.components.velocity'
 
+-- velocity system
 local VelocitySystem = @record{}
 
 function VelocitySystem:run(c: record{ velocity: *Velocity, position: *Position })

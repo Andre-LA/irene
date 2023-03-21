@@ -14,7 +14,7 @@
 require 'iterators'
 
 -- nene
-local Nene = require 'nene'
+local Nene = require 'nene.core'
 
 -- nprof
 -- NOTE: nprof it's broken broken for now, it'll be fixed later :)
@@ -40,7 +40,7 @@ local MainLevel = require '.main_level'
 local Settings = require '.settings'
 
 -- game init --
-local ok, nene <close> = Nene.init("Lunar lander test", Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
+local ok = Nene.init("Lunar lander test", Settings.WINDOW_WIDTH, Settings.WINDOW_HEIGHT)
 assert(ok, 'error: nene initialization failed')
 
 MainLevel.init()
@@ -56,9 +56,9 @@ defer MainLevel.instance():close() end
 -- Resources.instance().audio.music:play()
 
 repeat
-  nene:poll_events()
+  Nene.update()
 
-  if nene:get_scancode_down(Nene.Scancode.R) then
+  if Nene.is_scancode_pressed(SDL_SCANCODE_R) then
     MainLevel.instance():close()
     MainLevel.instance():open()
   end
@@ -73,5 +73,5 @@ repeat
     nprof:reset()
   ## end
 
-  nene:render_present()
-until nene.quit
+  Nene.render_present()
+until Nene.should_quit()

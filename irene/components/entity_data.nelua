@@ -18,4 +18,8 @@ local EntityData <nickname 'EntityData'> = @component(@record{
   mask: uint32,
 })
 
+function EntityData.__eq(a: EntityData, b: EntityData): boolean
+  return a.id == b.id and a.mask == b.mask
+end
+
 return EntityData

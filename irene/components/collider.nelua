@@ -16,7 +16,10 @@ local math = require 'math'
 
 -- nene
 local Rect = require 'nene.math.rect'
+local Rectf = require 'nene.math.rectf'
 local Vec2 = require 'nene.math.vec2'
+local Intersections = require 'nene.intersections'
+local Collision = require 'nene.collision'
 
 -- rotor
 local component = require 'rotor.component'
@@ -41,7 +44,8 @@ local Collider <nickname 'Collider'> = @component(@record{
   on_begin_intersection: function(CollisionData), -- begin reaction callback, called when the collider begin intersecting another one
   on_end_intersection: function(CollisionData),   -- end reaction callback, called when the collider stops intersecting another collider
 
-  velocity_interrupted: Vec2,  -- used internally by the collision system
+  -- velocity_interrupted: Vec2,  -- used internally by the collision system
+  delta: Vec2,
 })
 
 local Collider.CollisionCallback = @function(CollisionData)
@@ -49,14 +53,14 @@ local Collider.CollisionCallback = @function(CollisionData)
 local CollidedData = @record{
   collider: *Collider,
   entity_data: *EntityData,
-  hitbox: Rect,
+  hitbox: Rectf,
 }
 local Collider.CollidedData = @CollidedData
 
-function CollidedData.init(collider: *Collider, entity_data: *EntityData, hitbox: Rect): CollidedData
+function CollidedData.init(collider: *Collider, entity_data: *EntityData, hitbox: Rectf): CollidedData
   check(collider, 'got nilptr collider')
   check(entity_data, 'got nilptr entity_data')
-  check(hitbox.w ~= 0 and hitbox.h ~= 0, "got empty hitbox")
+  check(hitbox.size.x > 0.0 and hitbox.size.y > 0.0, "got empty hitbox")
 
   local collided: CollidedData = {
     =collider, =entity_data, =hitbox
@@ -79,11 +83,11 @@ function Collider:clear()
   self.intersecting_with:clear()
 end
 
-function Collider:was_already_intersecting_with(id: GenIdx, mask: uint32): (boolean, GenIdx)
-  check(mask ~= 0, "Cannot compare with `0` mask")
+function Collider:was_already_intersecting_with(entity_data: EntityData): (boolean, GenIdx)
+  check(entity_data.mask ~= 0, "Cannot compare with `0` mask")
 
   for idx, iw in mpairs(self.intersecting_with) do
-    if iw.id == id and iw.mask == mask then
+    if iw == entity_data then
       return true, GenIdx{ idx, self.intersecting_with.generations[idx] }
     end
   end
@@ -91,26 +95,24 @@ function Collider:was_already_intersecting_with(id: GenIdx, mask: uint32): (bool
   return false
 end
 
-function Collider:final_hitbox(pos: Vec2): Rect
-  local final_hitbox: Rect = {
-    x = self.hitbox.x + math.ifloor(pos.x),
-    y = self.hitbox.y + math.ifloor(pos.y),
-    w = self.hitbox.w,
-    h = self.hitbox.h,
+function Collider:final_hitbox(pos: Vec2): Rectf
+  local final_hitbox: Rectf = {
+    pos = Vec2.from_vec2i(self.hitbox.pos) + pos,
+    size = Vec2.from_vec2i(self.hitbox.size),
   }
   return final_hitbox
 end
 
-function Collider:get_intersection(self_pos: Vec2, other: Collider, other_pos: Vec2): (Rect, boolean)
+function Collider:get_intersection(self_pos: Vec2, other: Collider, other_pos: Vec2): Intersections.RectfWithRectf
   local self_hitbox = self:final_hitbox(self_pos)
   local other_hitbox = other:final_hitbox(other_pos)
-  return self_hitbox:get_intersection(other_hitbox)
+  return Intersections.RectfWithRectf.get_intersection(self_hitbox, other_hitbox)
 end
 
-function Collider:simple_collision(self_pos: Vec2, other: Collider, other_pos: Vec2): (boolean, Rect, Rect)
+function Collider:simple_collision(self_pos: Vec2, self_vel: Vec2, other: Collider, other_pos: Vec2): Collision
   local self_hitbox = self:final_hitbox(self_pos)
   local other_hitbox = other:final_hitbox(other_pos)
-  return self_hitbox:simple_collision(other_hitbox)
+  return Collision.rectf_with_rectf(self_hitbox, other_hitbox, self_vel)
 end
 
 return Collider

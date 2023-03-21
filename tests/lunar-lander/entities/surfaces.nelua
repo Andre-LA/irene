@@ -10,7 +10,7 @@
 
 --[ dependencies ]--
 -- nene
-local Nene = require 'nene'
+local Nene = require 'nene.core'
 local Vec2 = require 'nene.math.vec2'
 local Rect = require 'nene.math.rect'
 
@@ -45,11 +45,11 @@ local function init(ground: overload(*Floor, *SafeLanding), rect: Rect, mask: En
     },
     
     position = {
-      local_pos = { rect.x, rect.y },
+      local_pos = Vec2.from_vec2i(rect.pos),
     },
 
     collider = {
-      hitbox = { 0,0 , rect.w, rect.h },
+      hitbox = { size = rect.size },
     },
   })
 end
