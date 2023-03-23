@@ -53,7 +53,7 @@ MainLevel.instance():open()
 defer MainLevel.instance():close() end
 
 -- Main Loop --
--- Resources.instance().audio.music:play()
+Resources.instance().audio.music:play()
 
 repeat
   Nene.update()
