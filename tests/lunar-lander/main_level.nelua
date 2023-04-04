@@ -40,7 +40,7 @@ local function on_open_level(level: *Level)
 
   -- init layers
   for i, layer in mipairs(level.layers) do
-    local layer_filepath <close> = string.format("tests/lunar-lander/assets/%s.csv", layer.name)
+    local layer_filepath <close> = string.format("lunar-lander/assets/%s.csv", layer.name)
     local ok, layer_csv, err = CsvTilemap.init_from_file(layer_filepath)
     assert(ok, err)
 

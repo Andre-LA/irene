@@ -107,12 +107,12 @@ function Resources.load()
   end
 
   -- audio
-  instance.audio.music = load_music('tests/lunar-lander/assets/lunar-lander-music.ogg')
-  instance.audio.sound_effects.land = load_sound('tests/lunar-lander/assets/land.wav')
-  instance.audio.sound_effects.hit = load_sound('tests/lunar-lander/assets/hit.wav')
+  instance.audio.music = load_music('lunar-lander/assets/lunar-lander-music.ogg')
+  instance.audio.sound_effects.land = load_sound('lunar-lander/assets/land.wav')
+  instance.audio.sound_effects.hit = load_sound('lunar-lander/assets/hit.wav')
   
   -- texture sprites
-  instance.sprites_and_bg = load_texture('tests/lunar-lander/assets/figures/sprites.png')
+  instance.sprites_and_bg = load_texture('lunar-lander/assets/figures/sprites.png')
 
   -- atlases
   instance.atlases.sprites = {
@@ -128,7 +128,7 @@ function Resources.load()
   }
 
   -- font
-  instance.font = load_font('nene/resources/monogram_extended.ttf', 16)
+  instance.font = load_font('../nene/resources/monogram_extended.ttf', 16)
 
   -- maps
   instance.entities = load_csv_entities('"Lander","Lander",32,-32,""\n')
