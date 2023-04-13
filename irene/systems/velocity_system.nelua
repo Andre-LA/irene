@@ -24,22 +24,8 @@ function VelocitySystem:run(c: record{ velocity: *Velocity, position: *Position 
   local nene = Nene.instance()
 
   if c.velocity.active then
-    local final_vel = (do
-      if c.velocity.velocity_is_limited then
-        if c.velocity.max_velocity_is_per_axis then
-          in Velocity.get_limited_velocity(c.velocity.final_velocity, c.velocity.max_velocity_per_axis)
-        else
-          in Velocity.get_limited_velocity(c.velocity.final_velocity, c.velocity.max_velocity)
-        end
-      else
-        in c.velocity.final_velocity
-      end
-    end)
-
-    local mul = c.velocity.use_deltatime and nene.delta_time or 1
-
-    c.position.local_pos.x = c.position.local_pos.x + final_vel.x * mul
-    c.position.local_pos.y = c.position.local_pos.y + final_vel.y * mul
+    local delta = c.velocity:get_final_delta()
+    c.position:translate(delta)
   end
 end
 

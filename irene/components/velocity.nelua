@@ -10,41 +10,49 @@
   SPDX-License-Identifier: MPL-2.0
 ]]
 
+--[ dependencies ]--
+-- nelua
 local math = require 'math'
+
+-- nene
+local Nene = require 'nene.core'
 local Vec2 = require 'nene.math.vec2'
 local component = require 'rotor.component'
 
+--[ Velocity component ]--
 local Velocity <nickname 'Velocity'> = @component(@record{
   active: boolean,
   final_velocity: Vec2,
-  max_velocity_per_axis: Vec2,
-  max_velocity: number,
+  max_velocity: Vec2,
   max_velocity_is_per_axis: boolean,
   velocity_is_limited: boolean,
-  use_deltatime: boolean,
 })
 
 function Velocity:add_velocity(velocity: Vec2)
   self.final_velocity = self.final_velocity + velocity
 end
 
-function Velocity.get_limited_velocity(velocity: Vec2, limit: overload(number, Vec2)): Vec2
-  ## if limit.type == Vec2.value then
-    local vel: Vec2 = {
-      x = math.clamp(velocity.x, -limit.x, limit.x),
-      y = math.clamp(velocity.y, -limit.y, limit.y),
-    }
-
-    return vel
-  ## else
-    local velocity_len = velocity:len()
-
-    if velocity_len > limit then
-      return velocity * (limit / velocity_len)
+function Velocity:get_limited_velocity(): Vec2
+  local fv = self.final_velocity
+  
+  if self.velocity_is_limited then
+    if self.max_velocity_is_per_axis then
+      fv.x = math.clamp(fv.x, -self.max_velocity.x, self.max_velocity.x)
+      fv.y = math.clamp(fv.y, -self.max_velocity.y, self.max_velocity.y)
     else
-      return velocity
+      local fv_len = fv:len()
+      if fv_len > self.max_velocity.x then
+        fv = fv * (self.max_velocity.x / fv_len)
+      end
     end
-  ## end
+  end
+  
+  return fv
+end
+
+function Velocity:get_final_delta(): Vec2
+  local nene = Nene.instance()
+  return self:get_limited_velocity() * nene.delta_time
 end
 
 return Velocity

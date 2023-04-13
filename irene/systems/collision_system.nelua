@@ -199,7 +199,7 @@ function CollisionSystem:run(mc: MovingCollidable)
 
     -- if a collision happened, then go to the collision algorithm, 
     -- otherwise, go to possible end collision algorithm
-    if collision.collided then
+    if collision.collided and collision.delta:len() > 0.0 then
       -- only apply collision response if ic it's included on mc's collision mask
       if (mc.collider.collision_mask & ic.entity_data.mask) ~= 0 then
         mc:apply_collision_response(collision)

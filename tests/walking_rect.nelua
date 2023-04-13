@@ -101,7 +101,6 @@ function Walker.spawn(): (boolean, GenIdx)
 
     velocity = {
       active = true,
-      use_deltatime = true,
     },
 
     painter = {

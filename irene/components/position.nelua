@@ -22,4 +22,8 @@ function Position:final_pos(): Vec2
   return self.origin_pos + self.local_pos
 end
 
+function Position:translate(delta: Vec2)
+  self.local_pos = self.local_pos + delta
+end
+
 return Position

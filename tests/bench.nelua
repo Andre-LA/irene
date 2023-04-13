@@ -62,7 +62,6 @@ function Particle.init(): Particle
       final_velocity = {
         math.random(25, 50), -math.random(25, 50)
       },
-      use_deltatime = true,
     },
 
     painter = {

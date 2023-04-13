@@ -131,7 +131,7 @@ function Resources.load()
   instance.font = load_font('../nene/resources/monogram_extended.ttf', 16)
 
   -- maps
-  instance.entities = load_csv_entities('"Lander","Lander",32,-32,""\n')
+  instance.entities = load_csv_entities('"Lander","Lander",32,32,""\n')
   
   local ok, landed_txt = instance.font:render("You Landed!", Font.TextQuality.Solid, Color.white)
   assert(ok, "couldn't render 'You Landed!' text")

@@ -76,7 +76,7 @@ function CsvEntity.init_from_string(csv_entry: string): (boolean, CsvEntity, str
   local result = CsvEntity.init(
     --[[ name       ]] captures[1],
     --[[ class_name ]] captures[2],
-    --[[ pos        ]] { x = tonumber(captures[3]), y = tonumber(captures[4]) },
+    --[[ pos        ]] { x = tonumber(captures[3]), y = -tonumber(captures[4]) },
     --[[ properties ]] properties
   )
 

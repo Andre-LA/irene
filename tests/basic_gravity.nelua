@@ -54,7 +54,6 @@ local box: FallingBox = {
 
   velocity = {
     active = true,
-    use_deltatime = true,
   },
 
   gravity = {

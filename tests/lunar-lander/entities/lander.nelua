@@ -168,9 +168,8 @@ function Lander.spawn(local_pos: Vec2): GenIdx
 
   lander.velocity = {
     active = true,
-    max_velocity = LANDER_MAX_VELOCITY,
+    max_velocity = { x = LANDER_MAX_VELOCITY },
     velocity_is_limited = true,
-    use_deltatime = true,
   }
 
   lander.gravity = {
