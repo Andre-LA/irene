@@ -12,6 +12,7 @@
 -- nene
 local Vec2 = require 'nene.math.vec2'
 local Rect = require 'nene.math.rect'
+local Collision = require 'nene.collision'
 
 -- rotor
 local derived_entity = require 'rotor.derived_entity'
@@ -40,9 +41,9 @@ local BaseEntity.Inputs = @record{
     hitbox: Rect,
     intersection_mask: uint32,
     collision_mask: uint32,
-    on_intersection: function(Collider.CollisionData),       
-    on_begin_intersection: function(Collider.CollisionData), 
-    on_end_intersection: function(Collider.CollisionData),   
+    on_intersection: Collider.CollisionCallback,
+    on_begin_intersection: Collider.CollisionCallback,
+    on_end_intersection: Collider.EndCollisionCallback,
   }
 }
 

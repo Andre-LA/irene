@@ -32,6 +32,9 @@ local EntityData = require 'irene.components.entity_data'
 -- collider
 local CollisionData <forwarddecl> = @record{}
 
+local CollisionCallback = @function(CollisionData, Collision)
+local EndCollisionCallback = @function(CollisionData)
+
 local Collider <nickname 'Collider'> = @component(@record{
   active: boolean,             -- active field, set this to true to make it in the collision system
   hitbox: Rect,                -- collider's hitbox
@@ -40,15 +43,16 @@ local Collider <nickname 'Collider'> = @component(@record{
   corner_tolerance: integer,   -- this adds some tolerance, useful to avoid unwanted collision on corners
   intersecting_with: storage(EntityData, 8), -- stores the data of the entities of the on going collisions
 
-  on_intersection: function(CollisionData),       -- general reaction callback, continuously called per frame while the collider is intersecting other collider
-  on_begin_intersection: function(CollisionData), -- begin reaction callback, called when the collider begin intersecting another one
-  on_end_intersection: function(CollisionData),   -- end reaction callback, called when the collider stops intersecting another collider
+  on_intersection: CollisionCallback,       -- general reaction callback, continuously called per frame while the collider is intersecting other collider
+  on_begin_intersection: CollisionCallback, -- begin reaction callback, called when the collider begin intersecting another one
+  on_end_intersection: EndCollisionCallback,   -- end reaction callback, called when the collider stops intersecting another collider
 
   -- velocity_interrupted: Vec2,  -- used internally by the collision system
   delta: Vec2,
 })
 
-local Collider.CollisionCallback = @function(CollisionData)
+local Collider.CollisionCallback = @CollisionCallback
+local Collider.EndCollisionCallback = @EndCollisionCallback
 
 local CollidedData = @record{
   collider: *Collider,

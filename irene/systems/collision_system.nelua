@@ -72,17 +72,26 @@ function Collidable:to_collided_data(): Collider.CollidedData
   return Collider.CollidedData.init(self.collider, self.entity_data, hitbox)
 end
 
-function MovingCollidable:try_callback(other_collidable: *Collidable, callback_name: string <comptime>): boolean
+function MovingCollidable:try_callback(other_collidable: *Collidable, collision: Collision, callback_name: string <comptime>): boolean
   check(other_collidable)
 
-  ##[[
-  local valid_callbacks = { on_intersection = true, on_begin_intersection = true, on_end_intersection = true }
-  static_assert(valid_callbacks[callback_name.value], "tried to call an unexpected callback '%s'", callback_name.value)
-  ]]
+  ## static_assert(callback_name.value == 'on_intersection' or callback_name.value == 'on_begin_intersection', "tried to call an unexpected callback '%s'", callback_name.value)
 
   if self.collider.#|callback_name.value|# then
     local collision_data = Collider.CollisionData.init(self:as_collidable():to_collided_data(), other_collidable:to_collided_data())
-    self.collider.#|callback_name.value|#(collision_data)
+    self.collider.#|callback_name.value|#(collision_data, collision)
+    return true
+  end
+
+  return false
+end
+
+function MovingCollidable:try_end_callback(other_collidable: *Collidable): boolean
+  check(other_collidable)
+
+  if self.collider.on_end_intersection then
+    local collision_data = Collider.CollisionData.init(self:as_collidable():to_collided_data(), other_collidable:to_collided_data())
+    self.collider.on_end_intersection(collision_data)
     return true
   end
 
@@ -140,7 +149,7 @@ local function call_end_intersection(intersection_id: GenIdx, self_collidable: *
   
   self_collidable.collider.intersecting_with:remove(intersection_id)
 
-  self_collidable:try_callback(other_collidable, 'on_end_intersection')
+  self_collidable:try_end_callback(other_collidable)
 end
 
 local CollisionSystem = @record{
@@ -212,14 +221,14 @@ function CollisionSystem:run(mc: MovingCollidable)
 
 
       -- call begin collision callback and draw collisions if needed
-        if mc:try_callback(ic, 'on_begin_intersection') and self.draw_collisions then
+        if mc:try_callback(ic, collision, 'on_begin_intersection') and self.draw_collisions then
           mc:draw(Color.blue)
           ic:draw(Color.green)
         end
       end
 
       -- call collision callback and draw collisions if needed
-      if mc:try_callback(ic, 'on_intersection') and self.draw_collisions then
+      if mc:try_callback(ic, collision, 'on_intersection') and self.draw_collisions then
         mc:draw(Color.blue)
         ic:draw(Color.green)
       end
