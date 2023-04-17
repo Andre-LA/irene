@@ -40,7 +40,6 @@ local Collider <nickname 'Collider'> = @component(@record{
   hitbox: Rect,                -- collider's hitbox
   intersection_mask: uint32,   -- bitmask of all collider ids this collider can collide or just intersect with
   collision_mask: uint32,      -- bitmask of which ids of intersection_mask should make a "physically" collision.
-  corner_tolerance: integer,   -- this adds some tolerance, useful to avoid unwanted collision on corners
   intersecting_with: storage(EntityData, 8), -- stores the data of the entities of the on going collisions
 
   on_intersection: CollisionCallback,       -- general reaction callback, continuously called per frame while the collider is intersecting other collider

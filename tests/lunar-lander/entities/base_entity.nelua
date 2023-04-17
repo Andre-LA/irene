@@ -56,7 +56,6 @@ function BaseEntity.derived_init(base: an_base_entity_ptr, inputs: BaseEntity.In
 
   base.collider = {
     active = true,
-    corner_tolerance = 2,
     hitbox = inputs.collider.hitbox,
     intersection_mask = inputs.collider.intersection_mask,
     collision_mask = inputs.collider.collision_mask,
